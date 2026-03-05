@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>git-memory — dashboard</title>
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════
+     GITHUB PRIMER DARK THEME — git-memory dashboard
+     Identical to GitHub UI
+     ═══════════════════════════════════════════════════════════════════════ */
+
+    :root {
+      --color-canvas-default: #0d1117;
+      --color-canvas-subtle: #161b22;
+      --color-border-default: #30363d;
+      --color-border-muted: #21262d;
+      --color-fg-default: #c9d1d9;
+      --color-fg-muted: #8b949e;
+      --color-accent-fg: #58a6ff;
+      --color-accent-emphasis: #1f6feb;
+      --color-accent-muted: rgba(56, 139, 253, 0.4);
+      --color-accent-subtle: rgba(56, 139, 253, 0.15);
+      --color-danger-fg: #f85149;
+      --color-danger-emphasis: #da3633;
+      --color-danger-muted: rgba(229, 83, 75, 0.4);
+      --color-danger-subtle: rgba(229, 83, 75, 0.15);
+      --color-success-fg: #3fb950;
+      --color-success-emphasis: #238636;
+      --color-success-muted: rgba(46, 160, 67, 0.4);
+      --color-success-subtle: rgba(46, 160, 67, 0.15);
+      --color-attention-fg: #d29922;
+      --color-attention-emphasis: #9e6a03;
+      --color-attention-muted: rgba(187, 128, 9, 0.4);
+      --color-attention-subtle: rgba(187, 128, 9, 0.15);
+      --color-severe-fg: #db6d28;
+      --color-severe-subtle: rgba(219, 109, 40, 0.15);
+      --color-done-fg: #a371f7;
+      --color-done-subtle: rgba(163, 113, 247, 0.15);
+      --color-header-bg: #161b22;
+
+      --border-radius: 6px;
+      --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+      --font-mono: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-stack);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--color-fg-default);
+      background-color: var(--color-canvas-default);
+      word-wrap: break-word;
+    }
+
+    a {
+      color: var(--color-accent-fg);
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    svg {
+      fill: currentColor;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────────── */
+
+    .Header {
+      z-index: 32;
+      display: flex;
+      padding: 16px;
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.7);
+      background-color: var(--color-header-bg);
+      align-items: center;
+      flex-wrap: nowrap;
+      border-bottom: 1px solid var(--color-border-default);
+      margin-bottom: 24px;
+    }
+
+    .Header-item {
+      display: flex;
+      margin-right: 16px;
+      align-items: center;
+    }
+
+    .Header-item--full {
+      flex: 1 1 auto;
+      justify-content: flex-end;
+    }
+
+    .Header-link {
+      font-weight: 600;
+      color: #ffffff;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+    }
+
+    .Header-link svg {
+      fill: #ffffff;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-success-fg);
+      border: 1px solid var(--color-border-default);
+      padding: 2px 8px;
+      border-radius: 2em;
+      background-color: transparent;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--color-success-fg);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .repo-name {
+      margin-right: 8px;
+      font-weight: 600;
+      color: var(--color-accent-fg);
+    }
+
+    .branch-name {
+      display: inline-flex;
+      align-items: center;
+      background-color: rgba(56, 139, 253, 0.1);
+      color: var(--color-accent-fg);
+      border-radius: 2em;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      font-family: var(--font-mono);
+    }
+
+    /* ── Layout Shell ─────────────────────────────────────────────────── */
+
+    .Container {
+      max-width: 1216px;
+      margin-right: auto;
+      margin-left: auto;
+      padding-right: 16px;
+      padding-left: 16px;
+      margin-bottom: 60px;
+    }
+
+    /* ── Search ───────────────────────────────────────────────────────── */
+
+    .subnav {
+      display: flex;
+      margin-bottom: 20px;
+    }
+
+    .subnav-search {
+      position: relative;
+      display: flex;
+      flex: 1;
+    }
+
+    .subnav-search-input {
+      width: 100%;
+      padding: 5px 12px 5px 32px;
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--color-fg-default);
+      vertical-align: middle;
+      background-color: var(--color-canvas-default);
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--border-radius);
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.075);
+      transition: 80ms cubic-bezier(0.33, 1, 0.68, 1);
+      transition-property: color, background-color, box-shadow, border-color;
+    }
+
+    .subnav-search-input:focus {
+      border-color: var(--color-accent-emphasis);
+      box-shadow: 0 0 0 3px var(--color-accent-muted);
+    }
+
+    .subnav-search-icon {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      color: var(--color-fg-muted);
+      fill: var(--color-fg-muted);
+    }
+
+    /* ── Status Grid (github style overview) ────────────────────────── */
+
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 768px) {
+      .overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .Box {
+      background-color: var(--color-canvas-default);
+      border: 1px solid var(--color-border-default);
+      border-radius: var(--border-radius);
+    }
+
+    .CounterBox {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .CounterBox-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-fg-muted);
+      margin-bottom: 4px;
+    }
+
+    .CounterBox-value {
+      font-size: 24px;
+      font-weight: 400;
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+
+    .CounterBox-sub {
+      font-size: 12px;
+      color: var(--color-fg-muted);
+    }
+
+    /* ── Sections (GitHub Issue Style) ────────────────────────────────── */
+
+    .Box-header {
+      padding: 16px;
+      margin: -1px -1px 0;
+      background-color: var(--color-canvas-subtle);
+      border-color: var(--color-border-default);
+      border-style: solid;
+      border-width: 1px;
+      border-top-left-radius: var(--border-radius);
+      border-top-right-radius: var(--border-radius);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .Box-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--color-fg-default);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .Counter {
+      display: inline-block;
+      min-width: 20px;
+      padding: 0 6px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 18px;
+      color: var(--color-fg-default);
+      text-align: center;
+      background-color: var(--color-border-muted);
+      border: 1px solid transparent;
+      border-radius: 2em;
+    }
+
+    .Box-row {
+      padding: 16px;
+      margin-top: -1px;
+      list-style-type: none;
+      border-top: 1px solid var(--color-border-default);
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .Box-row:hover {
+      background-color: var(--color-canvas-subtle);
+    }
+
+    .Box-row-icon {
+      color: var(--color-fg-muted);
+      margin-top: 2px;
+    }
+
+    .Box-row-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .Box-row-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-fg-default);
+      margin-bottom: 4px;
+    }
+
+    .Box-row-meta {
+      font-size: 12px;
+      color: var(--color-fg-muted);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .Label {
+      display: inline-block;
+      padding: 0 7px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 18px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+      border-radius: 2em;
+    }
+
+    /* GitHub specific label colors */
+    .Label--primary {
+      color: var(--color-fg-default);
+      border-color: var(--color-border-default);
+    }
+
+    .Label--success {
+      color: var(--color-success-fg);
+      border-color: var(--color-success-fg);
+    }
+
+    .Label--danger {
+      color: var(--color-danger-fg);
+      border-color: var(--color-danger-fg);
+    }
+
+    .Label--warning {
+      color: var(--color-attention-fg);
+      border-color: var(--color-attention-fg);
+    }
+
+    .Label--accent {
+      color: var(--color-accent-fg);
+      border-color: var(--color-accent-fg);
+    }
+
+    .Label--done {
+      color: var(--color-done-fg);
+      border-color: var(--color-done-fg);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .Label--done::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background-color: var(--color-done-fg);
+      border-radius: 50%;
+    }
+
+    .commit-sha {
+      font-family: var(--font-mono);
+      color: var(--color-fg-muted);
+    }
+
+    .commit-sha:hover {
+      color: var(--color-accent-fg);
+    }
+
+    /* Custom overrides for specific status types */
+    .icon-danger {
+      color: var(--color-danger-fg);
+    }
+
+    .icon-warning {
+      color: var(--color-attention-fg);
+    }
+
+    .icon-success {
+      color: var(--color-success-fg);
+    }
+
+    .icon-done {
+      color: var(--color-done-fg);
+    }
+
+    /* Progress Bar for TTL/Health */
+    .Progress {
+      display: flex;
+      height: 8px;
+      overflow: hidden;
+      background-color: var(--color-border-muted);
+      border-radius: var(--border-radius);
+      margin-top: 8px;
+      width: 250px;
+    }
+
+    .Progress-item {
+      outline: 2px solid var(--color-canvas-default);
+    }
+
+    .bg-success {
+      background-color: var(--color-success-emphasis);
+    }
+
+    .bg-danger {
+      background-color: var(--color-danger-emphasis);
+    }
+
+    .bg-warning {
+      background-color: var(--color-attention-emphasis);
+    }
+
+    .SectionWrap {
+      margin-bottom: 24px;
+    }
+
+    .SectionBody {
+      transition: display 0.2s;
+    }
+
+    .SectionWrap.collapsed .SectionBody {
+      display: none;
+    }
+
+    .SectionWrap.collapsed .Box-header {
+      border-bottom-left-radius: var(--border-radius);
+      border-bottom-right-radius: var(--border-radius);
+    }
+
+    .octicon-chevron {
+      display: inline-block;
+      transition: transform 0.2s;
+    }
+
+    .SectionWrap.collapsed .octicon-chevron {
+      transform: rotate(-90deg);
+    }
+
+
+    /* Timeline */
+    .TimelineItem {
+      display: flex;
+      position: relative;
+      padding: 16px 0;
+      margin-left: 16px;
+    }
+
+    .TimelineItem::before {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 14px;
+      display: block;
+      width: 2px;
+      content: "";
+      background-color: var(--color-border-default);
+    }
+
+    .TimelineItem-badge {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      width: 32px;
+      height: 32px;
+      margin-right: 8px;
+      color: var(--color-fg-muted);
+      align-items: center;
+      justify-content: center;
+      background-color: var(--color-canvas-default);
+      border: 2px solid var(--color-border-default);
+      border-radius: 50%;
+    }
+
+    .TimelineItem-body {
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 100%;
+      margin-top: 4px;
+      color: var(--color-fg-muted);
+    }
+
+    .TimelineItem-body strong {
+      color: var(--color-fg-default);
+      font-weight: 600;
+    }
+
+    /* Empty states */
+    .blankslate {
+      padding: 32px;
+      text-align: center;
+    }
+
+    .blankslate-icon {
+      margin-right: 8px;
+      margin-bottom: 8px;
+      color: var(--color-fg-muted);
+    }
+
+    .blankslate-heading {
+      margin-bottom: 4px;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .blankslate-p {
+      color: var(--color-fg-muted);
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    .footer {
+      display: flex;
+      padding: 40px 0;
+      margin-top: 40px;
+      font-size: 12px;
+      color: var(--color-fg-muted);
+      border-top: 1px solid var(--color-border-default);
+      justify-content: center;
+      gap: 16px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <div class="Header">
+    <div class="Header-item">
+      <a href="#" class="Header-link">
+        <svg height="32" aria-hidden="true" viewBox="0 0 16 16" version="1.1" width="32" class="octicon">
+          <path fill-rule="evenodd"
+            d="M8 0C3.58 0 0 3.58 0 8c0 4.42 3.58 8 8 8 4.42 0 8-3.58 8-8 0-4.42-3.58-8-8-8zm-3 3h6v2H5zm0 2h2v2H5zm4 0h2v2H9zm-6 2h10v2H3zm2 2h6v2H5zm0 2h2v2H5zm4 0h2v2H9z" />
+        </svg>
+        <span style="margin-left:8px">git-memory dashboard</span>
+      </a>
+    </div>
+    <div class="Header-item Header-item--full">
+      <span class="repo-name" id="hdr-repo">claude-git-memory</span>
+      <span class="branch-name">
+        <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true"
+          class="octicon octicon-repo-branch" style="margin-right:4px">
+          <path
+            d="M11.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm-2.25.75a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.492 2.492 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25ZM4.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5ZM3.5 3.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Z">
+          </path>
+        </svg>
+        <span id="hdr-branch">main</span>
+      </span>
+    </div>
+    <div class="Header-item">
+      <div class="live-badge">
+        <span class="live-dot"></span> Live
+      </div>
+    </div>
+  </div>
+
+  <div class="Container">
+    <!-- Status Grid Overview -->
+    <div class="overview-grid" id="status-grid"></div>
+
+    <!-- Search -->
+    <div class="subnav">
+      <div class="subnav-search">
+        <svg aria-hidden="true" height="16" viewBox="0 0 16 16" version="1.1" width="16" data-view-component="true"
+          class="subnav-search-icon">
+          <path
+            d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z">
+          </path>
+        </svg>
+        <input type="text" class="subnav-search-input" id="search" placeholder="Search blockers, decisions, memos...">
+      </div>
+    </div>
+
+    <!-- Sections Container -->
+    <div id="sections"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>©
+      <script>document.write(new Date().getFullYear())</script> git-memory
+    </span>
+    <span>Auto-refresh: 10s</span>
+    <span id="footer-time"></span>
+  </footer>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════════════════
+    // DATA — replaced by Python generator with real data
+    // ═══════════════════════════════════════════════════════════════════════════
+    const DATA = {
+      repo: { name: "claude-git-memory", branch: "main" },
+      generated_at: new Date().toISOString(),
+      scan_depth: 500,
+      total_commits: 18,
+
+      blockers: [
+        { text: "Waiting for OAuth provider keys from client", sha: "1c4b2e3", scope: "auth", age_days: 31, ttl_remaining: 0, is_stale: true, date: "2026-02-03T10:00:00" },
+        { text: "SQLite schema migration breaks backward compat", sha: "3f8a91b", scope: "db", age_days: 26, ttl_remaining: 4, is_stale: false, date: "2026-02-08T14:30:00" }
+      ],
+
+      pending: [
+        { text: "Add snapshot truncation test for >18 lines", sha: "8a2b1c4", scope: "tests", age_days: 14, date: "2026-02-20T09:00:00" },
+        { text: "Handle -F flag commits in belt hook", sha: "4d5e6f7", scope: "hooks", age_days: 8, date: "2026-02-26T11:00:00" },
+        { text: "Write integration test for GC tombstone filtering", sha: "261fc19", scope: "memory", age_days: 1, date: "2026-03-05T21:00:00" },
+        { text: "Document --since and --scope flags in README", sha: "9f0a1b2", scope: "docs", age_days: 3, date: "2026-03-03T16:00:00" }
+      ],
+
+      decisions: [
+        { text: "Zero external dependencies — Python stdlib + git only", sha: "2b3c4d5", scope: "core", date: "2026-02-01T10:00:00" },
+        { text: "Tailwind utility classes only, no custom CSS for filters", sha: "1a2b3c4", scope: "ui", date: "2026-02-15T13:00:00" },
+        { text: "GC uses compensation commits with tombstone trailers", sha: "261fc19", scope: "gc", date: "2026-03-05T21:00:00" }
+      ],
+
+      memos: [
+        { text: "client requested Notion-like filter UX for all data views", scope: "ui", category: "requirement", date: "2026-02-12T10:00:00", sha: "0343b00" },
+        { text: "sync fs operations block event loop and cause timeouts in prod", scope: "api", category: "antipattern", date: "2026-02-14T15:00:00", sha: "da3e507" },
+        { text: "always use conventional commits with emoji prefix", scope: "core", category: "preference", date: "2026-02-01T09:00:00", sha: "abc1234" }
+      ],
+
+      health: { compliance_pct: 93, compliant: 42, total_checkable: 45, missing: { "Why": 2, "Touched": 1 } },
+      gc: { last_run_days_ago: 2, tombstone_count: 5, candidates: { stale_next: 3, stale_blocker: 1 } },
+
+      timeline: [
+        { sha: "261fc19", subject: "\u2728 feat(memory): add garbage collector", type: "feat", date: "2026-03-05T21:02:00" },
+        { sha: "494a20e", subject: "\uD83D\uDC1B fix(hooks): critical post-hook safety", type: "fix", date: "2026-03-05T19:00:00" },
+        { sha: "a737c13", subject: "\u267B\uFE0F refactor(hooks): harden hooks + restore drift test coverage", type: "refactor", date: "2026-03-05T17:00:00" },
+        { sha: "1212777", subject: "\uD83D\uDD27 chore: remove placeholder files and add .gitignore", type: "chore", date: "2026-03-05T15:00:00" },
+        { sha: "689817d", subject: "\uD83D\uDCBE context(forms): mid-session bookmark", type: "context", date: "2026-03-04T18:00:00" },
+        { sha: "da3e507", subject: "\uD83D\uDCCC memo(api): never use synchronous file operations", type: "memo", date: "2026-02-14T15:00:00" },
+        { sha: "0343b00", subject: "\uD83D\uDCCC memo(ui): client wants Notion-style filters", type: "memo", date: "2026-02-12T10:00:00" },
+        { sha: "6e7f8a9", subject: "\uD83C\uDFDB\uFE0F decision(api): cursor-based pagination with 50-item pages", type: "decision", date: "2026-02-10T11:00:00" }
+      ]
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    function fmtDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const m = d.toLocaleString('en-US', { month: 'short' });
+      return `on ${m} ${d.getDate()}`;
+    }
+
+    function emptyState(text) {
+      return `<div class="blankslate"><h3 class="blankslate-heading">${text}</h3></div>`;
+    }
+
+    // Octicon SVGs
+    const icons = {
+      blocker: '<svg width="16" height="16" class="icon-danger" viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.39c.65 1.215-.228 2.687-1.543 2.687H1.918c-1.315 0-2.192-1.472-1.543-2.687ZM8 4a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 0 1.5 0v-3.5A.75.75 0 0 0 8 4Zm0 8a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z"></path></svg>',
+      pending: '<svg width="16" height="16" class="icon-warning" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8V4.75a.75.75 0 0 1 1.5 0Z"></path></svg>',
+      decision: '<svg width="16" height="16" class="icon-done" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.53-2.53a.75.75 0 0 0-1.06-1.06L6.5 8.354 5.03 6.88a.75.75 0 0 0-1.06 1.06l2 2a.75.75 0 0 0 1.06 0l4.5-4.5Z"></path></svg>',
+      memo: '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Z"></path></svg>',
+      health: '<svg width="16" height="16" class="icon-success" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0Zm-1.5 0a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0Zm-9-1.5a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm5 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm-5.977 3.09a.75.75 0 0 1 1.063.048 3.003 3.003 0 0 0 4.828 0 .75.75 0 1 1 1.114 1.004 4.503 4.503 0 0 1-7.053 0 .75.75 0 0 1 .048-1.052Z"></path></svg>',
+      gc: '<svg width="16" height="16" class="icon-warning" viewBox="0 0 16 16"><path d="M6.5 1.75a.25.25 0 0 1 .25-.25h2.5a.25.25 0 0 1 .25.25V3h-3ZM11 3V1.75A1.75 1.75 0 0 0 9.25 0h-2.5A1.75 1.75 0 0 0 5 1.75V3H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 14h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5Zm-5.47 1.14a.75.75 0 0 1 .82.68l.5 6a.75.75 0 1 1-1.497.126l-.5-6a.75.75 0 0 1 .677-.806Zm3.56.68a.75.75 0 0 1 1.497.126l-.5 6a.75.75 0 0 1-1.497-.126Z"></path></svg>',
+      commit: '<svg width="16" height="16" viewBox="0 0 16 16"><path d="M11.93 8.5a4.002 4.002 0 0 1-7.86 0H.75a.75.75 0 0 1 0-1.5h3.32a4.002 4.002 0 0 1 7.86 0h3.32a.75.75 0 0 1 0 1.5Zm-1.43-.75a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"></path></svg>'
+    };
+
+    // Timeline badge colors by commit type
+    const typeColors = {
+      feat: 'var(--color-success-fg)', fix: 'var(--color-danger-fg)',
+      refactor: 'var(--color-done-fg)', context: 'var(--color-accent-fg)',
+      decision: 'var(--color-attention-fg)', memo: 'var(--color-severe-fg)',
+      chore: 'var(--color-fg-muted)', docs: 'var(--color-fg-muted)',
+      test: 'var(--color-accent-fg)', perf: 'var(--color-attention-fg)'
+    };
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // RENDERERS
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderStatusCards() {
+      const d = DATA;
+      const healthCol = d.health.compliance_pct > 90 ? 'var(--color-success-fg)' : d.health.compliance_pct > 70 ? 'var(--color-attention-fg)' : 'var(--color-danger-fg)';
+      const staleCount = d.blockers.filter(b => b.is_stale).length;
+      document.getElementById('status-grid').innerHTML = `
+        <div class="Box CounterBox">
+          <div class="CounterBox-title">Compliance</div>
+          <div class="CounterBox-value" style="color:${healthCol}">${d.health.compliance_pct}%</div>
+          <div class="CounterBox-sub">${d.health.compliant}/${d.health.total_checkable} commits</div>
+        </div>
+        <div class="Box CounterBox">
+          <div class="CounterBox-title">Blockers</div>
+          <div class="CounterBox-value" style="color:${d.blockers.length ? 'var(--color-danger-fg)' : 'var(--color-fg-default)'}">${d.blockers.length}</div>
+          <div class="CounterBox-sub">${staleCount ? staleCount + ' stale' : 'all active'}</div>
+        </div>
+        <div class="Box CounterBox">
+          <div class="CounterBox-title">Pending</div>
+          <div class="CounterBox-value">${d.pending.length}</div>
+          <div class="CounterBox-sub">${d.pending.length ? 'oldest: ' + Math.max(...d.pending.map(p => p.age_days)) + 'd' : 'clear'}</div>
+        </div>
+        <div class="Box CounterBox">
+          <div class="CounterBox-title">Decisions</div>
+          <div class="CounterBox-value">${d.decisions.length}</div>
+          <div class="CounterBox-sub">architecture log</div>
+        </div>
+        <div class="Box CounterBox">
+          <div class="CounterBox-title">Memos</div>
+          <div class="CounterBox-value">${d.memos.length}</div>
+          <div class="CounterBox-sub">rules & prefs</div>
+        </div>`;
+    }
+
+    function renderBlockers() {
+      if (!DATA.blockers.length) return emptyState("No active blockers");
+      return DATA.blockers.map(b => {
+        const isStale = b.is_stale;
+        const labelCls = isStale ? 'Label--danger' : (b.ttl_remaining <= 7 ? 'Label--warning' : 'Label--success');
+        const labelTxt = isStale ? 'Stale' : (b.ttl_remaining <= 7 ? 'Expiring' : 'Active');
+        const barW = Math.max(2, Math.min(100, (b.ttl_remaining / 30) * 100));
+        const barCls = isStale ? 'bg-danger' : (b.ttl_remaining <= 7 ? 'bg-warning' : 'bg-success');
+        return `
+        <li class="Box-row" data-search="${esc(b.text)} ${esc(b.scope)}">
+          <div class="Box-row-icon">${icons.blocker}</div>
+          <div class="Box-row-content">
+            <div class="Box-row-title">${esc(b.text)}</div>
+            <div class="Box-row-meta">
+              <span class="commit-sha">${b.sha}</span>
+              <span class="Label Label--primary">${esc(b.scope)}</span>
+              <span class="Label ${labelCls}">${labelTxt} \u00B7 ${isStale ? 'expired' : b.ttl_remaining + 'd left'}</span>
+              <span>opened ${fmtDate(b.date)}</span>
+            </div>
+            <div class="Progress"><div class="Progress-item ${barCls}" style="width:${barW}%"></div></div>
+          </div>
+        </li>`;
+      }).join('');
+    }
+
+    function renderPending() {
+      if (!DATA.pending.length) return emptyState("No pending tasks");
+      const sorted = [...DATA.pending].sort((a, b) => b.age_days - a.age_days);
+      return sorted.map(p => {
+        const ageCls = p.age_days > 14 ? 'Label--danger' : p.age_days > 7 ? 'Label--warning' : 'Label--primary';
+        return `
+        <li class="Box-row" data-search="${esc(p.text)} ${esc(p.scope)}">
+          <div class="Box-row-icon">${icons.pending}</div>
+          <div class="Box-row-content">
+            <div class="Box-row-title">${esc(p.text)}</div>
+            <div class="Box-row-meta">
+              <span class="commit-sha">${p.sha}</span>
+              <span class="Label Label--primary">${esc(p.scope)}</span>
+              <span class="Label ${ageCls}">${p.age_days}d old</span>
+              <span>created ${fmtDate(p.date)}</span>
+            </div>
+          </div>
+        </li>`;
+      }).join('');
+    }
+
+    function renderDecisions() {
+      if (!DATA.decisions.length) return emptyState("No decisions recorded");
+      return DATA.decisions.map(d => `
+        <li class="Box-row" data-search="${esc(d.text)} ${esc(d.scope)}">
+          <div class="Box-row-icon">${icons.decision}</div>
+          <div class="Box-row-content">
+            <div class="Box-row-title">${esc(d.text)}</div>
+            <div class="Box-row-meta">
+              <span class="commit-sha">${d.sha}</span>
+              <span class="Label Label--done">${esc(d.scope)}</span>
+              <span>committed ${fmtDate(d.date)}</span>
+            </div>
+          </div>
+        </li>`).join('');
+    }
+
+    function renderMemos() {
+      if (!DATA.memos.length) return emptyState("No memos recorded");
+      const catLabel = { requirement: 'Label--warning', antipattern: 'Label--danger', preference: 'Label--accent' };
+      return DATA.memos.map(m => `
+        <li class="Box-row" data-search="${esc(m.text)} ${esc(m.scope)} ${esc(m.category)}">
+          <div class="Box-row-icon">${icons.memo}</div>
+          <div class="Box-row-content">
+            <div class="Box-row-title">${esc(m.text)}</div>
+            <div class="Box-row-meta">
+              <span class="commit-sha">${m.sha}</span>
+              <span class="Label Label--primary">${esc(m.scope)}</span>
+              <span class="Label ${catLabel[m.category] || 'Label--accent'}">${esc(m.category)}</span>
+              <span>saved ${fmtDate(m.date)}</span>
+            </div>
+          </div>
+        </li>`).join('');
+    }
+
+    function renderHealth() {
+      const h = DATA.health;
+      const col = h.compliance_pct > 90 ? 'bg-success' : h.compliance_pct > 70 ? 'bg-warning' : 'bg-danger';
+      const missing = Object.entries(h.missing || {});
+      return `
+        <div style="padding:16px">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:8px">
+            <span style="font-size:32px;font-weight:600;color:${h.compliance_pct > 90 ? 'var(--color-success-fg)' : 'var(--color-attention-fg)'}">${h.compliance_pct}%</span>
+            <span style="color:var(--color-fg-muted)">${h.compliant} compliant of ${h.total_checkable} checkable commits \u00B7 ${DATA.total_commits} scanned</span>
+          </div>
+          <div class="Progress" style="width:100%;margin-bottom:12px">
+            <div class="Progress-item ${col}" style="width:${h.compliance_pct}%"></div>
+          </div>
+          ${missing.length ? `<div style="display:flex;gap:16px;flex-wrap:wrap">${missing.map(([k, v]) =>
+        `<span style="font-size:12px;color:var(--color-fg-muted)"><span style="color:var(--color-danger-fg);font-weight:600">\u00D7${v}</span> missing ${k}:</span>`
+      ).join('')}</div>` : '<span style="font-size:13px;color:var(--color-success-fg)">\u2713 All trailers present</span>'}
+        </div>`;
+    }
+
+    function renderGC() {
+      const gc = DATA.gc;
+      const total = (gc.candidates?.stale_next || 0) + (gc.candidates?.stale_blocker || 0);
+      return `
+        <div style="padding:16px">
+          <div style="display:flex;gap:32px;margin-bottom:${total > 0 ? '16px' : '0'}">
+            <div>
+              <div style="font-size:24px;font-weight:400;color:var(--color-accent-fg)">${gc.tombstone_count}</div>
+              <div style="font-size:12px;color:var(--color-fg-muted)">tombstones active</div>
+            </div>
+            <div>
+              <div style="font-size:24px;font-weight:400;color:${total > 0 ? 'var(--color-attention-fg)' : 'var(--color-success-fg)'}">${total}</div>
+              <div style="font-size:12px;color:var(--color-fg-muted)">candidates if run today</div>
+            </div>
+            <div>
+              <div style="font-size:24px;font-weight:400;color:var(--color-fg-muted)">${gc.last_run_days_ago !== null ? gc.last_run_days_ago + 'd' : '\u2014'}</div>
+              <div style="font-size:12px;color:var(--color-fg-muted)">since last GC</div>
+            </div>
+          </div>
+          ${total > 0 ? `<div style="font-size:12px;color:var(--color-fg-muted);border-top:1px solid var(--color-border-default);padding-top:12px">
+            ${gc.candidates.stale_next ? `<div>\u23F3 ${gc.candidates.stale_next} Next: item(s) without recent activity</div>` : ''}
+            ${gc.candidates.stale_blocker ? `<div>\uD83D\uDEAB ${gc.candidates.stale_blocker} Blocker(s) past TTL</div>` : ''}
+            <div style="margin-top:8px;color:var(--color-fg-muted)">Run <code style="background:var(--color-border-muted);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px">git memory gc</code> to clean</div>
+          </div>` : '<div style="font-size:13px;color:var(--color-success-fg)">\u2713 Memory is clean</div>'}
+        </div>`;
+    }
+
+    function renderTimeline() {
+      if (!DATA.timeline.length) return emptyState("No commits found");
+      return `<div style="padding:16px 16px 0">${DATA.timeline.map((t, i) => {
+        const col = typeColors[t.type] || 'var(--color-fg-muted)';
+        const isLast = i === DATA.timeline.length - 1;
+        return `
+        <div class="TimelineItem" data-search="${esc(t.subject)} ${esc(t.type)}" style="${isLast ? '' : ''}">
+          ${!isLast ? '' : '<style>.TimelineItem:last-child::before{display:none}</style>'}
+          <div class="TimelineItem-badge" style="color:${col};border-color:${col}">
+            ${icons.commit}
+          </div>
+          <div class="TimelineItem-body">
+            <strong>${esc(t.subject)}</strong><br>
+            <span class="commit-sha">${t.sha}</span>
+            <span class="Label Label--primary" style="margin-left:4px">${esc(t.type)}</span>
+            <span style="margin-left:4px">${fmtDate(t.date)}</span>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // SECTION BUILDER
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function renderSections() {
+      const chevronSvg = '<svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16" class="octicon-chevron"><path d="M12.78 6.22a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L3.22 7.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L8 9.94l3.72-3.72a.75.75 0 0 1 1.06 0Z"></path></svg>';
+
+      const sections = [
+        { id: 'blockers', title: 'Blockers', count: DATA.blockers.length, render: renderBlockers },
+        { id: 'pending', title: 'Pending Work', count: DATA.pending.length, render: renderPending },
+        { id: 'decisions', title: 'Active Decisions', count: DATA.decisions.length, render: renderDecisions },
+        { id: 'memos', title: 'Memos & Rules', count: DATA.memos.length, render: renderMemos },
+        { id: 'health', title: 'Trailer Compliance', count: null, render: renderHealth },
+        { id: 'gc', title: 'Garbage Collection', count: null, render: renderGC },
+        { id: 'timeline', title: 'Recent Commits', count: DATA.timeline.length, render: renderTimeline },
+      ];
+
+      document.getElementById('sections').innerHTML = sections.map(s => {
+        const countHtml = s.count !== null ? `<span class="Counter">${s.count}</span>` : '';
+        return `
+        <div class="SectionWrap Box" id="sec-${s.id}" data-id="${s.id}">
+          <div class="Box-header" onclick="toggleSection('${s.id}')">
+            <h3 class="Box-title">${chevronSvg} ${s.title}</h3>
+            ${countHtml}
+          </div>
+          <div class="SectionBody">${s.render()}</div>
+        </div>`;
+      }).join('');
+
+      // Fix counters for sections with Box-row items
+      document.querySelectorAll('.SectionWrap').forEach(sec => {
+        const rows = sec.querySelectorAll('.Box-row');
+        const counter = sec.querySelector('.Counter');
+        if (counter && rows.length) counter.textContent = rows.length;
+      });
+    }
+
+    function toggleSection(id) {
+      document.getElementById('sec-' + id).classList.toggle('collapsed');
+      saveState();
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // LOCALSTORAGE STATE PERSISTENCE
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    const STATE_KEY = 'git-memory-dashboard-state';
+
+    function saveState() {
+      const state = {
+        scroll: window.scrollY,
+        search: document.getElementById('search').value,
+        collapsed: []
+      };
+      document.querySelectorAll('.SectionWrap.collapsed').forEach(s => {
+        state.collapsed.push(s.dataset.id);
+      });
+      try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) { }
+    }
+
+    function restoreState() {
+      try {
+        const raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        if (state.collapsed) {
+          state.collapsed.forEach(id => {
+            const sec = document.getElementById('sec-' + id);
+            if (sec) sec.classList.add('collapsed');
+          });
+        }
+        if (state.search) {
+          const input = document.getElementById('search');
+          input.value = state.search;
+          input.dispatchEvent(new Event('input'));
+        }
+        if (state.scroll) {
+          requestAnimationFrame(() => window.scrollTo(0, state.scroll));
+        }
+      } catch (e) { }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // INIT + AUTO-REFRESH
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    function init() {
+      renderStatusCards();
+      renderSections();
+
+      const d = new Date(DATA.generated_at);
+      document.getElementById('footer-time').textContent = 'Updated: ' + d.toLocaleTimeString();
+      document.getElementById('hdr-repo').textContent = DATA.repo.name;
+      document.getElementById('hdr-branch').textContent = DATA.repo.branch;
+
+      // Search
+      document.getElementById('search').addEventListener('input', function (e) {
+        const q = e.target.value.toLowerCase();
+        document.querySelectorAll('.Box-row, .TimelineItem').forEach(row => {
+          const text = (row.dataset.search || row.textContent).toLowerCase();
+          row.style.display = (!q || text.includes(q)) ? '' : 'none';
+        });
+        saveState();
+      });
+
+      // Save scroll state
+      let scrollTimer;
+      window.addEventListener('scroll', () => {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(saveState, 150);
+      });
+
+      // Restore previous state
+      restoreState();
+    }
+
+    init();
+
+    // Auto-refresh: save state then reload
+    setInterval(() => { saveState(); location.reload(); }, 10000);
+  </script>
+</body>
+
+</html>

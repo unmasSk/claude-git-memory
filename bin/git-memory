@@ -11,6 +11,7 @@
 #   search    Search memory for a keyword: git memory search <term>
 #   boot      Show compact boot summary (same as AUTO-BOOT)
 #   gc        Garbage collect stale Next:/Blocker: items
+#   dashboard Generate static HTML dashboard (.claude/dashboard.html)
 
 set -euo pipefail
 
@@ -51,6 +52,10 @@ case "${1:-all}" in
     shift
     python3 "$SCRIPT_DIR/git-memory-gc.py" "$@"
     ;;
+  dashboard|dash)
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    python3 "$SCRIPT_DIR/git-memory-dashboard.py" "$@"
+    ;;
   boot)
     echo "=== BOOT — Memory Summary ==="
     if [ "$(git rev-parse --is-shallow-repository 2>/dev/null)" = "true" ]; then
@@ -87,6 +92,8 @@ case "${1:-all}" in
     echo "             --dry-run  Show what would be cleaned"
     echo "             --auto     Auto-commit without asking"
     echo "             --days N   Blocker TTL in days (default 30)"
+    echo "  dashboard  Generate static HTML dashboard"
+    echo "             Opens .claude/dashboard.html in browser"
     ;;
   *)
     echo "Unknown subcommand: $1"
