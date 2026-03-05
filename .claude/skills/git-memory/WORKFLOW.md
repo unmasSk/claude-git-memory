@@ -24,13 +24,14 @@
 | 🚧 | `wip` | Checkpoint (temporary, feature branches only) | `🚧 wip: implementing payment flow` |
 | 💾 | `context` | Session bookmark (always --allow-empty) | `💾 context(forms): pause section refactor` |
 | 🧭 | `decision` | Architecture/design decision (always --allow-empty) | `🧭 decision(auth): use JWT over session cookies` |
+| 📌 | `memo` | Soft knowledge: preference, requirement, anti-pattern (always --allow-empty) | `📌 memo(ui): client wants Notion-style filters` |
 
 ### Emoji is MANDATORY in the commit subject. Format: `<emoji> type(scope): description`
 
 ### Rules:
 - `wip:` is NOT conventional commits; it's a local checkpoint
 - `wip:` commits must NOT reach `staging` or `main` (squash before merge)
-- `context()` and `decision()` ALWAYS use `git commit --allow-empty`
+- `context()`, `decision()`, and `memo()` ALWAYS use `git commit --allow-empty`
 - Final commits MUST use one of the standard types above
 - Scope is optional but recommended: `(auth)`, `(api)`, `(forms)`
 
@@ -52,13 +53,14 @@ Decision: description of the decision taken (1 line)
 Next: what remains pending (1 line)
 Blocker: what blocks progress (1 line)
 Risk: low|medium|high
+Memo: category - description (1 line). Categories: preference, requirement, antipattern
 Conflict: what conflict was resolved (1 line)
 Resolution: how it was resolved (1 line)
 Refs: PR-456, external link (comma-separated list)
 ```
 
 ### Canonical order (recommended for readability, not enforced):
-`Issue → Why → Touched → Decision → Next → Blocker → Risk → Conflict → Resolution → Refs`
+`Issue → Why → Touched → Decision → Memo → Next → Blocker → Risk → Conflict → Resolution → Refs`
 
 ### Format rules (enforced by hooks):
 - Keys are **case-sensitive** (Why:, not why: or WHY:)
@@ -78,6 +80,7 @@ Refs: PR-456, external link (comma-separated list)
 | `chore/ci/test/docs` | **YES** | **YES** | **YES** | if work remains | no | no | if applicable |
 | `context()` | **YES** | no (allow-empty) | if branch has issue | **YES** | no | no | if applicable |
 | `decision()` | **YES** | no (allow-empty) | if branch has issue | no | **YES** | if applicable | no |
+| `memo()` | optional | no (allow-empty) | if branch has issue | no | no | no | no |
 | `wip:` | optional | optional | optional | optional | no | no | no |
 
 *Issue: obligatory only if branch name contains `CU-xxx`, `issue-xxx`, or `#xxx`
@@ -115,6 +118,31 @@ Blocker: waiting for API keys from client
 Why: mobile app cannot maintain server sessions; JWT allows stateless auth
 Decision: JWT with 15min access token + 7d refresh token stored in secure device storage
 Risk: medium
+```
+
+### Example: memo() commit
+
+```
+📌 memo(ui): client wants Notion-style filters
+
+Memo: requirement - client requested Notion-like filter UX for all data views
+Why: reduce onboarding friction, users already familiar with Notion
+```
+
+### Example: memo() for anti-pattern
+
+```
+📌 memo(api): never use moment.js
+
+Memo: antipattern - moment.js causes timezone bugs and is 10x heavier than dayjs
+```
+
+### Example: memo() for user preference
+
+```
+📌 memo(global): always use arrow functions
+
+Memo: preference - user prefers arrow functions over function declarations
 ```
 
 ## 0) Before Starting (always)

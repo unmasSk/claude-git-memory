@@ -21,17 +21,18 @@ import sys
 
 # Trailer keys (case-sensitive)
 VALID_KEYS = {
-    "Issue", "Why", "Touched", "Decision", "Next",
+    "Issue", "Why", "Touched", "Decision", "Memo", "Next",
     "Blocker", "Risk", "Conflict", "Resolution", "Refs",
 }
 
 RISK_VALUES = {"low", "medium", "high"}
+MEMO_CATEGORIES = {"preference", "requirement", "antipattern"}
 
 # Commit types that require code trailers (Why + Touched)
 CODE_TYPES = {"feat", "fix", "refactor", "perf", "chore", "ci", "test", "docs"}
 
 # Commit types that are memory-only (allow-empty)
-MEMORY_TYPES = {"context", "decision"}
+MEMORY_TYPES = {"context", "decision", "memo"}
 
 
 def get_branch_name():
@@ -81,8 +82,8 @@ def parse_commit_type(subject: str) -> str | None:
     """Extract commit type from conventional commit subject.
     Supports optional emoji prefix: '✨ feat(scope): ...' or 'feat(scope): ...'
     """
-    # Strip leading emoji(s) and whitespace
-    cleaned = re.sub(r"^[^\w]+", "", subject).strip()
+    # Strip leading emoji(s) and whitespace (preserve # for issue refs)
+    cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
     # Match: type(scope): or type:
     match = re.match(r"^(\w+)(?:\([^)]*\))?[!]?:", cleaned)
     if match:
@@ -144,8 +145,20 @@ def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str
         if has_issue and "Issue" not in trailers:
             errors.append(f"Missing required trailer: Issue: (branch '{branch}' has issue reference)")
 
+    elif commit_type == "memo":
+        if "Memo" not in trailers:
+            errors.append("Missing required trailer: Memo: (memo commits must include Memo: category - description)")
+        if has_issue and "Issue" not in trailers:
+            errors.append(f"Missing required trailer: Issue: (branch '{branch}' has issue reference)")
+
     elif commit_type == "wip":
         pass  # All trailers optional for wip
+
+    # Validate Memo category if present
+    if "Memo" in trailers:
+        parts = trailers["Memo"].split(" - ", 1)
+        if len(parts) < 2 or parts[0].strip() not in MEMO_CATEGORIES:
+            errors.append(f"Invalid Memo format: '{trailers['Memo']}'. Must be: preference|requirement|antipattern - description")
 
     # Validate Risk values if present
     if "Risk" in trailers and trailers["Risk"] not in RISK_VALUES:

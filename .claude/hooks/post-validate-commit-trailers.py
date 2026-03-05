@@ -19,14 +19,15 @@ import sys
 
 
 VALID_KEYS = {
-    "Issue", "Why", "Touched", "Decision", "Next",
+    "Issue", "Why", "Touched", "Decision", "Memo", "Next",
     "Blocker", "Risk", "Conflict", "Resolution", "Refs",
 }
 
 RISK_VALUES = {"low", "medium", "high"}
+MEMO_CATEGORIES = {"preference", "requirement", "antipattern"}
 
 CODE_TYPES = {"feat", "fix", "refactor", "perf", "chore", "ci", "test", "docs"}
-MEMORY_TYPES = {"context", "decision"}
+MEMORY_TYPES = {"context", "decision", "memo"}
 
 
 def run_git(args: list[str]) -> tuple[int, str]:
@@ -82,8 +83,8 @@ def parse_commit_type(subject: str) -> str | None:
     """Extract commit type from conventional commit subject.
     Supports optional emoji prefix: '✨ feat(scope): ...' or 'feat(scope): ...'
     """
-    # Strip leading emoji(s) and whitespace
-    cleaned = re.sub(r"^[^\w]+", "", subject).strip()
+    # Strip leading emoji(s) and whitespace (preserve # for issue refs)
+    cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
     match = re.match(r"^(\w+)(?:\([^)]*\))?[!]?:", cleaned)
     if match:
         return match.group(1).lower()
@@ -142,8 +143,20 @@ def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str
         if has_issue and "Issue" not in trailers:
             errors.append("Issue:")
 
+    elif commit_type == "memo":
+        if "Memo" not in trailers:
+            errors.append("Memo:")
+        if has_issue and "Issue" not in trailers:
+            errors.append("Issue:")
+
     elif commit_type == "wip":
         return []  # All optional
+
+    # Validate Memo category if present
+    if "Memo" in trailers:
+        parts = trailers["Memo"].split(" - ", 1)
+        if len(parts) < 2 or parts[0].strip() not in MEMO_CATEGORIES:
+            errors.append(f"Memo: (invalid format '{trailers['Memo']}')")
 
     # Validate values
     if "Risk" in trailers and trailers["Risk"] not in RISK_VALUES:

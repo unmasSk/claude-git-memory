@@ -224,6 +224,41 @@ Al activarse la skill por primera vez en sesión:
 
 ---
 
+## Apéndice: Parsing Hardening (descubierto en tests)
+
+### 1. Emoji strip en subjects
+Los subjects llevan emoji obligatorio (`✨ feat(scope): ...`). Todo parsing de subject debe primero limpiar:
+```python
+cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
+```
+- Conserva `#` (para refs tipo `#123` en subject)
+- Aplica ANTES de: detectar context()/decision(), extraer scope, parsear commit type
+
+### 2. Deduplicación obligatoria en snapshots
+- **Blocker:** dedup por texto exacto (case-insensitive). Mismo blocker de distintos commits = 1 línea
+- **Decision:** dedup por scope (se queda la más reciente por scope)
+- **Pending (Next:):** el Next del último context() se marca `(current)` y va primero
+
+### 3. Orden de pendientes en boot/snapshot
+1. Next: del último `context()` → marcado `(current)`
+2. Otros Next: recientes (dedup vs context Next)
+3. Máximo 3 items + `"+ N older items"` si hay más
+
+### 4. Budget de líneas para snapshot
+Límites reales testeados (drift test 200 commits):
+- Pending: máx 2 items + overflow
+- Blockers: máx 2 items
+- Decisions: máx 3 items (1 por scope)
+- Memos: máx 2 items (1 por scope)
+- **Worst case (todas las secciones): 3+4+3+4+3+1 = 18 líneas exactas**
+
+### 5. Archivos afectados por estos fixes
+- `pre-validate-commit-trailers.py` → emoji strip con `#` preservado
+- `post-validate-commit-trailers.py` → emoji strip con `#` preservado
+- `precompact-snapshot.py` → emoji strip + dedup + ordering + budget
+
+---
+
 ## Lo que NO hacemos (decisiones explícitas)
 
 - **No git notes** → frágiles, no portables

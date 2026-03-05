@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# git-memory — query the git memory system
+# Usage: git memory [subcommand]
+#
+# Subcommands:
+#   all       Show all memory trailers (Decision, Memo, Next, Blocker)
+#   decisions Show only Decision: entries
+#   memos     Show only Memo: entries
+#   pending   Show only Next: entries (pending work)
+#   blockers  Show only Blocker: entries
+#   search    Search memory for a keyword: git memory search <term>
+#   boot      Show compact boot summary (same as AUTO-BOOT)
+
+set -euo pipefail
+
+FMT='%C(yellow)%h%C(reset) %C(bold)%s%C(reset)%n%b---'
+
+case "${1:-all}" in
+  all)
+    git log --all --grep='Decision:\|Memo:\|Next:\|Blocker:' --pretty=format:"$FMT" | head -100
+    ;;
+  decisions|dec)
+    git log --all --grep='Decision:' --pretty=format:"$FMT" | head -60
+    ;;
+  memos|memo)
+    git log --all --grep='Memo:' --pretty=format:"$FMT" | head -60
+    ;;
+  pending|next)
+    git log --all --grep='Next:' --pretty=format:"$FMT" | head -60
+    ;;
+  blockers|block)
+    git log --all --grep='Blocker:' --pretty=format:"$FMT" | head -60
+    ;;
+  search)
+    if [ -z "${2:-}" ]; then
+      echo "Usage: git memory search <keyword>"
+      exit 1
+    fi
+    echo "=== Decisions ==="
+    git log --all --grep="Decision:" --pretty=format:"%h %s %b" | grep -i "$2" || echo "  (none)"
+    echo ""
+    echo "=== Memos ==="
+    git log --all --grep="Memo:" --pretty=format:"%h %s %b" | grep -i "$2" || echo "  (none)"
+    echo ""
+    echo "=== Pending ==="
+    git log --all --grep="Next:" --pretty=format:"%h %s %b" | grep -i "$2" || echo "  (none)"
+    ;;
+  boot)
+    echo "=== BOOT — Memory Summary ==="
+    echo "Branch: $(git branch --show-current)"
+    echo ""
+    echo "Last context:"
+    git log --all --pretty=format:"%h %s" | grep -i "context(" | head -1 || echo "  (none)"
+    echo ""
+    echo "Pending (Next:):"
+    git log -n 30 --pretty=format:"%h %s%n%b" | grep -B1 "Next:" | grep -v "^--$" | head -6 || echo "  (none)"
+    echo ""
+    echo "Active decisions:"
+    git log -n 30 --pretty=format:"%h %s%n%b" | grep -B1 "Decision:" | grep -v "^--$" | head -8 || echo "  (none)"
+    echo ""
+    echo "Active memos:"
+    git log -n 30 --pretty=format:"%h %s%n%b" | grep -B1 "Memo:" | grep -v "^--$" | head -6 || echo "  (none)"
+    ;;
+  -h|--help|help)
+    echo "git-memory — query the git memory system"
+    echo ""
+    echo "Usage: git memory [subcommand]"
+    echo ""
+    echo "Subcommands:"
+    echo "  all        All memory trailers (default)"
+    echo "  decisions  Decision: entries only"
+    echo "  memos      Memo: entries only"
+    echo "  pending    Next: entries only"
+    echo "  blockers   Blocker: entries only"
+    echo "  search     Search by keyword: git memory search <term>"
+    echo "  boot       Compact boot summary"
+    ;;
+  *)
+    echo "Unknown subcommand: $1"
+    echo "Run 'git memory help' for usage"
+    exit 1
+    ;;
+esac

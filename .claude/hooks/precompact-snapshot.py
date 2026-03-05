@@ -53,6 +53,7 @@ def extract_memory_from_log() -> dict:
         "pending": [],       # Next: items
         "blockers": [],      # Blocker: items
         "decisions": {},     # scope → Decision: (latest per scope)
+        "memos": {},         # scope → Memo: (latest per scope)
         "last_context": None,  # Last context() commit
     }
 
@@ -67,12 +68,15 @@ def extract_memory_from_log() -> dict:
         subject = parts[1].strip()
         body = parts[2].strip() if len(parts) > 2 else ""
 
+        # Strip emoji prefix before parsing type/scope
+        cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
+
         # Extract scope from subject
-        scope_match = re.match(r"^\w+\(([^)]+)\)", subject)
+        scope_match = re.match(r"^\w+\(([^)]+)\)", cleaned)
         scope = scope_match.group(1) if scope_match else "global"
 
         # Check if context commit
-        if subject.lower().startswith("context"):
+        if cleaned.lower().startswith("context"):
             if memory["last_context"] is None:
                 memory["last_context"] = {
                     "sha": sha,
@@ -94,10 +98,14 @@ def extract_memory_from_log() -> dict:
 
             blocker_match = re.match(r"^Blocker:\s*(.+)$", line)
             if blocker_match:
-                memory["blockers"].append({
-                    "sha": sha,
-                    "blocker": blocker_match.group(1),
-                })
+                blocker_text = blocker_match.group(1)
+                # Dedup: skip if a similar blocker already exists
+                existing = [b["blocker"].lower() for b in memory["blockers"]]
+                if blocker_text.lower() not in existing:
+                    memory["blockers"].append({
+                        "sha": sha,
+                        "blocker": blocker_text,
+                    })
 
             decision_match = re.match(r"^Decision:\s*(.+)$", line)
             if decision_match:
@@ -106,6 +114,14 @@ def extract_memory_from_log() -> dict:
                         "sha": sha,
                         "subject": subject,
                         "decision": decision_match.group(1),
+                    }
+
+            memo_match = re.match(r"^Memo:\s*(.+)$", line)
+            if memo_match:
+                if scope not in memory["memos"]:
+                    memory["memos"][scope] = {
+                        "sha": sha,
+                        "memo": memo_match.group(1),
                     }
 
     return memory
@@ -126,23 +142,44 @@ def format_snapshot(memory: dict) -> str:
         ctx = memory["last_context"]
         lines.append(f"Last session: {ctx['sha']} {ctx['subject']}")
 
-    # Pending items
+    # Pending items — prioritize context() Next: first, then others
     if memory.get("pending"):
-        lines.append("Pending:")
-        for item in memory["pending"][:5]:  # Max 5
-            lines.append(f"  - [{item['sha']}] {item['next']}")
+        ctx_sha = memory["last_context"]["sha"] if memory.get("last_context") else None
+        # Split: context Next first, then unique others
+        ctx_next = [p for p in memory["pending"] if p["sha"] == ctx_sha]
+        other_next = [p for p in memory["pending"] if p["sha"] != ctx_sha]
+        # Dedup others by text similarity (skip if already covered by context Next)
+        ctx_texts = {n["next"].lower() for n in ctx_next}
+        unique_others = []
+        for item in other_next:
+            if item["next"].lower() not in ctx_texts:
+                unique_others.append(item)
+        ordered = ctx_next + unique_others
+        if ordered:
+            lines.append("Pending:")
+            for item in ordered[:2]:  # Max 2 items to stay ≤18 lines total
+                marker = " (current)" if item["sha"] == ctx_sha else ""
+                lines.append(f"  - [{item['sha']}] {item['next']}{marker}")
+            if len(ordered) > 2:
+                lines.append(f"  + {len(ordered) - 2} older items")
 
-    # Blockers
+    # Blockers (deduped by text — overflow rare, capped at 2)
     if memory.get("blockers"):
         lines.append("Blockers:")
-        for item in memory["blockers"][:3]:  # Max 3
+        for item in memory["blockers"][:2]:  # Max 2 to stay compact
             lines.append(f"  - [{item['sha']}] {item['blocker']}")
 
-    # Active decisions
+    # Active decisions (1 per scope — overflow only if >3 scopes in last 30 commits)
     if memory.get("decisions"):
         lines.append("Active decisions:")
-        for scope, item in list(memory["decisions"].items())[:5]:  # Max 5
+        for scope, item in list(memory["decisions"].items())[:3]:  # Max 3 to stay ≤18 lines total
             lines.append(f"  - ({scope}) {item['decision']}")
+
+    # Active memos (1 per scope — overflow only if >2 scopes in last 30 commits)
+    if memory.get("memos"):
+        lines.append("Active memos:")
+        for scope, item in list(memory["memos"].items())[:2]:  # Max 2 to stay ≤18 lines total
+            lines.append(f"  - ({scope}) {item['memo']}")
 
     lines.append("=== END SNAPSHOT ===")
     return "\n".join(lines)
@@ -162,6 +199,7 @@ def main():
         memory.get("pending")
         or memory.get("blockers")
         or memory.get("decisions")
+        or memory.get("memos")
         or memory.get("last_context")
     )
 
