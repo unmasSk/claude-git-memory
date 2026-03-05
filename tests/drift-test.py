@@ -9,6 +9,9 @@ then validates:
   3. Snapshot never exceeds 18 lines (normal + stress)
   4. Truncation of long values
   5. Hook robustness (fixup, merge, revert whitelisting)
+  6. Post-hook exit_code safety (won't destroy commits on failed git commit)
+  7. Delimiter collision (commit messages with pipe chars don't break snapshot)
+  8. Nested prefixes (squash! fixup! feat: handled correctly)
 
 Usage: python3 tests/drift-test.py
 """
@@ -41,6 +44,10 @@ PRECOMPACT_SCRIPT = os.path.join(
 PRE_HOOK = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     ".claude", "hooks", "pre-validate-commit-trailers.py",
+)
+POST_HOOK = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    ".claude", "hooks", "post-validate-commit-trailers.py",
 )
 
 
@@ -468,6 +475,162 @@ def test_hook_robustness(cwd):
     return errors
 
 
+# ── Test 6: Post-hook exit_code safety ────────────────────────────────────
+
+def test_post_hook_exit_code(cwd):
+    """Verify post-hook doesn't destroy commits when git commit fails.
+
+    Scenario: git commit fails (exit_code != 0), post-hook should NOT
+    inspect the previous commit and should NOT call safe_reset().
+    We simulate this by feeding the post-hook a failed commit output
+    while the last commit in the repo has no trailers (would trigger reset).
+    """
+    print("\n── TEST 6: Post-hook exit_code Safety ──")
+    errors = []
+
+    # Create a commit without trailers (simulate pre-install commit)
+    git('commit --allow-empty -m "old commit without trailers"', cwd)
+
+    # Simulate: Claude ran git commit but it FAILED (exit_code=1, e.g. linting)
+    payload_failed = {
+        "tool_input": {"command": 'git commit -m "✨ feat(auth): new feature" -m "Why: test\nTouched: auth.py"'},
+        "tool_output": {
+            "stdout": "ERROR: eslint found 3 errors",
+            "stderr": "pre-commit hook failed",
+            "exit_code": 1,
+        },
+    }
+    proc = subprocess.run(
+        [sys.executable, POST_HOOK],
+        input=json.dumps(payload_failed),
+        capture_output=True, text=True, cwd=cwd,
+    )
+    # Post-hook should exit 0 (do nothing) because commit failed
+    if proc.returncode != 0:
+        errors.append(f"Post-hook acted on failed commit (exit {proc.returncode})")
+    else:
+        print("  Failed commit (exit_code=1) → post-hook skips ✓")
+
+    # Verify the "old commit" still exists (was NOT reset)
+    out, _ = git("log -1 --pretty=format:%s", cwd)
+    if "old commit without trailers" not in out:
+        errors.append(f"Post-hook destroyed previous commit! Last commit: {out}")
+    else:
+        print("  Previous commit preserved (no destructive reset) ✓")
+
+    # Simulate: Same scenario but with Spanish locale output (no "nothing to commit")
+    payload_spanish = {
+        "tool_input": {"command": 'git commit -m "✨ feat(auth): otra feature"'},
+        "tool_output": {
+            "stdout": "nada para hacer commit, el árbol de trabajo está limpio",
+            "stderr": "",
+            "exit_code": 1,
+        },
+    }
+    proc = subprocess.run(
+        [sys.executable, POST_HOOK],
+        input=json.dumps(payload_spanish),
+        capture_output=True, text=True, cwd=cwd,
+    )
+    if proc.returncode != 0:
+        errors.append(f"Post-hook acted on Spanish locale failed commit (exit {proc.returncode})")
+    else:
+        print("  Spanish locale failure → post-hook skips ✓")
+
+    # Clean up: restore a proper commit as HEAD
+    git('commit --allow-empty -m "🔧 chore: restore state\n\nWhy: test cleanup\nTouched: none"', cwd)
+
+    return errors
+
+
+# ── Test 7: Delimiter collision ───────────────────────────────────────────
+
+def test_delimiter_collision(cwd):
+    """Verify commit messages with pipe characters don't break the snapshot parser."""
+    print("\n── TEST 7: Delimiter Collision ──")
+    errors = []
+
+    # Create a commit with pipe chars and old delimiter pattern in the message
+    msg = "✨ feat(parser): fix collision with |---END---| tokens\n\nIssue: CU-042\nWhy: pipes in messages | should not | break parsing\nTouched: parser.py"
+    git(f'commit --allow-empty -m "{msg}"', cwd)
+
+    # Create another with pipes in decision value
+    msg2 = "🧭 decision(parser): choose approach A | not B | not C\n\nWhy: A handles edge cases\nDecision: approach A over B|C — cleaner API"
+    git(f'commit --allow-empty -m "{msg2}"', cwd)
+
+    # Run snapshot — should not crash or produce garbage
+    result = subprocess.run(
+        [sys.executable, PRECOMPACT_SCRIPT],
+        capture_output=True, text=True, cwd=cwd, timeout=15,
+    )
+    snapshot = result.stdout.strip()
+
+    if not snapshot:
+        errors.append("Snapshot returned empty after pipe-containing commits")
+    elif "GIT MEMORY SNAPSHOT" not in snapshot:
+        errors.append(f"Snapshot corrupted by pipe chars: {snapshot[:200]}")
+    elif "END SNAPSHOT" not in snapshot:
+        errors.append(f"Snapshot missing footer after pipe commits")
+    else:
+        # Verify the decision from the pipe-containing commit is present
+        if "parser" in snapshot and "approach A" in snapshot:
+            print("  Pipes in commit message → snapshot intact ✓")
+        else:
+            print("  Pipes in commit message → snapshot structure OK ✓")
+
+    # Verify snapshot budget still holds
+    lines = snapshot.split("\n")
+    if len(lines) > SNAPSHOT_MAX_LINES:
+        errors.append(f"Snapshot after pipe commits: {len(lines)} lines > {SNAPSHOT_MAX_LINES}")
+    else:
+        print(f"  Budget after pipe commits: {len(lines)} lines ✓")
+
+    return errors
+
+
+# ── Test 8: Nested prefixes ──────────────────────────────────────────────
+
+def test_nested_prefixes(cwd):
+    """Verify hooks handle nested Git prefixes like squash! fixup! feat:"""
+    print("\n── TEST 8: Nested Prefixes ──")
+    errors = []
+
+    def check_msg(subject, trailers=None):
+        command = 'git commit -m "' + subject + '"'
+        if trailers:
+            command = command + ' -m "' + trailers + '"'
+        payload = {"tool_input": {"command": command}}
+        proc = subprocess.run(
+            [sys.executable, PRE_HOOK],
+            input=json.dumps(payload),
+            capture_output=True, text=True, cwd=cwd,
+        )
+        return proc.returncode
+
+    # squash! fixup! feat: (double nested)
+    rc = check_msg("squash! fixup! ✨ feat(auth): double nested", "Why: test\nTouched: auth.py\nIssue: CU-042")
+    if rc != 0:
+        errors.append("Blocked valid squash! fixup! (double nested)")
+    else:
+        print("  squash! fixup! feat: (double) ✓")
+
+    # fixup! fixup! fix: (same prefix repeated)
+    rc = check_msg("fixup! fixup! 🐛 fix(api): triple fixup", "Why: test\nTouched: api.py\nIssue: CU-042")
+    if rc != 0:
+        errors.append("Blocked valid fixup! fixup! (repeated)")
+    else:
+        print("  fixup! fixup! fix: (repeated) ✓")
+
+    # amend! squash! fixup! refactor: (triple nested)
+    rc = check_msg("amend! squash! fixup! ♻️ refactor(ui): triple nested", "Why: test\nTouched: ui.py\nIssue: CU-042")
+    if rc != 0:
+        errors.append("Blocked valid amend! squash! fixup! (triple)")
+    else:
+        print("  amend! squash! fixup! refactor: (triple) ✓")
+
+    return errors
+
+
 # ── Main ────────────────────────────────────────────────────────────────────
 
 def main():
@@ -495,6 +658,9 @@ def main():
         all_errors.extend(test_snapshot_budget(cwd))
         all_errors.extend(test_truncation(cwd))
         all_errors.extend(test_hook_robustness(cwd))
+        all_errors.extend(test_post_hook_exit_code(cwd))
+        all_errors.extend(test_delimiter_collision(cwd))
+        all_errors.extend(test_nested_prefixes(cwd))
 
         print("\n" + "=" * 60)
         if all_errors:
@@ -509,6 +675,9 @@ def main():
             print("  3. Snapshot budget ≤18 lines (normal + stress)")
             print("  4. Long values truncated in snapshot")
             print("  5. Hooks handle fixup!/squash!/merge/revert correctly")
+            print("  6. Post-hook exit_code safety (no destructive reset on failures)")
+            print("  7. Delimiter collision (pipes in messages don't break snapshot)")
+            print("  8. Nested prefixes (squash! fixup! feat: handled)")
             sys.exit(0)
 
     finally:

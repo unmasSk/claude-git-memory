@@ -87,8 +87,8 @@ def parse_commit_type(subject: str) -> str | None:
     if re.match(r"^(Merge branch|Merge remote-tracking branch|Revert |Cherry-pick )", subject):
         return "internal"
 
-    # Strip Git prefixes for validation
-    cleaned = re.sub(r"^(fixup!|squash!|amend!)\s*", "", subject).strip()
+    # Strip Git prefixes for validation (handles nested: squash! fixup! feat:)
+    cleaned = re.sub(r"^((?:fixup!|squash!|amend!)\s*)+", "", subject).strip()
 
     # Strip leading emoji(s) and whitespace (preserve # for issue refs)
     cleaned = re.sub(r"^[^\w#]+", "", cleaned).strip()

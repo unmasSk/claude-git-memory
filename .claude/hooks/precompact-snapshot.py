@@ -47,9 +47,12 @@ def extract_memory_from_log() -> dict:
     Read last 30 commits and extract memory trailers.
     Returns structured memory data.
     """
+    # Use ASCII Unit Separator (\x1f) and Record Separator (\x1e) as delimiters.
+    # These are impossible to type in commit messages, preventing delimiter collision
+    # if a message accidentally contains "|---END---" or "|" characters.
     code, output = run_git([
         "log", "-n", "30",
-        "--pretty=format:%h|%s|%b|---END---",
+        "--pretty=format:%h%x1f%s%x1f%b%x1e",
     ])
 
     if code != 0 or not output:
@@ -63,10 +66,10 @@ def extract_memory_from_log() -> dict:
         "last_context": None,  # Last context() commit
     }
 
-    commits = output.split("|---END---")
+    commits = [c for c in output.split("\x1e") if c.strip()]
 
     for commit in commits:
-        parts = commit.strip().split("|", 2)
+        parts = commit.strip().split("\x1f", 2)
         if len(parts) < 3:
             continue
 

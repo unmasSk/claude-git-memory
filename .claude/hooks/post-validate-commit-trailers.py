@@ -88,8 +88,8 @@ def parse_commit_type(subject: str) -> str | None:
     if re.match(r"^(Merge branch|Merge remote-tracking branch|Revert |Cherry-pick )", subject):
         return "internal"
 
-    # Strip Git prefixes for validation
-    cleaned = re.sub(r"^(fixup!|squash!|amend!)\s*", "", subject).strip()
+    # Strip Git prefixes for validation (handles nested: squash! fixup! feat:)
+    cleaned = re.sub(r"^((?:fixup!|squash!|amend!)\s*)+", "", subject).strip()
 
     # Strip leading emoji(s) and whitespace (preserve # for issue refs)
     cleaned = re.sub(r"^[^\w#]+", "", cleaned).strip()
@@ -193,14 +193,18 @@ def main():
     tool_output = input_data.get("tool_output", {})
     command = tool_input.get("command", "")
 
-    # Only check git commit commands that succeeded
+    # Only check git commit commands
     if "git commit" not in command:
         sys.exit(0)
 
-    # Check if command succeeded (exit code 0)
-    stdout = tool_output.get("stdout", "")
-    stderr = tool_output.get("stderr", "")
-    # If the commit failed (nothing to commit, etc.), skip
+    # Check exit code first (language-agnostic, works with any locale)
+    exit_code = tool_output.get("exit_code")
+    if exit_code is not None and int(exit_code) != 0:
+        sys.exit(0)  # Commit failed (linting, conflict, etc.) — don't touch anything
+
+    # Fallback: detect common failure strings in case exit_code is missing
+    stdout = tool_output.get("stdout", "").lower()
+    stderr = tool_output.get("stderr", "").lower()
     if "nothing to commit" in stdout or "nothing to commit" in stderr:
         sys.exit(0)
 
