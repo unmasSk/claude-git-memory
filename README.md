@@ -1,24 +1,38 @@
-<![CDATA[<p align="center">
-  <img src="claude_git_memory_logo_concept_2_1772753619440.png" alt="claude-git-memory" width="180">
+<p align="center">
+  <img src="logo.png" alt="claude-git-memory" width="180">
 </p>
 
 <h1 align="center">claude-git-memory</h1>
 
 <p align="center">
-  Cross-machine persistent memory system for <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a>.<br>
-  Uses git commits as the single source of truth — no external docs, no extra files.<br>
-  Everything lives in the commit history.
+  <strong>Persistent memory for Claude Code, stored in git.</strong><br>
+  <em>Decisions, preferences, blockers, and pending work survive across sessions, machines, and context resets.</em>
+</p>
+
+<p align="center">
+  <a href="#the-problem">Problem</a> &nbsp;·&nbsp;
+  <a href="#how-it-works">How it works</a> &nbsp;·&nbsp;
+  <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
+  <a href="#cli-reference">CLI</a> &nbsp;·&nbsp;
+  <a href="#dashboard">Dashboard</a> &nbsp;·&nbsp;
+  <a href="#garbage-collector">GC</a>
 </p>
 
 ---
 
 ## The problem
 
-Every time Claude starts a new session, it forgets everything. Who decided to use dayjs? Why did we reject raw SQL? What was the user's preference for arrow functions? Lost. You end up repeating yourself, re-explaining decisions, and watching Claude reinvent wheels.
+Every time Claude starts a new session, it forgets everything:
 
-## The solution
+- *Who decided to use dayjs instead of moment?*
+- *What's the user's preference for arrow functions?*
+- *What's blocking the deployment right now?*
 
-**Git = Memory.** Every commit carries structured trailers (`Why:`, `Decision:`, `Memo:`, `Next:`, `Blocker:`) that Claude reads on session start. Switch machines, close the terminal, compress context — the memory survives because it's in git.
+You end up repeating yourself, re-explaining decisions, and watching Claude reinvent wheels.
+
+## How it works
+
+**Git = Memory.** Every commit carries structured trailers that Claude reads on session start. No external files, no databases — everything lives in the commit history.
 
 ```
 ✨ feat(forms): add date range validation
@@ -30,123 +44,52 @@ Decision: use dayjs over moment — moment is deprecated and 10x heavier
 Next: wire validation into the API layer
 ```
 
-## How it works
+**Claude writes these automatically.** When you say "let's go with dayjs", Claude creates a `decision()` commit. When you say "never use sync fs", Claude creates a `memo()`. You don't write trailers by hand — you just talk.
+
+When Claude starts a new session, it reads the last 30 commits and shows you a resume:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Claude Session Start                     │
-│                                                             │
-│  AUTO-BOOT: git log -n 30 → extract trailers → show resume │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ Branch: feat/CU-042-filters                           │ │
-│  │ Last session: "pause forms refactor" (2h ago)         │ │
-│  │ Pending: wire validation into API layer               │ │
-│  │ Decision: (forms) use dayjs over moment               │ │
-│  │ Memo: (api) never use sync fs operations              │ │
-│  └────────────────────────────────────────────────────────┘ │
-│                                                             │
-│  Claude knows exactly where you left off. No questions.     │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  Branch: feat/CU-042-filters                             │
+│  Last session: "pause forms refactor" (2h ago)           │
+│  Pending: wire validation into API layer                 │
+│  Decision: (forms) use dayjs over moment                 │
+│  Memo: (api) never use sync fs operations                │
+└──────────────────────────────────────────────────────────┘
 ```
+
+No questions. It knows where you left off.
 
 ### Four hooks protect the system
 
-| Hook | Event | What it does |
-|------|-------|-------------|
-| **Belt** (pre-validate) | `PreToolUse` | Blocks `git commit` if required trailers are missing |
-| **Suspenders** (post-validate) | `PostToolUse` | Safety net — if a bad commit slips through, resets it safely |
-| **DoD** (stop-check) | `Stop` | Blocks session exit if uncommitted changes or pending work exist |
-| **Hipocampo** (precompact) | `PreCompact` | Before context compression, saves critical memory as a compact snapshot |
+| Hook | When | What it does |
+|------|------|-------------|
+| **Belt** | Before `git commit` | Blocks commits missing required trailers |
+| **Suspenders** | After `git commit` | Safety net — resets bad commits that slip through |
+| **DoD** | Session exit | Blocks exit if there's uncommitted work or pending tasks |
+| **Hippocampus** | Context compression | Saves a compact memory snapshot before the LLM loses context |
 
-Both validation hooks handle Git-native messages transparently:
+Handles `fixup!`, `squash!`, merges, reverts, and shallow clones transparently.
 
-- **`fixup!`, `squash!`, `amend!`** prefixes are stripped before parsing the commit type, so interactive rebase workflows work without friction.
-- **Merge, Revert, Cherry-pick** commits are whitelisted as `internal` and skip trailer validation entirely.
-- **Trailer values > 200 chars** are truncated with `...` in the snapshot to protect the line budget.
-- **Shallow clones** are detected (`git rev-parse --is-shallow-repository`) and flagged with a warning in both the snapshot and `git memory boot`.
+---
 
-### Five commit types
+## Quick start
 
-| Emoji | Type | Purpose | Required trailers |
-|-------|------|---------|-------------------|
-| `✨🐛♻️⚡🔧👷🧪📝` | Code (`feat`, `fix`, `refactor`, etc.) | Regular development | `Why:` + `Touched:` + `Issue:` (if branch has one) |
-| `🚧` | `wip` | Temporary checkpoint | None (feature branches only) |
-| `💾` | `context()` | Session bookmark | `Why:` + `Next:` |
-| `🧭` | `decision()` | Design/architecture decision | `Why:` + `Decision:` |
-| `📌` | `memo()` | Soft knowledge | `Memo: category - description` |
-
-### Eleven trailers
-
-| Trailer | Format | When |
-|---------|--------|------|
-| `Issue:` | `CU-xxx` or `#xxx` | Auto-extracted from branch name |
-| `Why:` | Free text (1 line) | Every non-wip commit |
-| `Touched:` | `path1, path2` or `glob/* (N files)` | Code commits |
-| `Decision:` | Free text | `decision()` commits |
-| `Memo:` | `preference\|requirement\|antipattern - text` | `memo()` commits |
-| `Next:` | Free text | Pending work |
-| `Blocker:` | Free text | What blocks progress |
-| `Risk:` | `low\|medium\|high` | Dangerous operations, hotfixes |
-| `Conflict:` | Free text | Merge conflict resolutions |
-| `Resolution:` | Free text | How conflict was resolved |
-| `Refs:` | URLs, doc links | External references |
-
-## Dashboard
-
-A self-contained static HTML dashboard that visualizes the entire memory system at a glance. Built with GitHub Primer dark theme — no server, no dependencies.
+### 1. Clone and copy into your project
 
 ```bash
-git memory dashboard    # Generate + open in browser
-```
+git clone https://github.com/unmasSk/claude-git-memory.git
+cd claude-git-memory
 
-The dashboard renders 7 sections from real git data:
-
-| Section | What it shows |
-|---------|---------------|
-| **Status bar** | Pending, blockers, decisions, memos counts |
-| **Blockers** | Active blockers with TTL progress bars |
-| **Pending** | `Next:` items sorted by age |
-| **Decisions** | Latest decision per scope |
-| **Memos** | Latest memo per scope with category labels |
-| **Health** | Compliance percentage + missing trailer breakdown |
-| **GC Status** | Tombstone count, candidates, days since last GC |
-| **Timeline** | Last 20 commits with type-colored badges |
-
-**Auto-refresh**: The dashboard auto-reloads every 10 seconds. After every valid commit, the post-hook regenerates it in the background. Open it once and forget — it stays current.
-
-**State preservation**: Search queries, scroll position, and collapsed sections persist across reloads via `localStorage`.
-
-## Garbage Collector
-
-Stale `Next:` and `Blocker:` items accumulate over time. The GC cleans them automatically using three heuristics:
-
-| Heuristic | What it detects |
-|-----------|----------------|
-| **H1** (keyword overlap) | `Next:` items where subsequent commits in the same scope share ≥2 keywords |
-| **H2** (TTL expiry) | `Blocker:` items older than N days with no recent mentions |
-| **H3** (explicit resolution) | Items referenced by a `Resolution:` trailer |
-
-```bash
-git memory gc              # Interactive — shows candidates, asks before commit
-git memory gc --dry-run    # Just show what would be cleaned
-git memory gc --auto       # Auto-commit without asking
-git memory gc --days 60    # Custom TTL for blockers (default 30)
-```
-
-The GC creates a compensation commit with tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that suppress cleaned items from future snapshots and dashboard views. Fully reversible with `git revert`.
-
-## Installation
-
-### 1. Copy hooks and skills into your project
-
-```bash
+# Copy the memory system into your project
 cp -r .claude/ /path/to/your-project/.claude/
 cp CLAUDE.md /path/to/your-project/
+cp -r bin/ /path/to/your-project/bin/
 ```
 
-### 2. Register hooks in Claude Code settings
+### 2. Register hooks in Claude Code
 
-Copy the contents of `settings-snippet.json` into your project's `.claude/settings.json` (or your user-level `~/.claude/settings.json`):
+Add this to your project's `.claude/settings.json` (create it if it doesn't exist):
 
 ```json
 {
@@ -154,78 +97,275 @@ Copy the contents of `settings-snippet.json` into your project's `.claude/settin
     "PreToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/pre-validate-commit-trailers.py"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "python3 .claude/hooks/pre-validate-commit-trailers.py" }]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/post-validate-commit-trailers.py"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "python3 .claude/hooks/post-validate-commit-trailers.py" }]
       }
     ],
     "Stop": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/stop-dod-check.py"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "python3 .claude/hooks/stop-dod-check.py" }]
       }
     ],
     "PreCompact": [
       {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/precompact-snapshot.py"
-          }
-        ]
+        "hooks": [{ "type": "command", "command": "python3 .claude/hooks/precompact-snapshot.py" }]
       }
     ]
   }
 }
 ```
 
-### 3. Install the CLI
+### 3. Add the CLI to your PATH
 
 ```bash
-# From your project root:
-export PATH="$PWD/bin:$PATH"
+# Add to your .bashrc / .zshrc for persistence:
+export PATH="/path/to/your-project/bin:$PATH"
+```
 
-# Now you can run:
-git memory decisions
-git memory search "dayjs"
+### 4. Verify
+
+```bash
 git memory boot
-git memory dashboard
-git memory gc --dry-run
 ```
 
-## CLI: `git memory`
+You should see something like:
 
-A portable script (`bin/git-memory`) for querying memory without Claude:
+```
+=== BOOT — Memory Summary ===
+Branch: main
+Last context: a1b2c3d context(api): pause refactor
+Pending (Next:): wire validation into the API layer
+Active decisions: (forms) use dayjs over moment
+Active memos: (api) preference - never use sync fs operations
+```
+
+**Requirements:** Python 3.10+, Git, [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with hooks support.
+
+---
+
+## Commit types
+
+Claude creates these automatically from your conversations:
+
+### Code commits (`feat`, `fix`, `refactor`, `perf`, `chore`, `ci`, `test`, `docs`)
+
+```
+✨ feat(auth): add OAuth2 login flow
+
+Why: users need to sign in with Google accounts
+Touched: src/auth/oauth.ts, src/routes/login.ts
+Issue: CU-101
+```
+
+Required: `Why:` + `Touched:` (+ `Issue:` if branch has one)
+
+### Context bookmarks — `context(scope)`
+
+Created when you pause work or end a session:
+
+```
+💾 context(api): pause — switching to urgent bugfix
+
+Why: need to handle prod incident before continuing API refactor
+Next: finish rate limiting middleware after bugfix
+```
+
+Required: `Why:` + `Next:`
+
+### Decisions — `decision(scope)`
+
+Created when you say "let's go with X" or "decidido X":
+
+```
+🧭 decision(auth): use JWT over session cookies
+
+Why: API needs to be stateless for horizontal scaling
+Decision: JWT with 15min access + 7d refresh tokens
+```
+
+Required: `Why:` + `Decision:`
+
+### Memos — `memo(scope)`
+
+Created when you say "always X", "never Y", or "the client wants Z":
+
+```
+📌 memo(api): preference — always use async/await over .then() chains
+
+Memo: preference - async/await is more readable, team standard
+```
+
+Required: `Memo:` with category (`preference`, `requirement`, or `antipattern`)
+
+### WIP — temporary checkpoints
+
+```
+🚧 wip: half-done login form
+```
+
+No trailers required. Feature branches only.
+
+---
+
+## CLI reference
+
+### `git memory boot` — session resume
 
 ```bash
-git memory              # All memory trailers
-git memory decisions    # Only Decision: entries
-git memory memos        # Only Memo: entries
-git memory pending      # Only Next: entries
-git memory blockers     # Only Blocker: entries
-git memory search term  # Search across decisions + memos + pending
-git memory boot         # Compact boot summary
-git memory dashboard    # Static HTML dashboard (opens in browser)
-git memory gc           # Garbage collect stale items
+$ git memory boot
+=== BOOT — Memory Summary ===
+Branch: feat/CU-042-filters
+Pending (Next:): wire validation into API layer
+Active decisions: (forms) use dayjs over moment
+Active memos: (api) preference - never use sync fs operations
 ```
+
+### `git memory decisions` — architecture decisions
+
+```bash
+$ git memory decisions
+a1b2c3d 🧭 decision(auth): use JWT over session cookies
+Why: API needs to be stateless for horizontal scaling
+Decision: JWT with 15min access + 7d refresh tokens
+---
+f4e5d6c 🧭 decision(forms): use dayjs over moment
+Why: moment is deprecated and 10x heavier
+Decision: use dayjs for all date operations
+---
+```
+
+### `git memory pending` — unfinished work
+
+```bash
+$ git memory pending
+c7d8e9f 💾 context(api): pause refactor
+Next: finish rate limiting middleware
+---
+a1b2c3d ✨ feat(forms): add date range validation
+Next: wire validation into the API layer
+---
+```
+
+### `git memory search <term>` — find anything
+
+```bash
+$ git memory search "dayjs"
+=== Decisions ===
+  f4e5d6c decision(forms): use dayjs over moment
+=== Memos ===
+  (none)
+=== Pending ===
+  (none)
+```
+
+### `git memory dashboard` — visual dashboard
+
+```bash
+$ git memory dashboard
+🧠 Scanning git history...
+   47 commits scanned
+✅ Dashboard: .claude/dashboard.html
+   Opened in browser
+```
+
+### `git memory gc` — garbage collector
+
+```bash
+$ git memory gc --dry-run
+=== git memory gc ===
+Scanning last 200 commits (blocker TTL: 30 days)...
+
+🧹 Found 2 candidate(s) for cleanup:
+
+  1. ✅ [Resolved-Next] wire validation into API layer
+     Reason: keyword overlap (3 words)
+     Evidence: → a1b2c3d feat(forms): add API validation
+
+  2. ⏰ [Stale-Blocker] waiting for design team approval
+     Reason: >45 days old, no recent mention
+
+(dry-run mode — no changes made)
+```
+
+---
+
+## Dashboard
+
+A self-contained static HTML dashboard using the GitHub Primer dark theme. No server, no dependencies — just one file.
+
+```bash
+git memory dashboard
+```
+
+<p align="center">
+  <img src="dashboard-screenshot.png" alt="git-memory dashboard" width="800">
+</p>
+
+Shows 7 sections: active blockers with TTL bars, pending tasks by age, decisions per scope, memos by category, compliance health, GC status, and commit timeline.
+
+**Auto-updates:** After every commit, the post-hook regenerates the dashboard in the background. The HTML auto-reloads every 10 seconds. Open it once and forget about it.
+
+**State preserved:** Search queries, scroll position, and collapsed sections persist across reloads.
+
+---
+
+## Garbage collector
+
+Stale `Next:` and `Blocker:` items accumulate over time. The GC cleans them using three heuristics:
+
+| Heuristic | Detects |
+|-----------|---------|
+| **H1** — keyword overlap | `Next:` items already done (subsequent commits share keywords) |
+| **H2** — TTL expiry | `Blocker:` items older than 30 days with no recent mention |
+| **H3** — explicit resolution | Items referenced by a `Resolution:` trailer |
+
+```bash
+git memory gc              # Interactive — asks before cleaning
+git memory gc --dry-run    # Preview what would be cleaned
+git memory gc --auto       # Clean without asking
+git memory gc --days 60    # Custom blocker TTL (default: 30)
+```
+
+The GC creates a commit with tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that hide cleaned items from future snapshots and dashboard. Reversible with `git revert`.
+
+---
+
+## Conversational capture
+
+You don't need to learn any syntax. Claude detects intent from natural language:
+
+| You say | Claude does |
+|---------|-------------|
+| "let's go with X" / "decidido X" | Creates a `decision()` commit |
+| "always use X" / "never use Y" | Creates a `memo(preference)` |
+| "the client requires X" | Creates a `memo(requirement)` |
+| "don't ever do X again" | Creates a `memo(antipattern)` |
+| "I need to stop here" | Creates a `context()` bookmark |
+
+---
+
+## Trailers reference
+
+| Trailer | Format | Used in |
+|---------|--------|---------|
+| `Why:` | Free text | All commits (except `wip`) |
+| `Touched:` | `path1, path2` or `glob/*` | Code commits |
+| `Decision:` | Free text | `decision()` commits |
+| `Memo:` | `preference\|requirement\|antipattern - text` | `memo()` commits |
+| `Next:` | Free text | Pending work items |
+| `Blocker:` | Free text | What blocks progress |
+| `Issue:` | `CU-xxx` or `#xxx` | Auto-extracted from branch name |
+| `Risk:` | `low\|medium\|high` | Dangerous operations |
+| `Conflict:` | Free text | Merge conflict context |
+| `Resolution:` | Free text | How a conflict was resolved |
+| `Refs:` | URLs, doc links | External references |
+
+---
 
 ## Project structure
 
@@ -234,103 +374,48 @@ git memory gc           # Garbage collect stale items
 ├── hooks/
 │   ├── pre-validate-commit-trailers.py   # Belt — blocks bad commits
 │   ├── post-validate-commit-trailers.py  # Suspenders — safety net + dashboard regen
-│   ├── precompact-snapshot.py            # Saves memory before compression
+│   ├── precompact-snapshot.py            # Saves memory before context compression
 │   └── stop-dod-check.py                # Blocks exit with pending work
 └── skills/
     └── git-memory/
-        ├── SKILL.md        # Router: AUTO-BOOT, search protocol, triggers
-        ├── WORKFLOW.md     # Day-to-day: branches, commits, trailers
-        ├── RELEASE.md      # Promotions: dev→staging→main, hotfixes
+        ├── SKILL.md        # AUTO-BOOT, search protocol, triggers
+        ├── WORKFLOW.md     # Branches, commits, trailers
+        ├── RELEASE.md      # Release promotions and hotfixes
         ├── CONFLICTS.md    # Conflict resolution with audit trail
         └── UNDO.md         # Recovery with risk tagging
 bin/
-├── git-memory              # CLI query tool
+├── git-memory              # CLI entry point
 ├── git-memory-gc.py        # Garbage collector
 └── git-memory-dashboard.py # Dashboard generator
 dashboard-preview.html      # HTML template (GitHub Primer dark theme)
 tests/
-└── drift-test.py           # 6-month simulation (200 commits, 6 scopes)
-CLAUDE.md                   # Entry point for Claude sessions
-settings-snippet.json       # Hook registration config
+└── drift-test.py           # Stress test: 200 commits, 6 months, 9 validations
 ```
 
-## Snapshot budget
+---
 
-The PreCompact snapshot and AUTO-BOOT summary share a strict line budget to avoid consuming context window:
+## Testing
 
-| Section | Max lines |
-|---------|-----------|
-| Header + Branch + Last context | 3 |
-| Pending (Next:) + overflow | 4 |
-| Blockers | 3 |
-| Decisions (1 per scope) | 4 |
-| Memos (1 per scope) | 3 |
-| Footer | 1 |
-| **Total worst case** | **18** |
-
-## Memory search protocol
-
-Before asking the user anything Claude could find in history:
-
-1. `git fetch --all --prune` — ensure refs are fresh
-2. `git log --all --grep="Decision:"` — search decisions
-3. `git log --all --grep="Memo:"` — search memos
-4. Check `CLAUDE.md` and `~/.claude/MEMORY.md` for global preferences
-5. **Only if no match** — ask the user
-
-### Contradiction detection
-
-Before creating a new `decision()` or `memo()`, Claude searches for existing entries on the same scope/topic. If a contradiction is found, it warns the user before overriding.
-
-## Conversational memory capture
-
-Claude detects intent from natural language and creates commits automatically:
-
-| User says | Claude does |
-|-----------|-------------|
-| "let's go with X" / "decidido X" | `decision()` commit |
-| "always X" / "never Y" | `memo()` with `preference` |
-| "the client wants X" | `memo()` with `requirement` |
-| "don't ever use X" | `memo()` with `antipattern` |
-| ambiguous | Asks: "register as decision or memo?" |
-
-## Drift test
-
-`tests/drift-test.py` generates 200 commits across 6 months and 6 scopes, then validates:
-
-1. **Deep search** — finds all decisions/memos across the full history
-2. **Dedup** — preserves entries from different scopes (doesn't collapse)
-3. **Snapshot budget** — stays at 18 lines even under stress (all sections maxed)
-4. **Truncation** — long trailer values (>200 chars) are truncated with `...`
-5. **Hook robustness** — `fixup!`, `squash!`, `amend!`, Merge, Revert all pass validation correctly
-6. **Post-hook exit_code safety** — failed commits (exit_code=1) don't trigger destructive resets
-7. **Delimiter collision** — pipes in commit messages don't break the snapshot parser
-8. **Nested prefixes** — `squash! fixup! feat:` and triple-nested variants parse correctly
-9. **GC tombstones** — `Resolved-Next:` and `Stale-Blocker:` suppress items from snapshot
+The drift test generates 200 commits across 6 months and validates the entire system:
 
 ```bash
-python3 tests/drift-test.py
+$ python3 tests/drift-test.py
+
+DRIFT TEST: ALL PASSED ✓
+  1. Deep search finds all decisions/memos across full history
+  2. Dedup preserves entries from different scopes
+  3. Snapshot budget ≤18 lines (normal + stress)
+  4. Long values truncated in snapshot
+  5. Hooks handle fixup!/squash!/merge/revert correctly
+  6. Post-hook safety (no destructive reset on failures)
+  7. Pipes in commit messages don't break the parser
+  8. Nested prefixes (squash! fixup! feat:) parse correctly
+  9. GC tombstones suppress resolved items from snapshot
 ```
 
-## Adding new commit types
+---
 
-If you need a new type (e.g., `policy()`), follow the checklist in `SKILL.md > Forward Compatibility`:
-
-1. Add emoji + type to WORKFLOW.md
-2. Add to SKILL.md (AUTO-BOOT, triggers, routing)
-3. Add to both validation hooks (VALID_KEYS, MEMORY_TYPES, validation block)
-4. Add extraction + display to precompact-snapshot.py (respect budget)
-5. Apply parsing hardening (emoji strip, dedup, overflow rule)
-6. Add to drift test
-7. Include in contradiction detection
-
-## Requirements
-
-- Python 3.10+
-- Git
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with hooks support
-
-## License
-
-MIT
-]]>
+<p align="center">
+  <strong>MIT License</strong><br>
+  <em>Built for Claude Code.</em>
+</p>
