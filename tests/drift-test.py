@@ -417,17 +417,23 @@ def test_hook_robustness(cwd):
     print("\n── TEST 5: Hook Robustness ──")
     errors = []
 
-    def check_msg(subject, trailers=None):
+    def check_msg(subject, trailers=None, as_claude=False):
         """Send a commit message to the pre-hook and check if it passes (exit 0).
-        Uses string concatenation (not f-strings) to avoid Python escaping ! to backslash-!."""
+        Uses string concatenation (not f-strings) to avoid Python escaping ! to backslash-!.
+        If as_claude=True, sets CLAUDE_CODE env to simulate Claude authoring."""
         command = 'git commit -m "' + subject + '"'
         if trailers:
             command = command + ' -m "' + trailers + '"'
         payload = {"tool_input": {"command": command}}
+        env = {**os.environ}
+        if as_claude:
+            env["CLAUDE_CODE"] = "1"
+        else:
+            env.pop("CLAUDE_CODE", None)
         proc = subprocess.run(
             [sys.executable, PRE_HOOK],
             input=json.dumps(payload),
-            capture_output=True, text=True, cwd=cwd,
+            capture_output=True, text=True, cwd=cwd, env=env,
         )
         return proc.returncode
 
@@ -467,11 +473,17 @@ def test_hook_robustness(cwd):
     else:
         print("  Revert whitelisted ✓")
 
-    # Regular commit WITHOUT trailers should be BLOCKED
-    if check_msg("✨ feat(auth): no trailers here") == 0:
-        errors.append("Allowed commit missing required trailers")
+    # Regular commit WITHOUT trailers — Claude should be BLOCKED
+    if check_msg("✨ feat(auth): no trailers here", as_claude=True) == 0:
+        errors.append("Allowed Claude commit missing required trailers")
     else:
-        print("  Missing trailers blocked ✓")
+        print("  Missing trailers blocked (Claude) ✓")
+
+    # Regular commit WITHOUT trailers — Human should only WARN (exit 0)
+    if check_msg("✨ feat(auth): no trailers here", as_claude=False) != 0:
+        errors.append("Blocked human commit missing trailers (should only warn)")
+    else:
+        print("  Missing trailers warned only (human) ✓")
 
     return errors
 

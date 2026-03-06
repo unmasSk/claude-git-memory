@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/pre-validate-commit-trailers.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/pre-validate-commit-trailers.py"
           }
         ]
       }
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/post-validate-commit-trailers.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/post-validate-commit-trailers.py"
           }
         ]
       }
@@ -27,7 +27,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/stop-dod-check.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/stop-dod-check.py"
           }
         ]
       }
@@ -37,7 +37,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 hooks/precompact-snapshot.py"
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/precompact-snapshot.py"
           }
         ]
       }

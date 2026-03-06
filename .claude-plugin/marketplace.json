@@ -1,0 +1,17 @@
+{
+  "owner": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "plugins": [
+    {
+      "name": "claude-git-memory",
+      "version": "2.0.0",
+      "description": "Persistent memory for Claude Code via git commit trailers. Git is the memory.",
+      "source": "github",
+      "repo": "unmasSk/claude-git-memory",
+      "homepage": "https://github.com/unmasSk/claude-git-memory",
+      "keywords": ["git", "memory", "trailers", "context", "decisions"]
+    }
+  ]
+}
