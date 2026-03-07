@@ -70,34 +70,30 @@ No questions. It knows where you left off.
 
 ## Quick start
 
-### 1. Clone this repo
+### Install the plugin
 
-```bash
-git clone https://github.com/unmasSk/claude-git-memory.git
+Install `claude-git-memory` as a Claude Code plugin from the [marketplace](https://github.com/unmasSk/claude-git-memory), or add it directly to your project's `.claude/plugins.json`:
+
+```json
+{
+  "plugins": ["github:unmasSk/claude-git-memory"]
+}
 ```
 
-### 2. Tell Claude to install it
+That's it. **No commands to run, nothing to configure.**
 
-Open Claude Code in your project and say:
+When Claude starts a session in your project, the plugin activates automatically:
+1. Hooks register themselves (pre-commit, post-commit, session exit, context compression)
+2. Skills load into Claude's context (memory rules, lifecycle, protocol, recovery)
+3. Claude runs a silent health check and shows a memory summary
 
-> "Install git-memory from /path/to/claude-git-memory"
-
-That's it. **Claude does the rest.** You never need to run a single command.
-
-Claude will:
-1. **Inspect** your project (detect stack, check for CI/commitlint conflicts)
-2. **Show you a plan** (what it will copy, where, and why)
-3. **Apply** the installation (hooks, skills, CLI, CLAUDE.md block)
-4. **Verify** everything works (runs a health check automatically)
-5. **Show proof** that the system is healthy
-
-If something breaks later, Claude detects it on session start and fixes it automatically.
+The hooks use `${CLAUDE_PLUGIN_ROOT}` to reference the plugin directory — you don't need to know where it lives or manage any paths.
 
 ### Requirements
 
 - Python 3.10+
 - Git
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with hooks support
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) with plugin support
 
 ---
 
@@ -320,9 +316,9 @@ Full list of trailers the system understands:
 
 ---
 
-## Installation modes
+## Runtime modes
 
-The installer detects your project's setup and chooses the best mode:
+The plugin adapts to your project's constraints automatically:
 
 | Mode | When | What happens |
 |------|------|-------------|
@@ -330,7 +326,7 @@ The installer detects your project's setup and chooses the best mode:
 | **Compatible** | CI or commitlint rejects trailers | Uses git notes instead of commit trailers |
 | **Read-only** | No write permissions | Reads existing memory, doesn't create commits |
 
-If Claude detects a commitlint config or strict CI pipeline, it automatically suggests compatible mode. You can also force a mode during install.
+If Claude detects a commitlint config or strict CI pipeline, it switches to compatible mode automatically. No action needed from you.
 
 ---
 
@@ -412,9 +408,9 @@ Before asking you something, Claude searches existing memory first:
 
 ---
 
-## CLI reference
+## Internal CLI
 
-These commands exist for Claude to use internally. You don't need to run them — just ask Claude in natural language. Listed here for transparency and debugging.
+These commands exist for Claude to use internally. **You never run them** — just ask Claude in natural language. Listed here for transparency and debugging.
 
 | Command | What it does |
 |---------|-------------|
@@ -424,16 +420,11 @@ These commands exist for Claude to use internally. You don't need to run them �
 | `git memory pending` | List all pending Next: items |
 | `git memory blockers` | List all active blockers |
 | `git memory search <term>` | Full-text search across all memory |
-| `git memory doctor` | Health check (hooks, skills, CLI, manifest, GC status) |
-| `git memory install` | Transactional installer (5 phases) |
+| `git memory doctor` | Health check (hooks, skills, manifest, GC status) |
 | `git memory repair` | Fix broken components using manifest |
-| `git memory uninstall` | Remove runtime (keeps git history) |
-| `git memory upgrade` | Safe version migration with backup |
 | `git memory bootstrap` | Scout project structure (stack, monorepo, CI) |
 | `git memory gc` | Garbage collect stale Next/Blocker items |
 | `git memory dashboard` | Generate static HTML dashboard |
-
-All commands support `--json` for machine-readable output, `--auto` for non-interactive mode, and `--dry-run` where applicable.
 
 ---
 
@@ -457,20 +448,20 @@ For monorepos, the scout builds a **scope map** — mapping directories like `ap
 
 ```
 claude-git-memory/
-├── .claude/
-│   ├── hooks/                              # Symlinks to hooks/
-│   │   ├── pre-validate-commit-trailers.py   # Belt
-│   │   ├── post-validate-commit-trailers.py  # Suspenders
-│   │   ├── precompact-snapshot.py            # Hippocampus
-│   │   └── stop-dod-check.py                # DoD
-│   └── skills/                             # Symlinks to skills/
-│       ├── git-memory/                       # Core: boot, search, trailers, workflow
-│       ├── git-memory-lifecycle/             # Install, doctor, repair, uninstall
-│       ├── git-memory-protocol/              # Authority, releases, conflicts, undo
-│       └── git-memory-recovery/              # Rebase, reset, force-push, CI issues
 ├── .claude-plugin/
-│   ├── plugin.json                         # Plugin manifest
-│   └── marketplace.json                    # Marketplace config
+│   ├── plugin.json                         # Plugin manifest (name, version, entry points)
+│   └── marketplace.json                    # Marketplace listing
+├── hooks.json                              # Hook registration (Claude Code reads this)
+├── hooks/
+│   ├── pre-validate-commit-trailers.py     # Belt — blocks bad commits
+│   ├── post-validate-commit-trailers.py    # Suspenders — safety net
+│   ├── precompact-snapshot.py              # Hippocampus — memory before compression
+│   └── stop-dod-check.py                  # DoD — blocks exit with pending work
+├── skills/
+│   ├── git-memory/                         # Core: boot, search, trailers, workflow
+│   ├── git-memory-lifecycle/               # Doctor, repair, health management
+│   ├── git-memory-protocol/                # Authority, releases, conflicts, undo
+│   └── git-memory-recovery/                # Rebase, reset, force-push, CI issues
 ├── bin/
 │   ├── git-memory                          # CLI router (bash)
 │   ├── git-memory-install.py               # Transactional installer
@@ -486,10 +477,7 @@ claude-git-memory/
 │   ├── git_helpers.py                      # Git subprocess wrappers
 │   ├── parsing.py                          # Commit parsing, trailer extraction
 │   └── colors.py                           # ANSI terminal colors
-├── hooks/                                  # Source hooks (copied by installer)
-├── skills/                                 # Source skills (copied by installer)
-├── hooks.json                              # Hook registration for Claude Code
-├── dashboard-preview.html                  # HTML template (Primer dark theme)
+├── dashboard-template.html                 # HTML template (Primer dark theme)
 └── tests/
     ├── conftest.py                         # Shared fixtures and helpers
     ├── test_bootstrap.py                   # Scout detection tests
@@ -531,13 +519,13 @@ python3 -m mypy bin/ hooks/
 A: Yes. Trailers are standard git metadata — they work with any git host.
 
 **Q: Does this work with commitlint or strict CI?**
-A: Yes. The installer detects commitlint and switches to compatible mode (git notes instead of trailers).
+A: Yes. The plugin detects commitlint and switches to compatible mode (git notes instead of trailers).
 
 **Q: Will this mess up my existing commits?**
 A: No. The system only adds trailers to new commits. Existing history is never modified.
 
 **Q: Can I uninstall it?**
-A: Yes. Say "remove git-memory" to Claude. It removes the runtime but keeps your git history — commits with trailers stay intact forever.
+A: Yes. Remove the plugin from your `.claude/plugins.json`. Commits with trailers stay intact forever — they're just normal git metadata.
 
 **Q: Does it work with monorepos?**
 A: Yes. The scout detects Turborepo, Nx, Lerna, pnpm workspaces, Rush, and Moon. It builds a scope map so Claude knows which package a commit belongs to.
