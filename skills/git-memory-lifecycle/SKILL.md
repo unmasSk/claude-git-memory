@@ -6,35 +6,29 @@ description: Use when user says install, setup, configure, doctor, health, statu
 # Git Memory — Lifecycle
 
 **Rule: Claude executes all lifecycle commands. Never ask the user to run them.**
+**Rule: ALWAYS pass `--auto` to every script. Never let scripts prompt for input.**
 
-All scripts are at `$CLAUDE_PLUGIN_ROOT/bin/`. This env var is set by Claude Code when the plugin loads.
-Execute with `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-<command>.py [flags]`.
+### Finding scripts
+
+After install, scripts live in the project's `bin/` directory. Run as: `python3 bin/git-memory-<command>.py --auto`
+
+**First install** (before `bin/` exists locally): find the plugin cache path from `~/.claude/plugins/installed_plugins.json` → look for `claude-git-memory@unmassk-claude-git-memory` → use its `installPath` field.
+
+**Important**: `$CLAUDE_PLUGIN_ROOT` is a template variable for hooks.json ONLY. It is NOT an environment variable. Never use it in Bash commands.
 
 ## Install (transactional)
 
+```bash
+# First install (bin/ doesn't exist yet — use plugin cache path):
+python3 <installPath>/bin/git-memory-install.py --auto
+
+# Reinstall (bin/ already exists locally):
+python3 bin/git-memory-install.py --auto
 ```
-1. INSPECT
-   - Is git repo? (no → abort with explanation)
-   - Exists .claude/? settings.json? hooks? CLAUDE.md?
-   - CI/commitlint active? → compatible mode
-   - Decide mode: normal / compatible / read-only
 
-2. PLAN (show to user before doing anything)
-   - "Adding: hooks, skills, CLI, managed block in CLAUDE.md"
-   - "Not touching your instructions outside the managed block"
-   - "Your existing hooks are preserved"
+The `--auto` flag skips all interactive prompts. **Always use it.**
 
-3. APPLY
-   - Copy hooks, skills, bin
-   - Merge settings.json (namespaced, never overwrite existing)
-   - Add managed block to CLAUDE.md
-   - Create manifest.json
-
-4. VERIFY → run doctor automatically
-
-5. HEALTH PROOF
-   - "All components installed. If anything fails, I can repair or uninstall."
-```
+The script runs 5 phases automatically: inspect → plan → apply → verify → health proof.
 
 Never install without showing plan first. Never merge JSON blindly.
 
@@ -105,9 +99,9 @@ No scheduled calendar. Claude cleans in passing (never asks user to run commands
 
 | When | What | Claude does |
 |------|------|-------------|
-| Session start | Silent health check | `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` → repair if needed |
+| Session start | Silent health check | `python3 bin/git-memory-doctor.py --json` → repair if needed |
 | PR/merge | Clean stale trailers if seen | "Cleaned 2 stale items in passing" |
-| Symptoms detected | GC on demand | Ask user "Clean up?" → `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-gc.py --auto` |
-| User asks | Full GC | `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-gc.py` (Claude runs it, shows results) |
+| Symptoms detected | GC on demand | Ask user "Clean up?" → `python3 bin/git-memory-gc.py --auto` |
+| User asks | Full GC | `python3 bin/git-memory-gc.py --auto` (Claude runs it, shows results) |
 
 Never interrupt the user with unsolicited admin tasks. Never ask the user to run commands.

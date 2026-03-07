@@ -24,9 +24,20 @@ Do NOT write: provisional observations, weak inferences, session-only context.
 
 ## Auto-Boot (every session start — Claude executes all of this, never asks the user to)
 
-All scripts are at `$CLAUDE_PLUGIN_ROOT/bin/`. This env var is set by Claude Code when the plugin loads.
+### Finding scripts
 
-1. Run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` silently. If errors → run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-repair.py --auto` and tell the user what was fixed.
+After install, all scripts live in the project's own `bin/` and `hooks/` directories.
+Run them as `python3 bin/git-memory-<command>.py [flags]`.
+
+**If `bin/` doesn't exist locally** (first install, or plugin-only mode):
+1. Check `~/.claude/plugins/installed_plugins.json` → find `installPath` for `claude-git-memory@unmassk-claude-git-memory`
+2. Use that path: `python3 <installPath>/bin/git-memory-install.py --auto`
+
+**Note**: `$CLAUDE_PLUGIN_ROOT` is a template variable expanded inside `hooks.json` only. It is NOT available as an environment variable in Bash commands. Never use it in Bash.
+
+### Boot sequence
+
+1. Run `python3 bin/git-memory-doctor.py --json` silently. If errors → run `python3 bin/git-memory-repair.py --auto` and tell the user what was fixed.
 2. `git log -n 30 --pretty=format:"%h%x1f%s%x1f%b%x1e"` → extract Next, Blocker, Decision, Memo, last context()
 3. `git status --porcelain` → detect uncommitted state
 4. Show compact summary (≤18 lines):
