@@ -55,4 +55,30 @@ After EVERY user message, silently evaluate if it contains memory-worthy content
 2. Propose: "Saving as decision/memo: [one-line summary]. Ok?"
 3. Wait for confirmation — never silently commit
 4. Create the `decision()` or `memo()` commit with `--allow-empty`
+
+### Context Checkpoint Commits (CRITICAL for session continuity)
+A context() commit is a rich snapshot of what you've been working on. It is the PRIMARY way the next AI session understands what happened. Without it, the next session starts blind.
+
+**When to create a context() commit:**
+- After completing a significant piece of work (feature, fix, refactor)
+- When the hook reminds you (every ~20 messages)
+- When context is about to be compacted (the PreCompact hook will tell you)
+- Before the user ends the session (if you know they're leaving)
+
+**What a GOOD context commit looks like:**
+```
+git commit --allow-empty -m "💾 context(scope): what was accomplished
+
+Next: specific next step to continue
+Next: another pending task if any
+Decision: any decision made during this session
+Memo: preference - any user preference learned
+Blocker: anything blocking progress"
+```
+
+**Rules:**
+- NEVER make a vague context commit like "context(): work done". Be specific.
+- Include ALL relevant trailers: Next, Decision, Memo, Blocker
+- The subject line should summarize what was accomplished, not what's pending
+- A successor AI reading ONLY this commit should understand what happened and what to do next
 <!-- END claude-git-memory -->
