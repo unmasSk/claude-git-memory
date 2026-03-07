@@ -13,9 +13,16 @@ Exit codes:
 import os
 import re
 import sys
+import tempfile
+import time
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
+
+# Circuit breaker: prevent infinite stop-hook loops (e.g. when Claude gets
+# a 401 error and can't respond, the stop hook keeps blocking).
+LOCKFILE = os.path.join(tempfile.gettempdir(), "git-memory-stop-hook.lock")
+COOLDOWN_SECONDS = 30
 
 from git_helpers import run_git, is_git_repo
 from colors import RED, YELLOW, RESET
@@ -104,6 +111,16 @@ def main() -> None:
     if not is_git_repo():
         sys.exit(0)
 
+    # Circuit breaker: if we already blocked recently, let it through
+    # to prevent infinite loops when Claude can't respond (e.g. 401).
+    try:
+        if os.path.isfile(LOCKFILE):
+            mtime = os.path.getmtime(LOCKFILE)
+            if time.time() - mtime < COOLDOWN_SECONDS:
+                sys.exit(0)
+    except OSError:
+        pass
+
     messages = []
     should_block = False
 
@@ -142,8 +159,20 @@ def main() -> None:
             print(m, file=sys.stderr)
 
     if should_block:
+        # Write lockfile so the circuit breaker can prevent loops
+        try:
+            with open(LOCKFILE, "w") as f:
+                f.write(str(time.time()))
+        except OSError:
+            pass
         sys.exit(2)
     else:
+        # Clean up lockfile on clean exit
+        try:
+            if os.path.isfile(LOCKFILE):
+                os.unlink(LOCKFILE)
+        except OSError:
+            pass
         sys.exit(0)
 
 
