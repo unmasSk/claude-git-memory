@@ -24,16 +24,20 @@ Do NOT write: provisional observations, weak inferences, session-only context.
 
 ## Auto-Boot (every session start — Claude executes all of this, never asks the user to)
 
-### Finding scripts
+### Finding scripts — READ THIS CAREFULLY
 
-After install, all scripts live in the project's own `bin/` and `hooks/` directories.
-Run them as `python3 bin/git-memory-<command>.py [flags]`.
+Scripts are ALWAYS at `bin/` in the project root. Example: `python3 bin/git-memory-doctor.py --json`
 
-**If `bin/` doesn't exist locally** (first install, or plugin-only mode):
-1. Check `~/.claude/plugins/installed_plugins.json` → find `installPath` for `claude-git-memory@unmassk-claude-git-memory`
-2. Use that path: `python3 <installPath>/bin/git-memory-install.py --auto`
+**NEVER use these paths** (common mistakes):
+- `.claude-plugin/bin/` — WRONG, .claude-plugin/ only has manifests
+- `$CLAUDE_PLUGIN_ROOT/bin/` — WRONG, this var does not exist in Bash
+- `hooks/bin/` — WRONG
+- `env | grep CLAUDE_PLUGIN` — USELESS, the var is not an env var
 
-**Note**: `$CLAUDE_PLUGIN_ROOT` is a template variable expanded inside `hooks.json` only. It is NOT available as an environment variable in Bash commands. Never use it in Bash.
+**If `bin/` doesn't exist** (first install only):
+1. Read `~/.claude/plugins/installed_plugins.json`
+2. Find `installPath` for key `claude-git-memory@unmassk-claude-git-memory`
+3. Run: `python3 <that-path>/bin/git-memory-install.py --auto`
 
 ### Boot sequence
 

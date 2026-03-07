@@ -8,13 +8,16 @@ description: Use when user says install, setup, configure, doctor, health, statu
 **Rule: Claude executes all lifecycle commands. Never ask the user to run them.**
 **Rule: ALWAYS pass `--auto` to every script. Never let scripts prompt for input.**
 
-### Finding scripts
+### Finding scripts — READ THIS CAREFULLY
 
-After install, scripts live in the project's `bin/` directory. Run as: `python3 bin/git-memory-<command>.py --auto`
+Scripts are ALWAYS at `bin/` in the project root. Run as: `python3 bin/git-memory-<command>.py --auto`
 
-**First install** (before `bin/` exists locally): find the plugin cache path from `~/.claude/plugins/installed_plugins.json` → look for `claude-git-memory@unmassk-claude-git-memory` → use its `installPath` field.
+**NEVER use these paths** (common mistakes):
+- `.claude-plugin/bin/` — WRONG, .claude-plugin/ only has manifests
+- `$CLAUDE_PLUGIN_ROOT/bin/` — WRONG, this var does not exist in Bash
+- `env | grep CLAUDE_PLUGIN` — USELESS, the var is not an env var
 
-**Important**: `$CLAUDE_PLUGIN_ROOT` is a template variable for hooks.json ONLY. It is NOT an environment variable. Never use it in Bash commands.
+**First install** (before `bin/` exists locally): read `~/.claude/plugins/installed_plugins.json` → find `installPath` for `claude-git-memory@unmassk-claude-git-memory` → use that path.
 
 ## Install (transactional)
 
