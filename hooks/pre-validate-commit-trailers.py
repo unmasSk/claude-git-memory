@@ -27,7 +27,7 @@ from parsing import extract_commit_message, parse_commit_type, parse_trailers
 from colors import RED, YELLOW, RESET
 
 
-def get_branch_name():
+def get_branch_name() -> str:
     """Get current branch name."""
     code, output = run_git(["branch", "--show-current"], timeout=5)
     return output if code == 0 else ""
@@ -40,7 +40,7 @@ def branch_has_issue(branch: str) -> bool:
     return bool(re.search(r"(CU-\d+|issue-\d+|#\d+)", branch, re.IGNORECASE))
 
 
-def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str]:
+def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -> list[str]:
     """Validate trailers against the spec. Returns list of errors."""
     errors = []
     has_issue = branch_has_issue(branch)
@@ -96,7 +96,7 @@ def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str
     return errors
 
 
-def main():
+def main() -> None:
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:

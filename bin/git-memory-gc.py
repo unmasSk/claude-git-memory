@@ -27,6 +27,7 @@ import os
 import re
 import sys
 from datetime import datetime, timedelta
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -34,7 +35,7 @@ from git_helpers import run_git as _run_git
 from parsing import parse_scope
 
 
-def run_git(args):
+def run_git(args: list[str]) -> tuple[int, str]:
     """Wrapper with longer timeout for GC operations."""
     return _run_git(args, timeout=30)
 
@@ -56,13 +57,13 @@ STOP_WORDS = {
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def extract_keywords(text):
+def extract_keywords(text: str) -> set[str]:
     """Extract meaningful keywords from a text string."""
     words = re.findall(r"[a-zA-Z0-9_-]+", text.lower())
     return {w for w in words if len(w) >= MIN_KEYWORD_LENGTH and w not in STOP_WORDS}
 
 
-def parse_date(date_str):
+def parse_date(date_str: str) -> datetime | None:
     """Parse ISO date from git log."""
     try:
         return datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
@@ -72,7 +73,7 @@ def parse_date(date_str):
 
 # ── Core: Read commits ────────────────────────────────────────────────────
 
-def scan_commits(depth):
+def scan_commits(depth: int) -> list[dict[str, Any]]:
     """Read last N commits and extract structured data."""
     code, output = run_git([
         "log", "-n", str(depth),
@@ -120,7 +121,7 @@ def scan_commits(depth):
 
 # ── Core: Heuristics ──────────────────────────────────────────────────────
 
-def find_stale_items(commits, stale_days):
+def find_stale_items(commits: list[dict[str, Any]], stale_days: int) -> list[dict[str, Any]]:
     """Apply heuristics to find Next: and Blocker: items that should be cleaned."""
     now = datetime.now()
     candidates = []
@@ -241,7 +242,7 @@ def find_stale_items(commits, stale_days):
 
 # ── Core: Execute ─────────────────────────────────────────────────────────
 
-def print_candidates(candidates):
+def print_candidates(candidates: list[dict[str, Any]]) -> None:
     """Display GC candidates to the user."""
     if not candidates:
         print("\n🧹 Nothing to clean — all Next: and Blocker: items look active.")
@@ -260,7 +261,7 @@ def print_candidates(candidates):
         print()
 
 
-def create_gc_commit(candidates):
+def create_gc_commit(candidates: list[dict[str, Any]]) -> bool:
     """Create a compensation commit with tombstone trailers."""
     # Build trailer block
     trailer_lines = []
@@ -287,7 +288,7 @@ def create_gc_commit(candidates):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Garbage collector for stale trailers.")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be cleaned")
     parser.add_argument("--auto", action="store_true", help="Auto-commit without asking")

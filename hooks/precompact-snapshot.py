@@ -15,6 +15,7 @@ Exit codes:
 import os
 import re
 import sys
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -23,7 +24,7 @@ from git_helpers import run_git, is_git_repo, is_shallow_clone
 from parsing import normalize
 
 
-def extract_memory_from_log() -> dict:
+def extract_memory_from_log() -> dict[str, Any]:
     """
     Read last 30 commits and extract memory trailers.
     Returns structured memory data.
@@ -39,7 +40,7 @@ def extract_memory_from_log() -> dict:
     if code != 0 or not output:
         return {}
 
-    memory = {
+    memory: dict[str, Any] = {
         "pending": [],       # Next: items
         "blockers": [],      # Blocker: items
         "decisions": {},     # scope → Decision: (latest per scope)
@@ -137,7 +138,7 @@ def extract_memory_from_log() -> dict:
     return memory
 
 
-def format_snapshot(memory: dict) -> str:
+def format_snapshot(memory: dict[str, Any]) -> str:
     """Format memory data as a compact snapshot for re-injection."""
     lines = []
     lines.append("=== GIT MEMORY SNAPSHOT (pre-compact) ===")
@@ -203,7 +204,7 @@ def format_snapshot(memory: dict) -> str:
     return "\n".join(lines)
 
 
-def main():
+def main() -> None:
     if not is_git_repo():
         sys.exit(0)
 

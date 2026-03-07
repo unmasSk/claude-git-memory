@@ -58,7 +58,7 @@ def get_last_commit_next() -> str | None:
     return None
 
 
-def main():
+def main() -> None:
     # Skip if not in a git repo
     if not is_git_repo():
         sys.exit(0)

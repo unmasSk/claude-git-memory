@@ -55,12 +55,12 @@ GENERATED_FILES = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def find_source_root():
+def find_source_root() -> str:
     """Find the git-memory plugin source root (where this script lives)."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def find_target_root():
+def find_target_root() -> str:
     """Find the target repo root."""
     code, output = run_git(["rev-parse", "--show-toplevel"])
     if code == 0:
@@ -68,7 +68,7 @@ def find_target_root():
     return os.getcwd()
 
 
-def safe_remove(path):
+def safe_remove(path: str) -> bool:
     """Remove a file or symlink if it exists."""
     if os.path.islink(path) or os.path.isfile(path):
         os.unlink(path)
@@ -76,7 +76,7 @@ def safe_remove(path):
     return False
 
 
-def safe_rmdir(path):
+def safe_rmdir(path: str) -> bool:
     """Remove a directory if it exists and is empty."""
     if os.path.isdir(path):
         try:
@@ -89,7 +89,7 @@ def safe_rmdir(path):
 
 # ── Uninstall Steps ──────────────────────────────────────────────────────
 
-def remove_hooks(target):
+def remove_hooks(target: str) -> list[str]:
     """Remove hook files and symlinks."""
     removed = []
 
@@ -112,7 +112,7 @@ def remove_hooks(target):
     return removed
 
 
-def remove_skills(target):
+def remove_skills(target: str) -> list[str]:
     """Remove skill directories and symlinks."""
     removed = []
 
@@ -138,7 +138,7 @@ def remove_skills(target):
     return removed
 
 
-def remove_cli(target):
+def remove_cli(target: str) -> list[str]:
     """Remove CLI scripts from bin/."""
     removed = []
     bin_dir = os.path.join(target, "bin")
@@ -157,7 +157,7 @@ def remove_cli(target):
     return removed
 
 
-def remove_claude_md_block(target):
+def remove_claude_md_block(target: str) -> bool:
     """Remove the managed block from CLAUDE.md without touching other content."""
     claude_md = os.path.join(target, "CLAUDE.md")
     if not os.path.isfile(claude_md):
@@ -196,18 +196,18 @@ def remove_claude_md_block(target):
     return True
 
 
-def remove_manifest(target):
+def remove_manifest(target: str) -> bool:
     """Remove the manifest file."""
     path = os.path.join(target, ".claude", "git-memory-manifest.json")
     return safe_remove(path)
 
 
-def remove_hooks_json(target):
+def remove_hooks_json(target: str) -> bool:
     """Remove hooks.json from root."""
     return safe_remove(os.path.join(target, "hooks.json"))
 
 
-def remove_plugin_manifest(target):
+def remove_plugin_manifest(target: str) -> bool:
     """Remove .claude-plugin/ directory."""
     plugin_dir = os.path.join(target, ".claude-plugin")
     if os.path.isdir(plugin_dir):
@@ -216,7 +216,7 @@ def remove_plugin_manifest(target):
     return False
 
 
-def remove_generated_files(target):
+def remove_generated_files(target: str) -> list[str]:
     """Remove generated files (full-local mode)."""
     removed = []
     for rel_path in GENERATED_FILES:
@@ -228,7 +228,7 @@ def remove_generated_files(target):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Clean removal of git-memory runtime.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--full-local", action="store_true", help="Also remove generated files")

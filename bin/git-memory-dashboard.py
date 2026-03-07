@@ -22,6 +22,7 @@ import os
 import sys
 import webbrowser
 from datetime import datetime
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -40,7 +41,7 @@ DASHBOARD_PATH = os.path.join(".claude", "dashboard.html")
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def get_repo_info():
+def get_repo_info() -> dict[str, str]:
     info = {}
     code, branch = run_git(["branch", "--show-current"], timeout=30)
     info["branch"] = branch if code == 0 else "unknown"
@@ -51,7 +52,7 @@ def get_repo_info():
 
 # ── Single-pass extraction ────────────────────────────────────────────────
 
-def scan_commits():
+def scan_commits() -> list[dict[str, Any]]:
     code, output = run_git([
         "log", "-n", str(SCAN_DEPTH),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
@@ -135,7 +136,7 @@ def scan_commits():
 
 # ── Data Aggregation ──────────────────────────────────────────────────────
 
-def aggregate(commits):
+def aggregate(commits: list[dict[str, Any]]) -> dict[str, Any]:
     now = datetime.now()
 
     # Tombstones
@@ -208,7 +209,7 @@ def aggregate(commits):
     total_checkable = compliant_count + non_compliant_count
     pct = round(compliant_count / total_checkable * 100) if total_checkable > 0 else 100
 
-    missing_counts = {}
+    missing_counts: dict[str, int] = {}
     for c in commits:
         for k in c.get("missing_keys", []):
             missing_counts[k] = missing_counts.get(k, 0) + 1
@@ -268,7 +269,7 @@ def aggregate(commits):
 
 # ── HTML Template ─────────────────────────────────────────────────────────
 
-def get_html_template():
+def get_html_template() -> str:
     """Read the HTML template from dashboard-preview.html."""
     # Look for template relative to this script
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -283,7 +284,7 @@ def get_html_template():
         return f.read()
 
 
-def _sanitize_value(val):
+def _sanitize_value(val: Any) -> Any:
     """Recursively escape all string values to prevent XSS."""
     if isinstance(val, str):
         return html_mod.escape(val, quote=True)
@@ -294,7 +295,7 @@ def _sanitize_value(val):
     return val
 
 
-def inject_data(html_content, data):
+def inject_data(html_content: str, data: dict[str, Any]) -> str:
     """Replace the mock DATA object with real sanitized data."""
     safe_data = _sanitize_value(data)
     data_json = json.dumps(safe_data, ensure_ascii=False, indent=None)
@@ -326,7 +327,7 @@ def inject_data(html_content, data):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a static HTML dashboard from git memory.")
     parser.add_argument("--silent", action="store_true", help="Suppress output")
     args = parser.parse_args()

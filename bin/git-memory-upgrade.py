@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -65,12 +66,12 @@ BIN_FILES = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def find_source_root():
+def find_source_root() -> str:
     """Find the git-memory plugin source root."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def find_target_root():
+def find_target_root() -> str:
     """Find the target repo root."""
     code, output = run_git(["rev-parse", "--show-toplevel"])
     if code == 0:
@@ -78,7 +79,7 @@ def find_target_root():
     return os.getcwd()
 
 
-def file_hash(path):
+def file_hash(path: str) -> str | None:
     """SHA256 hash of a file, or None if missing. Skips symlinks."""
     if not os.path.isfile(path) or os.path.islink(path):
         return None
@@ -90,28 +91,29 @@ def file_hash(path):
 
 # ── Lectura del estado actual ─────────────────────────────────────────────
 
-def read_installed_manifest(target):
+def read_installed_manifest(target: str) -> dict[str, Any] | None:
     """Leer manifest de la instalación actual."""
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
     if not os.path.isfile(manifest_path):
         return None
     try:
         with open(manifest_path) as f:
-            return json.load(f)
+            data: dict[str, Any] = json.load(f)
+            return data
     except (json.JSONDecodeError, OSError):
         return None
 
 
-def read_source_version(source):
+def read_source_version(source: str) -> str:
     """Leer versión del source (este script define la versión canónica)."""
     return VERSION
 
 
 # ── Comparación ───────────────────────────────────────────────────────────
 
-def compute_diff(source, target):
+def compute_diff(source: str, target: str) -> dict[str, list[str]]:
     """Comparar archivos source vs instalados, producir diff detallado."""
-    changes = {
+    changes: dict[str, list[str]] = {
         "added": [],       # Archivos nuevos que no existen en target
         "modified": [],    # Archivos que cambiaron
         "removed": [],     # Archivos en target que ya no existen en source
@@ -154,7 +156,7 @@ def compute_diff(source, target):
     return changes
 
 
-def _compare_file(src, dst, label, changes):
+def _compare_file(src: str, dst: str, label: str, changes: dict[str, list[str]]) -> None:
     """Comparar un archivo source vs destino."""
     src_hash = file_hash(src)
     dst_hash = file_hash(dst)
@@ -172,7 +174,7 @@ def _compare_file(src, dst, label, changes):
 
 # ── Backup ────────────────────────────────────────────────────────────────
 
-def create_backup(target, manifest):
+def create_backup(target: str, manifest: dict[str, Any]) -> str:
     """Crear backup del manifest actual antes del upgrade."""
     claude_dir = os.path.join(target, ".claude")
     backup_dir = os.path.join(claude_dir, "backups")
@@ -195,13 +197,13 @@ def create_backup(target, manifest):
 # Cada migración es una función que recibe (target, manifest) y retorna el manifest actualizado.
 # Se ejecutan en orden de versión.
 
-MIGRATIONS = {
+MIGRATIONS: dict[str, Any] = {
     # "1.0.0→2.0.0": migration_1_to_2,
     # Agregar futuras migraciones aquí
 }
 
 
-def get_needed_migrations(from_version, to_version):
+def get_needed_migrations(from_version: str, to_version: str) -> list[tuple[str, Any]]:
     """Determinar qué migraciones necesitan ejecutarse."""
     needed = []
     for key, fn in MIGRATIONS.items():
@@ -214,7 +216,7 @@ def get_needed_migrations(from_version, to_version):
 
 # ── Aplicar upgrade ───────────────────────────────────────────────────────
 
-def apply_upgrade(source, target, changes, manifest):
+def apply_upgrade(source: str, target: str, changes: dict[str, list[str]], manifest: dict[str, Any]) -> list[str]:
     """Aplicar los cambios del upgrade."""
     errors = []
 
@@ -287,7 +289,7 @@ def apply_upgrade(source, target, changes, manifest):
 
 _install_mod = None
 
-def _load_install_module():
+def _load_install_module() -> Any:
     """Cargar git-memory-install.py como módulo (cache)."""
     global _install_mod
     if _install_mod is not None:
@@ -297,12 +299,14 @@ def _load_install_module():
     if not os.path.isfile(install_path):
         raise FileNotFoundError(f"git-memory-install.py no encontrado en {install_path}")
     spec = spec_from_file_location("install", install_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module spec for {install_path}")
     _install_mod = module_from_spec(spec)
-    spec.loader.exec_module(_install_mod)
+    spec.loader.exec_module(_install_mod)  # type: ignore[union-attr]
     return _install_mod
 
 
-def _compute_fingerprint(root):
+def _compute_fingerprint(root: str) -> str:
     """Calcular fingerprint de archivos instalados."""
     h = hashlib.sha256()
     for hook in HOOKS:
@@ -324,7 +328,7 @@ def _compute_fingerprint(root):
 
 # ── Output ────────────────────────────────────────────────────────────────
 
-def format_diff_human(changes, from_version, to_version):
+def format_diff_human(changes: dict[str, list[str]], from_version: str, to_version: str) -> str:
     """Formatear diff para lectura humana."""
     lines = []
     lines.append(f"Versión instalada: v{from_version}")
@@ -358,7 +362,7 @@ def format_diff_human(changes, from_version, to_version):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Safe upgrade for the git-memory system.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--dry-run", action="store_true", help="Show what would change")
@@ -499,8 +503,8 @@ def main():
             print(json.dumps({"status": "error", "errors": errors}))
         else:
             print(f"\n{len(errors)} error(es):")
-            for e in errors:
-                print(f"  ❌ {e}")
+            for err in errors:
+                print(f"  ❌ {err}")
             print(f"\nBackup disponible en: {backup_path}")
         sys.exit(1)
 

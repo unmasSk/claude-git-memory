@@ -23,6 +23,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -66,12 +67,12 @@ Git es la memoria. Cada commit es resumible entre sesiones y máquinas.
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def find_source_root():
+def find_source_root() -> str:
     """Find the git-memory plugin source root (where this script lives)."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def find_target_root():
+def find_target_root() -> str:
     """Find the target repo root (cwd's git root)."""
     code, output = run_git(["rev-parse", "--show-toplevel"])
     if code == 0:
@@ -79,7 +80,7 @@ def find_target_root():
     return os.getcwd()
 
 
-def compute_fingerprint(root):
+def compute_fingerprint(root: str) -> str:
     """Compute a sha256 fingerprint of installed files."""
     h = hashlib.sha256()
     for hook in HOOKS:
@@ -101,7 +102,7 @@ def compute_fingerprint(root):
 
 # ── Phase 1: Inspect ─────────────────────────────────────────────────────
 
-def inspect(target):
+def inspect(target: str) -> dict[str, Any]:
     """Inspect the target repository and detect current state."""
     report = {
         "is_git": False,
@@ -183,9 +184,9 @@ def inspect(target):
 
 # ── Phase 2: Plan ─────────────────────────────────────────────────────────
 
-def create_plan(report, source, target, mode=None):
+def create_plan(report: dict[str, Any], source: str, target: str, mode: str | None = None) -> dict[str, Any]:
     """Create an installation plan based on inspection."""
-    plan = {
+    plan: dict[str, Any] = {
         "mode": mode or report["suggested_mode"],
         "actions": [],
         "skipped": [],
@@ -230,7 +231,7 @@ def create_plan(report, source, target, mode=None):
 
 # ── Phase 3: Apply ────────────────────────────────────────────────────────
 
-def apply_plan(plan, source, target):
+def apply_plan(plan: dict[str, Any], source: str, target: str) -> list[str]:
     """Execute the installation plan."""
     errors = []
     is_self = os.path.realpath(source) == os.path.realpath(target)
@@ -269,14 +270,14 @@ def apply_plan(plan, source, target):
     return errors
 
 
-def _safe_copy(src, dst):
+def _safe_copy(src: str, dst: str) -> None:
     """Copy a file, refusing to follow symlinks (security: prevent symlink attacks)."""
     if os.path.islink(src):
         raise ValueError(f"Refusing to copy symlink: {src}")
     shutil.copy2(src, dst)
 
 
-def _copy_hooks(source, target):
+def _copy_hooks(source: str, target: str) -> None:
     """Copy hook files from source to target."""
     src_hooks = os.path.join(source, "hooks")
     dst_hooks = os.path.join(target, "hooks")
@@ -288,7 +289,7 @@ def _copy_hooks(source, target):
             _safe_copy(src, dst)
 
 
-def _copy_skills(source, target):
+def _copy_skills(source: str, target: str) -> None:
     """Copy skill directories from source to target."""
     src_skills = os.path.join(source, "skills")
     dst_skills = os.path.join(target, "skills")
@@ -303,7 +304,7 @@ def _copy_skills(source, target):
                     _safe_copy(src, os.path.join(dst_dir, f))
 
 
-def _copy_cli(source, target):
+def _copy_cli(source: str, target: str) -> None:
     """Copy CLI scripts to target."""
     src_bin = os.path.join(source, "bin")
     dst_bin = os.path.join(target, "bin")
@@ -317,7 +318,7 @@ def _copy_cli(source, target):
                 os.chmod(dst, 0o755)
 
 
-def _copy_lib(source, target):
+def _copy_lib(source: str, target: str) -> None:
     """Copy shared lib/ modules to target."""
     src_lib = os.path.join(source, "lib")
     dst_lib = os.path.join(target, "lib")
@@ -331,7 +332,7 @@ def _copy_lib(source, target):
             _safe_copy(src, dst)
 
 
-def _create_symlinks(target):
+def _create_symlinks(target: str) -> None:
     """Create .claude/hooks/ and .claude/skills/ symlinks."""
     claude_dir = os.path.join(target, ".claude")
     os.makedirs(claude_dir, exist_ok=True)
@@ -343,7 +344,7 @@ def _create_symlinks(target):
     _create_skill_symlinks(claude_dir)
 
 
-def _create_hook_symlinks(claude_dir):
+def _create_hook_symlinks(claude_dir: str) -> None:
     """Create .claude/hooks/ symlinks."""
     hooks_link_dir = os.path.join(claude_dir, "hooks")
     if os.path.islink(hooks_link_dir):
@@ -358,7 +359,7 @@ def _create_hook_symlinks(claude_dir):
             os.symlink(src, dst)
 
 
-def _create_skill_symlinks(claude_dir):
+def _create_skill_symlinks(claude_dir: str) -> None:
     """Create .claude/skills/ symlinks."""
     skills_link_dir = os.path.join(claude_dir, "skills")
     os.makedirs(skills_link_dir, exist_ok=True)
@@ -371,7 +372,7 @@ def _create_skill_symlinks(claude_dir):
             os.symlink(src, dst)
 
 
-def _update_claude_md(target):
+def _update_claude_md(target: str) -> None:
     """Add or update the managed block in CLAUDE.md."""
     claude_md = os.path.join(target, "CLAUDE.md")
 
@@ -396,7 +397,7 @@ def _update_claude_md(target):
         f.write(content)
 
 
-def _copy_hooks_json(source, target):
+def _copy_hooks_json(source: str, target: str) -> None:
     """Copy hooks.json to target root."""
     src = os.path.join(source, "hooks.json")
     dst = os.path.join(target, "hooks.json")
@@ -404,7 +405,7 @@ def _copy_hooks_json(source, target):
         _safe_copy(src, dst)
 
 
-def _copy_plugin_manifest(source, target):
+def _copy_plugin_manifest(source: str, target: str) -> None:
     """Copy .claude-plugin/ directory to target."""
     src_dir = os.path.join(source, ".claude-plugin")
     dst_dir = os.path.join(target, ".claude-plugin")
@@ -416,7 +417,7 @@ def _copy_plugin_manifest(source, target):
                 _safe_copy(src, os.path.join(dst_dir, f))
 
 
-def _create_manifest(target, mode):
+def _create_manifest(target: str, mode: str) -> None:
     """Create the git-memory manifest file."""
     claude_dir = os.path.join(target, ".claude")
     os.makedirs(claude_dir, exist_ok=True)
@@ -465,7 +466,7 @@ def _create_manifest(target, mode):
 
 # ── Phase 4 & 5: Verify + Health Proof ───────────────────────────────────
 
-def verify(target):
+def verify(target: str) -> dict[str, Any]:
     """Run doctor to verify installation."""
     doctor_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-memory-doctor.py")
     if os.path.isfile(doctor_script):
@@ -474,7 +475,8 @@ def verify(target):
             capture_output=True, text=True, timeout=15,
         )
         try:
-            return json.loads(result.stdout)
+            data: dict[str, Any] = json.loads(result.stdout)
+            return data
         except json.JSONDecodeError:
             return {"status": "error", "checks": []}
     return {"status": "unknown", "checks": []}
@@ -482,7 +484,7 @@ def verify(target):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Transactional installer for git-memory.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--mode", dest="mode", choices=["normal", "compatible", "read-only"], default=None, help="Force install mode")

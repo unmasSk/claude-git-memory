@@ -22,6 +22,7 @@ import os
 import shutil
 import subprocess
 import sys
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -49,12 +50,12 @@ SKILLS = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def find_source_root():
+def find_source_root() -> str:
     """Find the git-memory plugin source root (where this script lives)."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def find_target_root():
+def find_target_root() -> str:
     """Find the target repo root (cwd's git root)."""
     code, output = run_git(["rev-parse", "--show-toplevel"])
     if code == 0:
@@ -64,7 +65,7 @@ def find_target_root():
 
 # ── Diagnosis ─────────────────────────────────────────────────────────────
 
-def diagnose(source, target):
+def diagnose(source: str, target: str) -> list[tuple[str, str, str]]:
     """Find what's broken by comparing expected vs actual state."""
     issues = []
 
@@ -141,7 +142,7 @@ def diagnose(source, target):
 
 _install_mod = None
 
-def _load_install_module():
+def _load_install_module() -> Any:
     """Load git-memory-install.py as a module (cached)."""
     global _install_mod
     if _install_mod is not None:
@@ -151,19 +152,21 @@ def _load_install_module():
     if not os.path.isfile(install_path):
         raise FileNotFoundError(f"git-memory-install.py not found at {install_path}")
     spec = spec_from_file_location("install", install_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load module spec for {install_path}")
     _install_mod = module_from_spec(spec)
-    spec.loader.exec_module(_install_mod)
+    spec.loader.exec_module(_install_mod)  # type: ignore[union-attr]
     return _install_mod
 
 
-def _read_existing_mode(target):
+def _read_existing_mode(target: str) -> str:
     """Read runtime_mode from existing manifest, or 'normal' as default."""
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
     if os.path.isfile(manifest_path):
         try:
             with open(manifest_path) as f:
                 data = json.load(f)
-            return data.get("runtime_mode", "normal")
+            return str(data.get("runtime_mode", "normal"))
         except (json.JSONDecodeError, OSError):
             pass
     return "normal"
@@ -171,14 +174,14 @@ def _read_existing_mode(target):
 
 # ── Repair Actions ────────────────────────────────────────────────────────
 
-def _safe_copy(src, dst):
+def _safe_copy(src: str, dst: str) -> None:
     """Copy a file, refusing to follow symlinks (security)."""
     if os.path.islink(src):
         raise ValueError(f"Refusing to copy symlink: {src}")
     shutil.copy2(src, dst)
 
 
-def repair_issue(issue_type, target_name, source, target):
+def repair_issue(issue_type: str, target_name: str, source: str, target: str) -> bool:
     """Repair a single issue. Returns True on success."""
     if issue_type == "missing_hook":
         src = os.path.join(source, "hooks", target_name)
@@ -263,7 +266,7 @@ def repair_issue(issue_type, target_name, source, target):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Reconstruct broken runtime from manifest.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be fixed")

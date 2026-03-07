@@ -3,3 +3,13 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*"]
+
+[tool.mypy]
+python_version = "3.10"
+mypy_path = ["lib"]
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["tests/", ".venv/", "__pycache__/"]

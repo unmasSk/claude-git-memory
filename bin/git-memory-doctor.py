@@ -21,6 +21,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from typing import Any
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
@@ -50,7 +51,7 @@ VERSION = "2.0.0"
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def find_project_root():
+def find_project_root() -> str:
     """Find the project root: git root of cwd (for installed repos), or script parent (for source)."""
     code, git_root = run_git(["rev-parse", "--show-toplevel"])
     if code == 0 and git_root:
@@ -60,7 +61,7 @@ def find_project_root():
     return os.path.dirname(script_dir)
 
 
-def parse_date(date_str):
+def parse_date(date_str: str) -> datetime | None:
     """Parse ISO date from git log."""
     try:
         return datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
@@ -70,13 +71,13 @@ def parse_date(date_str):
 
 # ── Checks ────────────────────────────────────────────────────────────────
 
-def check_git_repo():
+def check_git_repo() -> bool:
     """Verify we're in a git repository."""
     code, _ = run_git(["rev-parse", "--is-inside-work-tree"])
     return code == 0
 
 
-def check_hooks(root):
+def check_hooks(root: str) -> tuple[list[str], list[str]]:
     """Check that all 4 hook files exist."""
     hooks_dir = os.path.join(root, "hooks")
     found = []
@@ -90,7 +91,7 @@ def check_hooks(root):
     return found, missing
 
 
-def check_skills(root):
+def check_skills(root: str) -> tuple[list[str], list[str]]:
     """Check that all 4 skill directories with SKILL.md exist."""
     skills_dir = os.path.join(root, "skills")
     found = []
@@ -104,7 +105,7 @@ def check_skills(root):
     return found, missing
 
 
-def check_cli(root):
+def check_cli(root: str) -> tuple[bool, str]:
     """Check that bin/git-memory exists and is executable."""
     cli_path = os.path.join(root, "bin", "git-memory")
     if not os.path.isfile(cli_path):
@@ -114,7 +115,7 @@ def check_cli(root):
     return True, "ok"
 
 
-def check_hook_execution(depth=SCAN_DEPTH):
+def check_hook_execution(depth: int = SCAN_DEPTH) -> tuple[int, int, int]:
     """Check if hooks have been active by looking for trailer patterns in recent commits."""
     code, output = run_git([
         "log", "-n", str(depth),
@@ -142,7 +143,7 @@ def check_hook_execution(depth=SCAN_DEPTH):
     return with_trailers, total, depth
 
 
-def check_gc_status(depth=200):
+def check_gc_status(depth: int = 200) -> tuple[int | None, int, list[dict[str, Any]]]:
     """Check GC last run date and stale blocker count."""
     code, output = run_git([
         "log", "-n", str(depth),
@@ -152,8 +153,8 @@ def check_gc_status(depth=200):
         return None, 0, []
 
     now = datetime.now()
-    last_gc = None
-    stale_blockers = []
+    last_gc: datetime | None = None
+    stale_blockers: list[dict[str, Any]] = []
 
     for raw in output.split("\x1e"):
         raw = raw.strip()
@@ -207,7 +208,7 @@ def check_gc_status(depth=200):
     return gc_days_ago, len(active_stale), active_stale
 
 
-def check_manifest(root):
+def check_manifest(root: str) -> tuple[dict[str, Any] | None, str]:
     """Check if manifest exists and is valid."""
     manifest_path = os.path.join(root, ".claude", "git-memory-manifest.json")
     if not os.path.isfile(manifest_path):
@@ -220,7 +221,7 @@ def check_manifest(root):
         return None, f"corrupt: {e}"
 
 
-def check_symlinks(root):
+def check_symlinks(root: str) -> tuple[list[str], list[str]]:
     """Check that .claude/hooks/ and .claude/skills/ symlinks are valid."""
     claude_dir = os.path.join(root, ".claude")
     broken_hooks = []
@@ -243,12 +244,12 @@ def check_symlinks(root):
     return broken_hooks, broken_skills
 
 
-def check_hooks_json(root):
+def check_hooks_json(root: str) -> bool:
     """Check that hooks.json exists."""
     return os.path.isfile(os.path.join(root, "hooks.json"))
 
 
-def check_claude_md(root):
+def check_claude_md(root: str) -> tuple[bool, str]:
     """Check if CLAUDE.md has the managed block."""
     claude_md = os.path.join(root, "CLAUDE.md")
     if not os.path.isfile(claude_md):
@@ -265,7 +266,7 @@ def check_claude_md(root):
 
 # ── Report ────────────────────────────────────────────────────────────────
 
-def run_doctor(silent=False, as_json=False):
+def run_doctor(silent: bool = False, as_json: bool = False) -> int:
     """Run all checks and produce report."""
     root = find_project_root()
     results = []
@@ -413,7 +414,7 @@ def run_doctor(silent=False, as_json=False):
 
 # ── Main ──────────────────────────────────────────────────────────────────
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Health check for the git-memory system.")
     parser.add_argument("--silent", action="store_true", help="Exit code only")
     parser.add_argument("--json", dest="json", action="store_true", help="Machine-readable JSON output")

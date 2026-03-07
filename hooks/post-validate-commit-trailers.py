@@ -64,7 +64,7 @@ def is_head_published() -> bool:
     return code == 0  # exit 0 = HEAD is ancestor of upstream = published
 
 
-def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str]:
+def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -> list[str]:
     """Validate trailers against the spec. Returns list of errors."""
     errors = []
     has_issue = branch_has_issue(branch)
@@ -119,13 +119,13 @@ def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str
     return errors
 
 
-def safe_reset():
+def safe_reset() -> bool:
     """Perform git reset --soft HEAD~1."""
     code, _ = run_git(["reset", "--soft", "HEAD~1"])
     return code == 0
 
 
-def main():
+def main() -> None:
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
