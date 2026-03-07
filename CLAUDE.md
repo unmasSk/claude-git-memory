@@ -3,24 +3,24 @@
 <!-- BEGIN claude-git-memory (managed block — do not edit) -->
 ## Git Memory Active
 
-Este proyecto usa claude-git-memory v2.
-Git es la memoria. Cada commit es resumible entre sesiones y máquinas.
+This project uses claude-git-memory v2.
+Git is the memory. Every commit is resumable across sessions and machines.
 
-### Instrucciones para Claude (no para el usuario)
-1. Al iniciar sesión: lee el skill `git-memory` y ejecuta AUTO-BOOT + doctor automáticamente
-2. Ejecuta `python3 bin/git-memory-doctor.py --json` al arrancar. Si hay errores, repara con `python3 bin/git-memory-repair.py --auto`
-3. Nunca le pidas al usuario que ejecute comandos del sistema de memoria — ejecútalos tú
-4. Si el usuario dice "instala/repara/desinstala/doctor/estado" → lee skill `git-memory-lifecycle` y actúa
-5. Si el usuario dice "qué recuerdas" → ejecuta boot extendido
-6. Sistema en alpha: verifica todo, reporta fallos al usuario, no asumas que funciona
+### Instructions for Claude (not for the user)
+1. On session start: read the `git-memory` skill and run AUTO-BOOT + doctor automatically
+2. Run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` on start. If errors, repair with `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-repair.py --auto`
+3. Never ask the user to run memory system commands — run them yourself
+4. If the user says "install/repair/uninstall/doctor/status" → read skill `git-memory-lifecycle` and act
+5. If the user says "what do you remember" → run extended boot
+6. System in alpha: verify everything, report failures to the user, do not assume it works
 <!-- END claude-git-memory -->
 
-## Sistema en Alpha — Claude verifica todo
+## System in Alpha — Claude Verifies Everything
 
-Este sistema está en **fase alpha**. Tú (Claude) eres responsable de verificar que funciona:
+This system is in **alpha phase**. You (Claude) are responsible for verifying it works:
 
-- Al arrancar sesión: ejecuta `python3 bin/git-memory-doctor.py --json` silenciosamente. Si hay errores, díselo al usuario y ejecuta repair tú mismo.
-- Si algo falla: ejecuta `python3 bin/git-memory-repair.py --auto` antes de intentar arreglos manuales.
-- Nunca le pidas al usuario que ejecute comandos del sistema de memoria. Ejecútalos tú.
-- Si encuentras un bug reproducible, explícalo al usuario con pasos para reproducir.
-- No asumas que todo funciona — valida resultados de cada operación.
+- On session start: run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` silently. If errors, tell the user and run repair yourself.
+- If something fails: run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-repair.py --auto` before attempting manual fixes.
+- Never ask the user to run memory system commands. Run them yourself.
+- If you find a reproducible bug, explain it to the user with steps to reproduce.
+- Do not assume everything works — validate results of each operation.

@@ -24,7 +24,9 @@ Do NOT write: provisional observations, weak inferences, session-only context.
 
 ## Auto-Boot (every session start — Claude executes all of this, never asks the user to)
 
-1. Run `python3 bin/git-memory-doctor.py --json` silently. If errors → run `python3 bin/git-memory-repair.py --auto` and tell the user what was fixed.
+All scripts are at `$CLAUDE_PLUGIN_ROOT/bin/`. This env var is set by Claude Code when the plugin loads.
+
+1. Run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` silently. If errors → run `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-repair.py --auto` and tell the user what was fixed.
 2. `git log -n 30 --pretty=format:"%h%x1f%s%x1f%b%x1e"` → extract Next, Blocker, Decision, Memo, last context()
 3. `git status --porcelain` → detect uncommitted state
 4. Show compact summary (≤18 lines):

@@ -6,7 +6,9 @@ description: Use when user says install, setup, configure, doctor, health, statu
 # Git Memory — Lifecycle
 
 **Rule: Claude executes all lifecycle commands. Never ask the user to run them.**
-Scripts are in `bin/`. Execute with `python3 bin/git-memory-<command>.py [flags]`.
+
+All scripts are at `$CLAUDE_PLUGIN_ROOT/bin/`. This env var is set by Claude Code when the plugin loads.
+Execute with `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-<command>.py [flags]`.
 
 ## Install (transactional)
 
@@ -103,9 +105,9 @@ No scheduled calendar. Claude cleans in passing (never asks user to run commands
 
 | When | What | Claude does |
 |------|------|-------------|
-| Session start | Silent health check | `python3 bin/git-memory-doctor.py --json` → repair if needed |
-| PR/merge | Clean stale trailers if seen | "He limpiado 2 items obsoletos de paso" |
-| Symptoms detected | GC on demand | Ask user "¿Limpio?" → `python3 bin/git-memory-gc.py --auto` |
-| User asks | Full GC | `python3 bin/git-memory-gc.py` (Claude runs it, shows results) |
+| Session start | Silent health check | `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-doctor.py --json` → repair if needed |
+| PR/merge | Clean stale trailers if seen | "Cleaned 2 stale items in passing" |
+| Symptoms detected | GC on demand | Ask user "Clean up?" → `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-gc.py --auto` |
+| User asks | Full GC | `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-gc.py` (Claude runs it, shows results) |
 
 Never interrupt the user with unsolicited admin tasks. Never ask the user to run commands.
