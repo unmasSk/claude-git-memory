@@ -1,5 +1,7 @@
 """
 ANSI color constants for terminal output.
+
+Used by hooks and CLI scripts to print colored messages.
 """
 
 RED: str = "\033[91m"

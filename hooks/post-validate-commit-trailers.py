@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """
-Claude Code Hook: Post-Validate Commit Trailers (Suspenders)
-=============================================================
-Safety net after git commit executes. Reads the last commit
-and validates trailers. If invalid:
-- Safe to reset (no upstream / not published) → git reset --soft HEAD~1
-- Not safe → suggests chore(memory) correction commit
+Post-commit trailer validation hook (suspenders).
+
+Safety net after git commit executes. Reads the last commit and validates
+trailers. If invalid and safe to reset (no upstream / not published), runs
+git reset --soft HEAD~1. Otherwise suggests a correction commit.
 
 Exit codes:
-- 0: Commit valid or not a git commit command
-- 2: Block (trailers invalid, action taken or suggested)
+    0: Commit valid or not a git commit command.
+    2: Block (trailers invalid, action taken or suggested).
 """
 
 import json
@@ -28,31 +27,49 @@ from colors import RED, YELLOW, RESET
 
 
 def get_last_commit() -> str:
-    """Get the full message of the last commit."""
+    """Get the full message (subject + body) of the last commit.
+
+    Returns:
+        Commit message string, or empty string on failure.
+    """
     code, output = run_git(["log", "-1", "--pretty=format:%s%n%b"])
     return output if code == 0 else ""
 
 
 def get_branch_name() -> str:
-    """Get current branch name."""
+    """Get the current git branch name.
+
+    Returns:
+        Branch name, or empty string if detection fails.
+    """
     code, output = run_git(["branch", "--show-current"])
     return output if code == 0 else ""
 
 
 def branch_has_issue(branch: str) -> bool:
-    """Check if branch name contains an issue reference."""
+    """Check if the branch name contains an issue reference (CU-xxx, issue-xxx, #xxx).
+
+    Args:
+        branch: Branch name to inspect.
+
+    Returns:
+        True if an issue pattern is found.
+    """
     if not branch:
         return False
     return bool(re.search(r"(CU-\d+|issue-\d+|#\d+)", branch, re.IGNORECASE))
 
 
 def is_head_published() -> bool:
-    """
-    Check if HEAD is already published to remote.
-    Uses merge-base --is-ancestor to be accurate:
-    - No upstream → not published (safe to reset)
-    - Upstream exists but HEAD not ancestor of @{u} → not published (safe)
-    - HEAD is ancestor of @{u} → published (DO NOT reset)
+    """Check if HEAD is already published to the remote.
+
+    Uses merge-base --is-ancestor for accuracy:
+    - No upstream: not published (safe to reset).
+    - Upstream exists but HEAD not ancestor of @{u}: not published (safe).
+    - HEAD is ancestor of @{u}: published (do NOT reset).
+
+    Returns:
+        True if HEAD has been pushed to the remote.
     """
     # Check if upstream exists
     code, _ = run_git(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"])
@@ -65,7 +82,19 @@ def is_head_published() -> bool:
 
 
 def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -> list[str]:
-    """Validate trailers against the spec. Returns list of errors."""
+    """Validate trailers against the spec for a given commit type.
+
+    Checks required trailers per type and validates format of Memo, Risk,
+    and Issue values when present.
+
+    Args:
+        commit_type: Parsed conventional commit type.
+        trailers: Dict of trailer key-value pairs from the commit message.
+        branch: Current branch name, used to check for issue references.
+
+    Returns:
+        List of error strings describing missing or invalid trailers.
+    """
     errors = []
     has_issue = branch_has_issue(branch)
 
@@ -120,12 +149,22 @@ def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -
 
 
 def safe_reset() -> bool:
-    """Perform git reset --soft HEAD~1."""
+    """Roll back the last commit with git reset --soft HEAD~1.
+
+    Returns:
+        True if the reset succeeded.
+    """
     code, _ = run_git(["reset", "--soft", "HEAD~1"])
     return code == 0
 
 
 def main() -> None:
+    """Entry point. Reads hook input from stdin, validates the last commit's trailers.
+
+    If trailers are invalid:
+    - For Claude commits: resets the commit (if safe) or suggests a correction.
+    - For human commits: warns but does not block.
+    """
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
@@ -205,7 +244,7 @@ def main() -> None:
 
     if not is_claude:
         # Human commit — warn only, never block or reset
-        warn_msg = f"\n{YELLOW}>>> Commit without trailers. No pasa nada.{RESET}"
+        warn_msg = f"\n{YELLOW}>>> Commit without trailers. No big deal.{RESET}"
         warn_msg += f"\n{YELLOW}>>> Missing: {missing}{RESET}"
         print(warn_msg, file=sys.stderr)
         sys.exit(0)

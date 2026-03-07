@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-Claude Code Hook: Stop — Definition of Done
-=============================================
-Before Claude ends a session, validates clean state.
-If uncommitted changes exist, blocks and returns a menu
-for Claude to present to the user.
+Stop hook -- definition of done check.
+
+Before Claude ends a session, validates clean state. If uncommitted changes
+exist, blocks and returns a menu for Claude to present to the user.
 
 Exit codes:
-- 0: Clean state, allow stop
-- 2: Block stop (uncommitted changes or unresolved Next:)
+    0: Clean state, allow stop.
+    2: Block stop (uncommitted changes detected).
 """
 
 import os
@@ -23,7 +22,11 @@ from colors import RED, YELLOW, RESET
 
 
 def has_uncommitted_changes() -> bool:
-    """Check for uncommitted changes (staged or unstaged)."""
+    """Check for uncommitted changes (staged or unstaged).
+
+    Returns:
+        True if the working tree or index has modifications.
+    """
     code, output = run_git(["status", "--porcelain"])
     if code != 0:
         return False
@@ -31,7 +34,14 @@ def has_uncommitted_changes() -> bool:
 
 
 def get_change_summary() -> str:
-    """Get a brief summary of uncommitted changes."""
+    """Get a brief summary of uncommitted changes.
+
+    Shows up to 5 files from git status --short, with a count of
+    remaining files if there are more.
+
+    Returns:
+        Short status text, or empty string on failure.
+    """
     code, output = run_git(["status", "--short"])
     if code != 0:
         return ""
@@ -44,7 +54,11 @@ def get_change_summary() -> str:
 
 
 def get_last_commit_next() -> str | None:
-    """Check if last commit has an unresolved Next: trailer."""
+    """Check if the last commit has an unresolved Next: trailer.
+
+    Returns:
+        The Next: value if found, or None.
+    """
     code, output = run_git(["log", "-1", "--pretty=format:%b"])
     if code != 0:
         return None
@@ -59,6 +73,7 @@ def get_last_commit_next() -> str | None:
 
 
 def main() -> None:
+    """Entry point. Blocks session stop if uncommitted changes exist."""
     # Skip if not in a git repo
     if not is_git_repo():
         sys.exit(0)

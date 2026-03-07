@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-git-memory-repair — Reconstruct broken runtime from manifest.
-=============================================================
-Reads the manifest to know what should exist, checks what's
-actually present, and fixes any gaps.
+git-memory-repair -- Reconstruct broken runtime from the source installation.
+
+Compares expected state (hooks, skills, CLI, symlinks, manifest) against
+what is actually present and fixes any gaps.
 
 Usage:
   git memory repair              # Interactive repair
@@ -66,7 +66,18 @@ def find_target_root() -> str:
 # ── Diagnosis ─────────────────────────────────────────────────────────────
 
 def diagnose(source: str, target: str) -> list[tuple[str, str, str]]:
-    """Find what's broken by comparing expected vs actual state."""
+    """Find what is broken by comparing expected vs actual state.
+
+    Checks hooks, skills, CLI, symlinks, CLAUDE.md managed block,
+    hooks.json, and manifest integrity.
+
+    Args:
+        source: Plugin source root directory.
+        target: Target repository root directory.
+
+    Returns:
+        List of (issue_type, target_name, description) tuples.
+    """
     issues = []
 
     # Check hooks
@@ -143,7 +154,11 @@ def diagnose(source: str, target: str) -> list[tuple[str, str, str]]:
 _install_mod = None
 
 def _load_install_module() -> Any:
-    """Load git-memory-install.py as a module (cached)."""
+    """Load git-memory-install.py as a Python module, cached after first call.
+
+    Used to reuse _update_claude_md() and _create_manifest() from the
+    installer without duplicating code.
+    """
     global _install_mod
     if _install_mod is not None:
         return _install_mod
@@ -160,7 +175,7 @@ def _load_install_module() -> Any:
 
 
 def _read_existing_mode(target: str) -> str:
-    """Read runtime_mode from existing manifest, or 'normal' as default."""
+    """Read runtime_mode from the existing manifest, defaulting to "normal"."""
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
     if os.path.isfile(manifest_path):
         try:
@@ -175,14 +190,24 @@ def _read_existing_mode(target: str) -> str:
 # ── Repair Actions ────────────────────────────────────────────────────────
 
 def _safe_copy(src: str, dst: str) -> None:
-    """Copy a file, refusing to follow symlinks (security)."""
+    """Copy a file, refusing to follow symlinks to prevent symlink attacks."""
     if os.path.islink(src):
         raise ValueError(f"Refusing to copy symlink: {src}")
     shutil.copy2(src, dst)
 
 
 def repair_issue(issue_type: str, target_name: str, source: str, target: str) -> bool:
-    """Repair a single issue. Returns True on success."""
+    """Repair a single diagnosed issue by restoring the expected file or symlink.
+
+    Args:
+        issue_type: Type key from diagnose() (e.g. "missing_hook", "broken_symlink_skill").
+        target_name: Name of the affected component (hook filename, skill name, etc.).
+        source: Plugin source root directory.
+        target: Target repository root directory.
+
+    Returns:
+        True if the issue was fixed successfully.
+    """
     if issue_type == "missing_hook":
         src = os.path.join(source, "hooks", target_name)
         dst = os.path.join(target, "hooks", target_name)
@@ -267,6 +292,7 @@ def repair_issue(issue_type: str, target_name: str, source: str, target: str) ->
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """Entry point: parse args, diagnose issues, and repair interactively or automatically."""
     parser = argparse.ArgumentParser(description="Reconstruct broken runtime from manifest.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be fixed")

@@ -1,8 +1,8 @@
 """
-Drift Test — 6-Month Simulation
-================================
+Drift tests simulating 6 months of commit history.
+
 Generates 200 commits across 6 scopes, then validates search, dedup,
-snapshot budget, truncation, hook robustness, exit_code safety,
+snapshot budget, truncation, hook robustness, exit-code safety,
 delimiter collision, nested prefixes, and GC tombstones.
 """
 
@@ -38,6 +38,7 @@ SNAPSHOT_MAX_LINES = 18
 # ── Commit generators ──────────────────────────────────────────────────
 
 def gen_code_commit(idx, scope, date_str, cwd):
+    """Generate a random code commit (feat/fix/refactor/chore)."""
     ctype = random.choice(CODE_TYPES)
     emoji = EMOJIS[ctype]
     slug = f"change-{idx}"
@@ -56,6 +57,7 @@ def gen_code_commit(idx, scope, date_str, cwd):
 
 
 def gen_decision(scope, idx, date_str, cwd):
+    """Generate a decision commit with a random topic."""
     topics = [
         f"use library-{idx} for {scope}",
         f"adopt pattern-{idx} in {scope}",
@@ -73,6 +75,7 @@ def gen_decision(scope, idx, date_str, cwd):
 
 
 def gen_memo(scope, idx, date_str, cwd):
+    """Generate a memo commit (preference, requirement, or antipattern)."""
     categories = ["preference", "requirement", "antipattern"]
     cat = random.choice(categories)
     descriptions = {
@@ -91,6 +94,7 @@ def gen_memo(scope, idx, date_str, cwd):
 
 
 def gen_context(scope, idx, date_str, cwd):
+    """Generate a context-save commit (pause work session)."""
     msg = (
         f"💾 context({scope}): pause {scope} work session {idx}\n\n"
         f"Issue: CU-042\n"

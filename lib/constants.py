@@ -1,6 +1,8 @@
 """
 Shared constants for git-memory hooks, CLI scripts, and dashboard.
-Single source of truth — imported everywhere.
+
+Single source of truth for trailer keys, commit types, risk levels,
+and memo categories. Imported everywhere.
 """
 
 # Trailer keys (case-sensitive, matching the spec)

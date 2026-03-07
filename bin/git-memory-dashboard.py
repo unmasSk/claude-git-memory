@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-git-memory-dashboard — Generate a static HTML dashboard from git memory.
-=========================================================================
+git-memory-dashboard -- Generate a static HTML dashboard from git memory.
+
 Scans git history, extracts all memory data (decisions, memos, pending,
 blockers, compliance, GC status), and generates a self-contained HTML
 dashboard file using GitHub Primer dark theme.
@@ -42,6 +42,7 @@ DASHBOARD_PATH = os.path.join(".claude", "dashboard.html")
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def get_repo_info() -> dict[str, str]:
+    """Get current branch name and repo name from git."""
     info = {}
     code, branch = run_git(["branch", "--show-current"], timeout=30)
     info["branch"] = branch if code == 0 else "unknown"
@@ -53,6 +54,11 @@ def get_repo_info() -> dict[str, str]:
 # ── Single-pass extraction ────────────────────────────────────────────────
 
 def scan_commits() -> list[dict[str, Any]]:
+    """Parse recent git commits, extracting type, scope, trailers, and compliance info.
+
+    Returns:
+        List of commit dicts with parsed metadata, or empty list on failure.
+    """
     code, output = run_git([
         "log", "-n", str(SCAN_DEPTH),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
@@ -137,6 +143,11 @@ def scan_commits() -> list[dict[str, Any]]:
 # ── Data Aggregation ──────────────────────────────────────────────────────
 
 def aggregate(commits: list[dict[str, Any]]) -> dict[str, Any]:
+    """Aggregate parsed commits into dashboard data sections.
+
+    Extracts pending items, blockers, decisions, memos, compliance health,
+    GC stats, and timeline into a single dict ready for HTML injection.
+    """
     now = datetime.now()
 
     # Tombstones
@@ -296,7 +307,7 @@ def _sanitize_value(val: Any) -> Any:
 
 
 def inject_data(html_content: str, data: dict[str, Any]) -> str:
-    """Replace the mock DATA object with real sanitized data."""
+    """Replace the mock DATA object in the HTML template with real sanitized data."""
     safe_data = _sanitize_value(data)
     data_json = json.dumps(safe_data, ensure_ascii=False, indent=None)
 
@@ -328,6 +339,7 @@ def inject_data(html_content: str, data: dict[str, Any]) -> str:
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """CLI entry point. Scans commits, generates dashboard HTML, and opens it in a browser."""
     parser = argparse.ArgumentParser(description="Generate a static HTML dashboard from git memory.")
     parser.add_argument("--silent", action="store_true", help="Suppress output")
     args = parser.parse_args()

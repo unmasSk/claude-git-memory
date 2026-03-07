@@ -1,8 +1,8 @@
 """
-Bootstrap Test — Conservative scout detection.
-================================================
-Tests: empty project, Node.js/TS, Python, monorepo,
-commitlint, installed memory, multiple ecosystems, silent mode.
+Bootstrap tests for conservative scout detection.
+
+Covers empty projects, Node.js/TS, Python, monorepo detection,
+commitlint integration, installed memory, multiple ecosystems, and silent mode.
 """
 
 import json
@@ -21,6 +21,7 @@ from conftest import (
 # ── Helpers ────────────────────────────────────────────────────────────
 
 def make_temp_repo(tmp_path, name="repo"):
+    """Create a temporary git repo with an initial empty commit."""
     repo = str(tmp_path / name)
     os.makedirs(repo)
     subprocess.run(["git", "init", repo], capture_output=True)
@@ -29,6 +30,7 @@ def make_temp_repo(tmp_path, name="repo"):
 
 
 def run_bootstrap(cwd, extra_args=None):
+    """Run bootstrap with --json and return (rc, stdout, parsed_json)."""
     rc, stdout, stderr = run_script(BOOTSTRAP, cwd, ["--json"] + (extra_args or []))
     parsed = None
     if stdout:
@@ -214,7 +216,7 @@ def test_silent_exit_code(tmp_path):
     assert result_full.stdout.strip() == ""
 
 
-## ── Scope mapping (unit tests, no git needed) ──────────────────────────
+# ── Scope mapping (unit tests, no git needed) ───────────────────────────
 
 def test_suggest_scope_single_match():
     """All files in one scope → returns that scope."""

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-git-memory-gc — Garbage Collector for stale Next: and Blocker: trailers.
-=========================================================================
+git-memory-gc -- Garbage collector for stale Next: and Blocker: trailers.
+
 Scans recent commits for pending items that are likely resolved or stale,
 and creates a compensation commit with tombstone trailers.
 
 Heuristics:
-  H1 (Next: resolved): Scope match + ≥2 keyword overlap with subsequent commits
+  H1 (Next: resolved): Scope match + >=2 keyword overlap with subsequent commits
   H2 (Blocker: stale): >N days without mention (default 30)
   H3 (Explicit resolution): Resolution: trailer references the item
 
@@ -36,7 +36,7 @@ from parsing import parse_scope
 
 
 def run_git(args: list[str]) -> tuple[int, str]:
-    """Wrapper with longer timeout for GC operations."""
+    """Run a git command with a longer timeout (30s) for GC operations."""
     return _run_git(args, timeout=30)
 
 
@@ -58,7 +58,7 @@ STOP_WORDS = {
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def extract_keywords(text: str) -> set[str]:
-    """Extract meaningful keywords from a text string."""
+    """Extract meaningful keywords from text, filtering out stop words and short tokens."""
     words = re.findall(r"[a-zA-Z0-9_-]+", text.lower())
     return {w for w in words if len(w) >= MIN_KEYWORD_LENGTH and w not in STOP_WORDS}
 
@@ -74,7 +74,11 @@ def parse_date(date_str: str) -> datetime | None:
 # ── Core: Read commits ────────────────────────────────────────────────────
 
 def scan_commits(depth: int) -> list[dict[str, Any]]:
-    """Read last N commits and extract structured data."""
+    """Read the last N commits and extract structured data.
+
+    Parses each commit's SHA, subject, body, date, scope, trailers,
+    and keywords into a list of dicts (most recent first).
+    """
     code, output = run_git([
         "log", "-n", str(depth),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
@@ -122,7 +126,15 @@ def scan_commits(depth: int) -> list[dict[str, Any]]:
 # ── Core: Heuristics ──────────────────────────────────────────────────────
 
 def find_stale_items(commits: list[dict[str, Any]], stale_days: int) -> list[dict[str, Any]]:
-    """Apply heuristics to find Next: and Blocker: items that should be cleaned."""
+    """Apply heuristics H1/H2/H3 to find Next: and Blocker: items ready for cleanup.
+
+    Args:
+        commits: Parsed commit list from scan_commits().
+        stale_days: TTL in days for Blocker: staleness (H2).
+
+    Returns:
+        List of candidate dicts with type, text, reason, and evidence.
+    """
     now = datetime.now()
     candidates = []
 
@@ -243,7 +255,7 @@ def find_stale_items(commits: list[dict[str, Any]], stale_days: int) -> list[dic
 # ── Core: Execute ─────────────────────────────────────────────────────────
 
 def print_candidates(candidates: list[dict[str, Any]]) -> None:
-    """Display GC candidates to the user."""
+    """Print GC candidates in a human-readable format."""
     if not candidates:
         print("\n🧹 Nothing to clean — all Next: and Blocker: items look active.")
         return
@@ -262,7 +274,11 @@ def print_candidates(candidates: list[dict[str, Any]]) -> None:
 
 
 def create_gc_commit(candidates: list[dict[str, Any]]) -> bool:
-    """Create a compensation commit with tombstone trailers."""
+    """Create an empty commit with tombstone trailers (Resolved-Next, Stale-Blocker).
+
+    Returns:
+        True if the commit was created successfully.
+    """
     # Build trailer block
     trailer_lines = []
     for c in candidates:
@@ -289,6 +305,7 @@ def create_gc_commit(candidates: list[dict[str, Any]]) -> bool:
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """Entry point: parse args, scan commits, and run GC interactively or automatically."""
     parser = argparse.ArgumentParser(description="Garbage collector for stale trailers.")
     parser.add_argument("--dry-run", action="store_true", help="Show what would be cleaned")
     parser.add_argument("--auto", action="store_true", help="Auto-commit without asking")

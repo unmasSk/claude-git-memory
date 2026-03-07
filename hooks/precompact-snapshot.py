@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-Claude Code Hook: PreCompact Snapshot
-=======================================
-Before Claude compresses context, extracts critical memory
-from recent commits and re-injects as a compact summary.
+Pre-compact snapshot hook.
 
-This ensures Next:, Decision:, and Blocker: trailers survive
-context compression.
+Before Claude compresses context, extracts critical memory from recent
+commits and re-injects it as a compact summary. This ensures Next:,
+Decision:, and Blocker: trailers survive context compression.
 
 Exit codes:
-- 0: Always (non-blocking, injects context)
+    0: Always (non-blocking, injects context via stdout).
 """
 
 import os
@@ -25,9 +23,14 @@ from parsing import normalize
 
 
 def extract_memory_from_log() -> dict[str, Any]:
-    """
-    Read last 30 commits and extract memory trailers.
-    Returns structured memory data.
+    """Read the last 30 commits and extract memory trailers.
+
+    Collects Next:, Blocker:, Decision:, and Memo: trailers. Respects
+    GC tombstones (Resolved-Next:, Stale-Blocker:) to skip resolved items.
+
+    Returns:
+        Dict with keys: pending, blockers, decisions, memos, last_context.
+        Empty dict if git log fails.
     """
     # Use ASCII Unit Separator (\x1f) and Record Separator (\x1e) as delimiters.
     # These are impossible to type in commit messages, preventing delimiter collision
@@ -139,7 +142,17 @@ def extract_memory_from_log() -> dict[str, Any]:
 
 
 def format_snapshot(memory: dict[str, Any]) -> str:
-    """Format memory data as a compact snapshot for re-injection."""
+    """Format memory data as a compact text snapshot for re-injection.
+
+    Produces a short summary (max ~18 lines) covering branch, last session,
+    pending items, blockers, decisions, and memos.
+
+    Args:
+        memory: Structured memory dict from extract_memory_from_log().
+
+    Returns:
+        Multi-line string ready to print to stdout.
+    """
     lines = []
     lines.append("=== GIT MEMORY SNAPSHOT (pre-compact) ===")
 
@@ -157,8 +170,8 @@ def format_snapshot(memory: dict[str, Any]) -> str:
         ctx = memory["last_context"]
         lines.append(f"Last session: {ctx['sha']} {ctx['subject']}")
 
-    # Helper to truncate
     def trunc(text: str, limit: int = 200) -> str:
+        """Truncate text to limit chars, appending '...' if needed."""
         return (text[:limit] + "...") if len(text) > limit else text
 
     # Pending items — prioritize context() Next: first, then others
@@ -205,6 +218,7 @@ def format_snapshot(memory: dict[str, Any]) -> str:
 
 
 def main() -> None:
+    """Entry point. Extracts memory from git log and prints a snapshot to stdout."""
     if not is_git_repo():
         sys.exit(0)
 

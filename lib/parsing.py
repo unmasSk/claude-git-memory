@@ -1,6 +1,8 @@
 """
-Shared parsing functions for git-memory.
-Commit type extraction, trailer parsing, scope extraction, normalization.
+Parsing functions for git-memory.
+
+Commit type extraction, trailer parsing, scope detection, and text
+normalization. Used by validation hooks and the dashboard.
 """
 
 import re
@@ -20,7 +22,7 @@ def parse_commit_type(subject: str) -> str | None:
     Returns lowercase type string, "internal" for Git messages,
     "wip" for WIP commits, or None if unparseable.
     """
-    # Whitelist internal Git messages
+    # Allow internal Git messages (merge, revert, cherry-pick)
     if re.match(r"^(Merge branch|Merge remote-tracking branch|Revert |Cherry-pick )", subject):
         return "internal"
 
@@ -35,7 +37,7 @@ def parse_commit_type(subject: str) -> str | None:
     if match:
         return match.group(1).lower()
 
-    # Match wip: (not conventional but allowed)
+    # WIP commits are not conventional but we allow them
     if cleaned.lower().startswith("wip:"):
         return "wip"
 

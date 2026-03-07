@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-git-memory-upgrade — Actualización segura del sistema de memoria.
-=================================================================
-Compara versión instalada vs fuente, muestra diff, hace backup,
-y aplica la actualización preservando modo y configuración.
+git-memory-upgrade -- Safe upgrade for the git-memory system.
+
+Compares installed version vs source, shows diff, creates backup,
+and applies the upgrade while preserving mode and configuration.
 
 Usage:
-  git memory upgrade              # Interactivo: muestra cambios, pide confirmación
-  git memory upgrade --auto       # No interactivo
-  git memory upgrade --dry-run    # Solo muestra qué cambiaría
-  git memory upgrade --check      # Solo verifica si hay actualización disponible
-  git memory upgrade --json       # Output JSON (para consumo de Claude)
+  git memory upgrade              # Interactive: shows changes, asks for confirmation
+  git memory upgrade --auto       # Non-interactive
+  git memory upgrade --dry-run    # Only shows what would change
+  git memory upgrade --check      # Only checks if an upgrade is available
+  git memory upgrade --json       # JSON output (for Claude consumption)
 
 Exit codes:
-  0: Upgrade exitoso (o nada que actualizar)
+  0: Upgrade successful (or nothing to upgrade)
   1: Error
-  2: Abortado por usuario
+  2: Aborted by user
 """
 
 import argparse
@@ -89,10 +89,14 @@ def file_hash(path: str) -> str | None:
     return h.hexdigest()[:16]
 
 
-# ── Lectura del estado actual ─────────────────────────────────────────────
+# ── Read current state ────────────────────────────────────────────────────
 
 def read_installed_manifest(target: str) -> dict[str, Any] | None:
-    """Leer manifest de la instalación actual."""
+    """Read the manifest from the current installation.
+
+    Returns:
+        Parsed manifest dict, or None if missing or corrupt.
+    """
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
     if not os.path.isfile(manifest_path):
         return None
@@ -105,19 +109,23 @@ def read_installed_manifest(target: str) -> dict[str, Any] | None:
 
 
 def read_source_version(source: str) -> str:
-    """Leer versión del source (este script define la versión canónica)."""
+    """Get the source version (this script defines the canonical version)."""
     return VERSION
 
 
-# ── Comparación ───────────────────────────────────────────────────────────
+# ── Comparison ────────────────────────────────────────────────────────────
 
 def compute_diff(source: str, target: str) -> dict[str, list[str]]:
-    """Comparar archivos source vs instalados, producir diff detallado."""
+    """Compare source files vs installed files, produce a detailed diff.
+
+    Returns:
+        Dict with "added", "modified", "removed", and "unchanged" file lists.
+    """
     changes: dict[str, list[str]] = {
-        "added": [],       # Archivos nuevos que no existen en target
-        "modified": [],    # Archivos que cambiaron
-        "removed": [],     # Archivos en target que ya no existen en source
-        "unchanged": [],   # Archivos idénticos
+        "added": [],       # New files not in target
+        "modified": [],    # Files that changed
+        "removed": [],     # Files in target that no longer exist in source
+        "unchanged": [],   # Identical files
     }
 
     # Hooks
@@ -126,7 +134,7 @@ def compute_diff(source: str, target: str) -> dict[str, list[str]]:
         dst = os.path.join(target, "hooks", hook)
         _compare_file(src, dst, f"hooks/{hook}", changes)
 
-    # Skills (comparar todos los archivos en cada skill dir)
+    # Skills (compare all files in each skill dir)
     for skill in SKILLS:
         src_dir = os.path.join(source, "skills", skill)
         dst_dir = os.path.join(target, "skills", skill)
@@ -157,7 +165,7 @@ def compute_diff(source: str, target: str) -> dict[str, list[str]]:
 
 
 def _compare_file(src: str, dst: str, label: str, changes: dict[str, list[str]]) -> None:
-    """Comparar un archivo source vs destino."""
+    """Compare a single source file against its installed counterpart."""
     src_hash = file_hash(src)
     dst_hash = file_hash(dst)
 
@@ -175,7 +183,11 @@ def _compare_file(src: str, dst: str, label: str, changes: dict[str, list[str]])
 # ── Backup ────────────────────────────────────────────────────────────────
 
 def create_backup(target: str, manifest: dict[str, Any]) -> str:
-    """Crear backup del manifest actual antes del upgrade."""
+    """Create a timestamped backup of the current manifest before upgrading.
+
+    Returns:
+        Path to the backup file.
+    """
     claude_dir = os.path.join(target, ".claude")
     backup_dir = os.path.join(claude_dir, "backups")
     os.makedirs(backup_dir, exist_ok=True)
@@ -191,56 +203,60 @@ def create_backup(target: str, manifest: dict[str, Any]) -> str:
     return backup_path
 
 
-# ── Migraciones ───────────────────────────────────────────────────────────
+# ── Migrations ────────────────────────────────────────────────────────────
 
-# Registro de migraciones entre versiones.
-# Cada migración es una función que recibe (target, manifest) y retorna el manifest actualizado.
-# Se ejecutan en orden de versión.
+# Registry of migrations between versions.
+# Each migration is a function that takes (target, manifest) and returns the updated manifest.
+# They run in version order.
 
 MIGRATIONS: dict[str, Any] = {
     # "1.0.0→2.0.0": migration_1_to_2,
-    # Agregar futuras migraciones aquí
+    # Add future migrations here
 }
 
 
 def get_needed_migrations(from_version: str, to_version: str) -> list[tuple[str, Any]]:
-    """Determinar qué migraciones necesitan ejecutarse."""
+    """Determine which migrations need to run between two versions."""
     needed = []
     for key, fn in MIGRATIONS.items():
         src_v, dst_v = key.split("→")
-        # Simple check: si la versión instalada es anterior
+        # Simple check: if the installed version is older
         if src_v == from_version and dst_v != from_version:
             needed.append((key, fn))
     return needed
 
 
-# ── Aplicar upgrade ───────────────────────────────────────────────────────
+# ── Apply upgrade ─────────────────────────────────────────────────────────
 
 def apply_upgrade(source: str, target: str, changes: dict[str, list[str]], manifest: dict[str, Any]) -> list[str]:
-    """Aplicar los cambios del upgrade."""
+    """Copy changed files, update symlinks, refresh CLAUDE.md and manifest.
+
+    Returns:
+        List of error messages (empty on success).
+    """
     errors = []
 
     is_self = os.path.realpath(source) == os.path.realpath(target)
 
-    # Copiar archivos modificados y nuevos (excepto en self-install)
+    # Copy modified and new files (skip in self-install mode)
     if not is_self:
         for label in changes["added"] + changes["modified"]:
             try:
                 src = os.path.join(source, label)
                 dst = os.path.join(target, label)
-                # Seguridad: no seguir symlinks
+                # Safety: do not follow symlinks
                 if os.path.islink(src):
-                    errors.append(f"Symlink rechazado (seguridad): {label}")
+                    errors.append(f"Symlink rejected (security): {label}")
                     continue
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 shutil.copy2(src, dst)
-                # Hacer ejecutable si es bin/git-memory
+                # Make executable if it's bin/git-memory
                 if label == "bin/git-memory":
                     os.chmod(dst, 0o755)
             except Exception as e:
                 errors.append(f"Error copiando {label}: {e}")
 
-    # Actualizar symlinks en .claude/
+    # Update symlinks in .claude/
     claude_dir = os.path.join(target, ".claude")
     for hook in HOOKS:
         link = os.path.join(claude_dir, "hooks", hook)
@@ -262,14 +278,14 @@ def apply_upgrade(source: str, target: str, changes: dict[str, list[str]], manif
             except Exception as e:
                 errors.append(f"Error creando symlink skills/{skill}: {e}")
 
-    # Actualizar managed block en CLAUDE.md
+    # Update managed block in CLAUDE.md
     try:
         install_mod = _load_install_module()
         install_mod._update_claude_md(target)
     except Exception as e:
-        errors.append(f"Error actualizando CLAUDE.md: {e}")
+        errors.append(f"Error updating CLAUDE.md: {e}")
 
-    # Actualizar manifest
+    # Update manifest
     try:
         new_manifest = dict(manifest)
         new_manifest["version"] = VERSION
@@ -280,24 +296,24 @@ def apply_upgrade(source: str, target: str, changes: dict[str, list[str]], manif
         with open(manifest_path, "w") as f:
             json.dump(new_manifest, f, indent=2)
     except Exception as e:
-        errors.append(f"Error actualizando manifest: {e}")
+        errors.append(f"Error updating manifest: {e}")
 
     return errors
 
 
-# ── Helpers internos ──────────────────────────────────────────────────────
+# ── Internal helpers ──────────────────────────────────────────────────────
 
 _install_mod = None
 
 def _load_install_module() -> Any:
-    """Cargar git-memory-install.py como módulo (cache)."""
+    """Load git-memory-install.py as a module (cached after first call)."""
     global _install_mod
     if _install_mod is not None:
         return _install_mod
     from importlib.util import spec_from_file_location, module_from_spec
     install_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-memory-install.py")
     if not os.path.isfile(install_path):
-        raise FileNotFoundError(f"git-memory-install.py no encontrado en {install_path}")
+        raise FileNotFoundError(f"git-memory-install.py not found at {install_path}")
     spec = spec_from_file_location("install", install_path)
     if spec is None or spec.loader is None:
         raise ImportError(f"Cannot load module spec for {install_path}")
@@ -307,7 +323,7 @@ def _load_install_module() -> Any:
 
 
 def _compute_fingerprint(root: str) -> str:
-    """Calcular fingerprint de archivos instalados."""
+    """Compute a SHA256 fingerprint of all installed files (hooks, skills, CLI)."""
     h = hashlib.sha256()
     for hook in HOOKS:
         path = os.path.join(root, "hooks", hook)
@@ -329,33 +345,33 @@ def _compute_fingerprint(root: str) -> str:
 # ── Output ────────────────────────────────────────────────────────────────
 
 def format_diff_human(changes: dict[str, list[str]], from_version: str, to_version: str) -> str:
-    """Formatear diff para lectura humana."""
+    """Format the file diff as a human-readable summary."""
     lines = []
-    lines.append(f"Versión instalada: v{from_version}")
-    lines.append(f"Versión disponible: v{to_version}")
+    lines.append(f"Installed version: v{from_version}")
+    lines.append(f"Available version: v{to_version}")
     lines.append("")
 
     total_changes = len(changes["added"]) + len(changes["modified"])
     if total_changes == 0:
-        lines.append("Sin cambios — ya estás en la versión más reciente.")
+        lines.append("No changes -- already on the latest version.")
         return "\n".join(lines)
 
     if changes["added"]:
-        lines.append(f"  + {len(changes['added'])} archivos nuevos:")
+        lines.append(f"  + {len(changes['added'])} new files:")
         for f in changes["added"]:
             lines.append(f"    + {f}")
 
     if changes["modified"]:
-        lines.append(f"  ~ {len(changes['modified'])} archivos modificados:")
+        lines.append(f"  ~ {len(changes['modified'])} modified files:")
         for f in changes["modified"]:
             lines.append(f"    ~ {f}")
 
     if changes["removed"]:
-        lines.append(f"  - {len(changes['removed'])} archivos eliminados:")
+        lines.append(f"  - {len(changes['removed'])} removed files:")
         for f in changes["removed"]:
             lines.append(f"    - {f}")
 
-    lines.append(f"\n  = {len(changes['unchanged'])} archivos sin cambios")
+    lines.append(f"\n  = {len(changes['unchanged'])} unchanged files")
 
     return "\n".join(lines)
 
@@ -363,6 +379,7 @@ def format_diff_human(changes: dict[str, list[str]], from_version: str, to_versi
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """CLI entry point. Compares versions, shows diff, and applies upgrade if confirmed."""
     parser = argparse.ArgumentParser(description="Safe upgrade for the git-memory system.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--dry-run", action="store_true", help="Show what would change")
@@ -380,24 +397,24 @@ def main() -> None:
     # Self-upgrade guard
     is_self = os.path.realpath(source) == os.path.realpath(target)
 
-    # Leer estado actual
+    # Read current state
     manifest = read_installed_manifest(target)
     if manifest is None:
         if as_json:
-            print(json.dumps({"status": "error", "message": "No hay instalación para actualizar. Usa: git memory install"}))
+            print(json.dumps({"status": "error", "message": "No installation to upgrade. Use: git memory install"}))
         else:
-            print("Error: no hay instalación de git-memory para actualizar.", file=sys.stderr)
-            print("Usa: git memory install", file=sys.stderr)
+            print("Error: no git-memory installation to upgrade.", file=sys.stderr)
+            print("Use: git memory install", file=sys.stderr)
         sys.exit(1)
 
     from_version = manifest.get("version", "unknown")
     to_version = read_source_version(source)
 
-    # Calcular diff
+    # Compute diff
     changes = compute_diff(source, target)
     total_changes = len(changes["added"]) + len(changes["modified"])
 
-    # --check: solo reportar si hay actualización
+    # --check: only report if an upgrade is available
     if check_only:
         has_update = total_changes > 0 or from_version != to_version
         if as_json:
@@ -409,13 +426,13 @@ def main() -> None:
             }))
         else:
             if has_update:
-                print(f"Actualización disponible: v{from_version} → v{to_version}")
-                print(f"  {total_changes} archivos a actualizar")
+                print(f"Upgrade available: v{from_version} -> v{to_version}")
+                print(f"  {total_changes} files to update")
             else:
-                print(f"Ya estás en la versión más reciente (v{to_version})")
+                print(f"Already on the latest version (v{to_version})")
         sys.exit(0)
 
-    # Output completo
+    # Full output
     if as_json:
         output = {
             "installed_version": from_version,
@@ -438,50 +455,50 @@ def main() -> None:
 
     else:
         print("=== git memory upgrade ===")
-        print(f"Fuente: {source}")
-        print(f"Destino: {target}")
+        print(f"Source: {source}")
+        print(f"Target: {target}")
         if is_self:
-            print("(modo self-upgrade — source == target)")
+            print("(self-upgrade mode -- source == target)")
         print()
         print(format_diff_human(changes, from_version, to_version))
         print()
 
-    # Nada que actualizar
+    # Nothing to upgrade
     if total_changes == 0 and from_version == to_version:
         if not as_json:
-            print("Nada que actualizar.")
+            print("Nothing to upgrade.")
         sys.exit(0)
 
     # Dry run
     if dry_run:
         if not as_json:
-            print("(dry-run — no se aplicaron cambios)")
+            print("(dry-run -- no changes applied)")
         sys.exit(0)
 
-    # Confirmación
+    # Confirmation
     if not auto:
         try:
-            answer = input("\n¿Aplicar actualización? [Y/n] ").strip().lower()
+            answer = input("\nApply upgrade? [Y/n] ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\nAbortado.")
+            print("\nAborted.")
             sys.exit(2)
 
         if answer and answer not in ("y", "yes", "s", "si", "sí", ""):
-            print("Abortado.")
+            print("Aborted.")
             sys.exit(2)
 
     # Backup
     if not as_json:
-        print("\nCreando backup...")
+        print("\nCreating backup...")
     backup_path = create_backup(target, manifest)
     if not as_json:
         print(f"  Backup: {backup_path}")
 
-    # Migraciones
+    # Migrations
     migrations = get_needed_migrations(from_version, to_version)
     if migrations:
         if not as_json:
-            print(f"\nEjecutando {len(migrations)} migración(es)...")
+            print(f"\nRunning {len(migrations)} migration(s)...")
         for key, fn in migrations:
             try:
                 manifest = fn(target, manifest)
@@ -490,27 +507,27 @@ def main() -> None:
             except Exception as e:
                 if not as_json:
                     print(f"  ❌ {key}: {e}")
-                    print("Upgrade abortado. Manifest original preservado en backup.")
+                    print("Upgrade aborted. Original manifest preserved in backup.")
                 sys.exit(1)
 
-    # Aplicar
+    # Apply
     if not as_json:
-        print("\nAplicando actualización...")
+        print("\nApplying upgrade...")
     errors = apply_upgrade(source, target, changes, manifest)
 
     if errors:
         if as_json:
             print(json.dumps({"status": "error", "errors": errors}))
         else:
-            print(f"\n{len(errors)} error(es):")
+            print(f"\n{len(errors)} error(s):")
             for err in errors:
                 print(f"  ❌ {err}")
-            print(f"\nBackup disponible en: {backup_path}")
+            print(f"\nBackup available at: {backup_path}")
         sys.exit(1)
 
-    # Verificar
+    # Verify
     if not as_json:
-        print("\nVerificando...")
+        print("\nVerifying...")
     doctor_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "git-memory-doctor.py")
     if os.path.isfile(doctor_script):
         subprocess.run([sys.executable, doctor_script], timeout=15)
@@ -524,8 +541,8 @@ def main() -> None:
             "backup": backup_path,
         }))
     else:
-        print(f"\n✅ Upgrade completado: v{from_version} → v{to_version}")
-        print(f"   {total_changes} archivos actualizados")
+        print(f"\nUpgrade complete: v{from_version} -> v{to_version}")
+        print(f"   {total_changes} files updated")
         print(f"   Backup: {backup_path}")
 
 

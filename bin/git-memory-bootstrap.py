@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-git-memory-bootstrap — Scout conservador para primer contacto con un repo.
-=========================================================================
-Analiza estructura, dependencias, stack técnico y commits recientes.
-Clasifica hallazgos por nivel de confianza (fact/hypothesis).
-Produce output estructurado para que Claude presente al usuario y confirme.
+git-memory-bootstrap -- Conservative scout for first contact with a repo.
 
-NO crea commits. Solo analiza y reporta.
-Claude usa el output para presentar hallazgos, obtener confirmación,
-y crear el commit de bootstrap con los trailers apropiados.
+Analyzes structure, dependencies, tech stack, and recent commits.
+Classifies findings by confidence level (fact/hypothesis).
+Produces structured output for Claude to present to the user and confirm.
+
+Does NOT create commits. Only analyzes and reports.
+Claude uses the output to present findings, get confirmation,
+and create the bootstrap commit with the appropriate trailers.
 
 Usage:
   git memory bootstrap              # Human-readable report
@@ -184,7 +184,7 @@ SIGNAL_FILES = {
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def find_project_root() -> str:
-    """Find project root via git."""
+    """Find the project root using git rev-parse, falling back to cwd."""
     code, root = run_git(["rev-parse", "--show-toplevel"])
     if code == 0 and root:
         return root
@@ -194,7 +194,11 @@ def find_project_root() -> str:
 # ── Scanners ──────────────────────────────────────────────────────────────
 
 def scan_tree(root: str, max_depth: int = MAX_TREE_DEPTH) -> dict[str, list[str]]:
-    """Scan directory tree to max_depth, skipping noise directories."""
+    """Walk the directory tree up to max_depth, skipping noisy directories.
+
+    Returns:
+        Dict with "dirs" and "files" keys, each a list of relative paths.
+    """
     tree: dict[str, list[str]] = {"dirs": [], "files": []}
 
     for dirpath, dirnames, filenames in os.walk(root):
@@ -219,7 +223,11 @@ def scan_tree(root: str, max_depth: int = MAX_TREE_DEPTH) -> dict[str, list[str]
 
 
 def scan_signal_files(root: str, tree_files: list[str]) -> list[dict[str, str]]:
-    """Check which high-signal files exist."""
+    """Match tree files against SIGNAL_FILES to detect ecosystem indicators.
+
+    Returns:
+        List of dicts with "file", "signal", and "ecosystem" keys.
+    """
     found = []
 
     for filepath in tree_files:
@@ -262,7 +270,11 @@ def scan_signal_files(root: str, tree_files: list[str]) -> list[dict[str, str]]:
 
 
 def scan_package_json(root: str) -> dict[str, Any] | None:
-    """Extract stack info from package.json if it exists."""
+    """Extract stack info from package.json (frameworks, deps, monorepo signals).
+
+    Returns:
+        Dict with detected info, or None if package.json is missing or invalid.
+    """
     pkg_path = os.path.join(root, "package.json")
     if not os.path.isfile(pkg_path):
         return None
@@ -333,7 +345,11 @@ def scan_package_json(root: str) -> dict[str, Any] | None:
 
 
 def scan_pyproject(root: str) -> dict[str, Any] | None:
-    """Extract stack info from pyproject.toml if it exists."""
+    """Extract stack info from pyproject.toml (build backend, frameworks, Python version).
+
+    Returns:
+        Dict with detected info, or None if pyproject.toml is missing or unreadable.
+    """
     pyproject = os.path.join(root, "pyproject.toml")
     if not os.path.isfile(pyproject):
         return None
@@ -386,7 +402,11 @@ def scan_pyproject(root: str) -> dict[str, Any] | None:
 
 
 def scan_recent_commits(depth: int = SCAN_COMMITS) -> dict[str, Any] | None:
-    """Analyze recent commits for patterns."""
+    """Analyze recent commits for contributor count, trailer usage, and scopes.
+
+    Returns:
+        Dict with commit stats, or None if git log fails or is empty.
+    """
     code, output = run_git([
         "log", "-n", str(depth),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1f%an%x1e",
@@ -502,7 +522,11 @@ def detect_monorepo(root: str, tree: dict[str, list[str]]) -> dict[str, Any]:
 
 
 def detect_ci_commitlint(root: str) -> list[str]:
-    """Detect if commitlint or strict CI might reject trailers."""
+    """Detect commitlint, husky, or pre-commit hooks that might reject trailers.
+
+    Returns:
+        List of human-readable signal descriptions.
+    """
     signals = []
 
     # commitlint
@@ -537,7 +561,7 @@ def detect_ci_commitlint(root: str) -> list[str]:
 
 
 def check_existing_memory(root: str) -> dict[str, Any]:
-    """Check if git-memory is already installed."""
+    """Check if git-memory is already installed by looking for CLAUDE.md block and manifest."""
     signals: dict[str, Any] = {}
 
     # Check CLAUDE.md for managed block
@@ -572,7 +596,11 @@ def check_existing_memory(root: str) -> dict[str, Any]:
 # ── Classification ────────────────────────────────────────────────────────
 
 def classify_findings(signals: list[dict[str, str]], pkg_info: dict[str, Any] | None, py_info: dict[str, Any] | None, commits: dict[str, Any] | None, monorepo: dict[str, Any], ci_signals: list[str], existing: dict[str, Any]) -> list[dict[str, Any]]:
-    """Classify all findings by confidence level."""
+    """Classify all scanner results into facts (directly detected) and hypotheses (inferred).
+
+    Returns:
+        List of finding dicts, each with "level", "category", "text", and "source".
+    """
     findings: list[dict[str, Any]] = []
 
     # Facts: directly detected from files
@@ -723,7 +751,11 @@ def classify_findings(signals: list[dict[str, str]], pkg_info: dict[str, Any] | 
 # ── Suggested Actions ─────────────────────────────────────────────────────
 
 def suggest_actions(findings: list[dict[str, Any]], existing: dict[str, Any], monorepo: dict[str, Any], ci_signals: list[str]) -> list[dict[str, Any]]:
-    """Suggest what Claude should do based on findings."""
+    """Build a list of suggested next steps based on findings.
+
+    Returns:
+        List of action dicts with "action", "reason", and "detail" keys.
+    """
     suggestions = []
 
     # Already installed?
@@ -784,7 +816,7 @@ def suggest_actions(findings: list[dict[str, Any]], existing: dict[str, Any], mo
 # ── Output ────────────────────────────────────────────────────────────────
 
 def format_human(findings: list[dict[str, Any]], suggestions: list[dict[str, Any]], repo_info: dict[str, str]) -> str:
-    """Format findings for human reading."""
+    """Format findings and suggestions as a human-readable text report."""
     lines = []
     lines.append("=== git memory bootstrap — Project Scout ===")
     lines.append(f"Repo: {repo_info.get('name', '?')} ({repo_info.get('branch', '?')})")
@@ -829,7 +861,11 @@ def format_human(findings: list[dict[str, Any]], suggestions: list[dict[str, Any
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def run_bootstrap(silent: bool = False, as_json: bool = False) -> int:
-    """Run the bootstrap scout and produce report."""
+    """Run all scanners, classify findings, and produce the report.
+
+    Returns:
+        0 if meaningful findings were found, 1 otherwise.
+    """
     root = find_project_root()
 
     # Repo info
@@ -885,6 +921,7 @@ def run_bootstrap(silent: bool = False, as_json: bool = False) -> int:
 
 
 def main() -> None:
+    """CLI entry point. Parses args and runs the bootstrap scout."""
     parser = argparse.ArgumentParser(description="Scout for first contact with a repo.")
     parser.add_argument("--silent", action="store_true", help="Exit code only")
     parser.add_argument("--json", dest="json", action="store_true", help="Machine-readable JSON output")

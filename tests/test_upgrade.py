@@ -1,7 +1,7 @@
 """
-Upgrade Test — Safe upgrade verification.
-==========================================
-Tests: no-install error, up-to-date check, dry-run, real upgrade,
+Upgrade tests for safe version migration.
+
+Covers no-install error, up-to-date check, dry-run, real upgrade,
 JSON output, and manifest updates.
 """
 
@@ -21,6 +21,7 @@ from conftest import (
 # ── Helpers ────────────────────────────────────────────────────────────
 
 def make_installed_repo(tmp_path, name="repo"):
+    """Create a temporary git repo with git-memory installed."""
     repo = str(tmp_path / name)
     os.makedirs(repo)
     subprocess.run(["git", "init", repo], capture_output=True)
@@ -33,6 +34,7 @@ def make_installed_repo(tmp_path, name="repo"):
 
 
 def run_upgrade(cwd, extra_args=None):
+    """Run the upgrade script and return (rc, stdout, stderr)."""
     return run_script(UPGRADE, cwd, extra_args)
 
 
@@ -57,7 +59,7 @@ def test_up_to_date(tmp_path):
 
     rc, stdout, _ = run_upgrade(repo, ["--check"])
     assert rc == 0
-    assert "más reciente" in stdout or "reciente" in stdout
+    assert "latest version" in stdout or "up to date" in stdout.lower() or "reciente" in stdout
 
 
 def test_detects_modified_file(tmp_path):

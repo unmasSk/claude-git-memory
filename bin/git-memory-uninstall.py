@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-git-memory-uninstall — Clean removal of git-memory runtime.
-=============================================================
+git-memory-uninstall -- Clean removal of git-memory runtime.
+
 Removes hooks, skills, CLI, managed blocks, and manifest.
 Never touches git history (commits with trailers are preserved).
 
@@ -56,12 +56,12 @@ GENERATED_FILES = [
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def find_source_root() -> str:
-    """Find the git-memory plugin source root (where this script lives)."""
+    """Get the git-memory plugin source root (parent of this script's directory)."""
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def find_target_root() -> str:
-    """Find the target repo root."""
+    """Get the target repo root via git, falling back to cwd."""
     code, output = run_git(["rev-parse", "--show-toplevel"])
     if code == 0:
         return output
@@ -69,7 +69,7 @@ def find_target_root() -> str:
 
 
 def safe_remove(path: str) -> bool:
-    """Remove a file or symlink if it exists."""
+    """Remove a file or symlink if it exists. Returns True if something was removed."""
     if os.path.islink(path) or os.path.isfile(path):
         os.unlink(path)
         return True
@@ -77,7 +77,7 @@ def safe_remove(path: str) -> bool:
 
 
 def safe_rmdir(path: str) -> bool:
-    """Remove a directory if it exists and is empty."""
+    """Remove a directory only if it exists and is empty. Returns True on success."""
     if os.path.isdir(path):
         try:
             os.rmdir(path)
@@ -90,7 +90,11 @@ def safe_rmdir(path: str) -> bool:
 # ── Uninstall Steps ──────────────────────────────────────────────────────
 
 def remove_hooks(target: str) -> list[str]:
-    """Remove hook files and symlinks."""
+    """Remove hook files and their .claude/hooks symlinks.
+
+    Returns:
+        List of relative paths that were removed.
+    """
     removed = []
 
     # Remove source hooks
@@ -113,7 +117,11 @@ def remove_hooks(target: str) -> list[str]:
 
 
 def remove_skills(target: str) -> list[str]:
-    """Remove skill directories and symlinks."""
+    """Remove skill directories and their .claude/skills symlinks.
+
+    Returns:
+        List of relative paths that were removed.
+    """
     removed = []
 
     for skill in SKILLS:
@@ -139,7 +147,11 @@ def remove_skills(target: str) -> list[str]:
 
 
 def remove_cli(target: str) -> list[str]:
-    """Remove CLI scripts from bin/."""
+    """Remove CLI scripts from the bin/ directory.
+
+    Returns:
+        List of relative paths that were removed.
+    """
     removed = []
     bin_dir = os.path.join(target, "bin")
 
@@ -217,7 +229,11 @@ def remove_plugin_manifest(target: str) -> bool:
 
 
 def remove_generated_files(target: str) -> list[str]:
-    """Remove generated files (full-local mode)."""
+    """Remove generated files like dashboard and snapshots (full-local mode only).
+
+    Returns:
+        List of relative paths that were removed.
+    """
     removed = []
     for rel_path in GENERATED_FILES:
         path = os.path.join(target, rel_path)
@@ -229,6 +245,7 @@ def remove_generated_files(target: str) -> list[str]:
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """CLI entry point. Shows removal plan, asks for confirmation, and executes."""
     parser = argparse.ArgumentParser(description="Clean removal of git-memory runtime.")
     parser.add_argument("--auto", action="store_true", help="Non-interactive mode")
     parser.add_argument("--full-local", action="store_true", help="Also remove generated files")

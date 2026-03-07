@@ -1,8 +1,8 @@
 """
-Lifecycle Test — Doctor, Install, Repair, Uninstall
-====================================================
-Tests the lifecycle scripts in a temp repo through
-the full install → doctor → break → repair → uninstall cycle.
+Lifecycle tests for doctor, install, repair, and uninstall.
+
+Runs the full install, doctor, break, repair, uninstall cycle
+in a shared temporary repo.
 """
 
 import json
@@ -23,14 +23,17 @@ from conftest import (
 # ── Helpers ────────────────────────────────────────────────────────────
 
 def run_install(cwd, extra_args=None):
+    """Run the install script with --auto."""
     return run_script(INSTALL, cwd, ["--auto"] + (extra_args or []))
 
 
 def run_repair(cwd, extra_args=None):
+    """Run the repair script with --auto."""
     return run_script(REPAIR, cwd, ["--auto"] + (extra_args or []))
 
 
 def run_uninstall(cwd, extra_args=None):
+    """Run the uninstall script with --auto."""
     return run_script(UNINSTALL, cwd, ["--auto"] + (extra_args or []))
 
 

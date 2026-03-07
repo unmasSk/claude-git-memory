@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Claude Code Hook: Pre-Validate Commit Trailers (Belt)
-======================================================
-Intercepts git commit commands BEFORE execution.
-Parses the commit message and blocks if required trailers are missing.
+Pre-commit trailer validation hook (belt).
 
-If the message cannot be parsed (heredoc, -F, no -m), passes through
-and lets the PostToolUse hook handle validation.
+Intercepts git commit commands BEFORE execution. Parses the commit message
+and blocks if required trailers are missing. If the message cannot be parsed
+(heredoc, -F, no -m), passes through and lets the PostToolUse hook handle it.
 
 Exit codes:
-- 0: Allow operation (trailers valid or cannot parse)
-- 2: Block operation (trailers missing)
+    0: Allow (trailers valid or message unparseable).
+    2: Block (trailers missing).
 """
 
 import json
@@ -28,20 +26,43 @@ from colors import RED, YELLOW, RESET
 
 
 def get_branch_name() -> str:
-    """Get current branch name."""
+    """Get the current git branch name.
+
+    Returns:
+        Branch name, or empty string if detection fails.
+    """
     code, output = run_git(["branch", "--show-current"], timeout=5)
     return output if code == 0 else ""
 
 
 def branch_has_issue(branch: str) -> bool:
-    """Check if branch name contains an issue reference."""
+    """Check if the branch name contains an issue reference (CU-xxx, issue-xxx, #xxx).
+
+    Args:
+        branch: Branch name to inspect.
+
+    Returns:
+        True if an issue pattern is found.
+    """
     if not branch:
         return False
     return bool(re.search(r"(CU-\d+|issue-\d+|#\d+)", branch, re.IGNORECASE))
 
 
 def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -> list[str]:
-    """Validate trailers against the spec. Returns list of errors."""
+    """Validate trailers against the spec for a given commit type.
+
+    Checks required trailers per type (code, context, decision, memo, wip)
+    and validates format of Memo, Risk, and Issue values when present.
+
+    Args:
+        commit_type: Parsed conventional commit type.
+        trailers: Dict of trailer key-value pairs from the commit message.
+        branch: Current branch name, used to check for issue references.
+
+    Returns:
+        List of human-readable error strings. Empty if valid.
+    """
     errors = []
     has_issue = branch_has_issue(branch)
 
@@ -97,6 +118,7 @@ def validate_trailers(commit_type: str, trailers: dict[str, str], branch: str) -
 
 
 def main() -> None:
+    """Entry point. Reads hook input from stdin and validates trailers."""
     try:
         input_data = json.load(sys.stdin)
     except json.JSONDecodeError:
@@ -152,7 +174,7 @@ def main() -> None:
             print(error_msg, file=sys.stderr)
             sys.exit(2)
         else:
-            warn_msg = f"\n{YELLOW}>>> Commit without trailers. No pasa nada.{RESET}"
+            warn_msg = f"\n{YELLOW}>>> Commit without trailers. No big deal.{RESET}"
             warn_msg += f"\n{YELLOW}>>> Missing: {', '.join(errors)}{RESET}"
             print(warn_msg, file=sys.stderr)
             sys.exit(0)

@@ -1,7 +1,7 @@
 """
-Integration Test — End-to-end test matrix.
-==========================================
-Tests real-world scenarios: install over existing config,
+End-to-end integration tests.
+
+Covers real-world scenarios: install over existing config,
 bootstrap, sessions, compaction, GC, branch-aware context,
 uninstall+reinstall, upgrade, and bootstrap detection.
 """
@@ -32,6 +32,7 @@ def make_installed_repo(tmp_path, name="repo"):
 
 
 def run_hook(repo, hook_name, commit_msg, env_extra=None):
+    """Run a hook script by name and return (rc, stdout, stderr)."""
     hook_path = os.path.join(repo, "hooks", hook_name)
     if not os.path.isfile(hook_path):
         return 1, "", "hook not found"

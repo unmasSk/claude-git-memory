@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-git-memory-doctor — Health check for the git-memory system.
-=============================================================
-Checks hooks, skills, CLI, hook execution, GC status, stale items,
-and version. Outputs a one-line-per-item status report.
+git-memory-doctor -- Health check for the git-memory system.
+
+Checks hooks, skills, CLI, hook execution, GC status, stale blockers,
+symlinks, manifest, and version. Outputs a one-line-per-item status report.
 
 Usage:
   git memory doctor              # Full diagnostic
@@ -52,7 +52,14 @@ VERSION = "2.0.0"
 # ── Helpers ───────────────────────────────────────────────────────────────
 
 def find_project_root() -> str:
-    """Find the project root: git root of cwd (for installed repos), or script parent (for source)."""
+    """Find the project root.
+
+    Uses the git root of the current working directory if available,
+    otherwise falls back to this script's parent directory.
+
+    Returns:
+        Absolute path to the project root.
+    """
     code, git_root = run_git(["rev-parse", "--show-toplevel"])
     if code == 0 and git_root:
         return git_root
@@ -62,7 +69,11 @@ def find_project_root() -> str:
 
 
 def parse_date(date_str: str) -> datetime | None:
-    """Parse ISO date from git log."""
+    """Parse an ISO 8601 date string from git log output.
+
+    Returns:
+        Parsed datetime, or None if parsing fails.
+    """
     try:
         return datetime.fromisoformat(date_str.replace("Z", "+00:00").split("+")[0])
     except (ValueError, IndexError):
@@ -78,7 +89,11 @@ def check_git_repo() -> bool:
 
 
 def check_hooks(root: str) -> tuple[list[str], list[str]]:
-    """Check that all 4 hook files exist."""
+    """Check that all expected hook files exist in hooks/.
+
+    Returns:
+        Tuple of (found hook names, missing hook names).
+    """
     hooks_dir = os.path.join(root, "hooks")
     found = []
     missing = []
@@ -92,7 +107,11 @@ def check_hooks(root: str) -> tuple[list[str], list[str]]:
 
 
 def check_skills(root: str) -> tuple[list[str], list[str]]:
-    """Check that all 4 skill directories with SKILL.md exist."""
+    """Check that all expected skill directories contain a SKILL.md file.
+
+    Returns:
+        Tuple of (found skill names, missing skill names).
+    """
     skills_dir = os.path.join(root, "skills")
     found = []
     missing = []
@@ -106,7 +125,11 @@ def check_skills(root: str) -> tuple[list[str], list[str]]:
 
 
 def check_cli(root: str) -> tuple[bool, str]:
-    """Check that bin/git-memory exists and is executable."""
+    """Check that bin/git-memory exists and is executable.
+
+    Returns:
+        Tuple of (ok, status_message).
+    """
     cli_path = os.path.join(root, "bin", "git-memory")
     if not os.path.isfile(cli_path):
         return False, "not found"
@@ -116,7 +139,11 @@ def check_cli(root: str) -> tuple[bool, str]:
 
 
 def check_hook_execution(depth: int = SCAN_DEPTH) -> tuple[int, int, int]:
-    """Check if hooks have been active by looking for trailer patterns in recent commits."""
+    """Check if hooks have been active by looking for trailers in recent commits.
+
+    Returns:
+        Tuple of (commits_with_trailers, total_commits, scan_depth).
+    """
     code, output = run_git([
         "log", "-n", str(depth),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
@@ -144,7 +171,15 @@ def check_hook_execution(depth: int = SCAN_DEPTH) -> tuple[int, int, int]:
 
 
 def check_gc_status(depth: int = 200) -> tuple[int | None, int, list[dict[str, Any]]]:
-    """Check GC last run date and stale blocker count."""
+    """Check when GC last ran and count stale blockers.
+
+    Scans recent commits for GC activity and Blocker: trailers that
+    have exceeded the staleness threshold without being tombstoned.
+
+    Returns:
+        Tuple of (days_since_last_gc or None, stale_blocker_count,
+        list of stale blocker details).
+    """
     code, output = run_git([
         "log", "-n", str(depth),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
@@ -209,7 +244,11 @@ def check_gc_status(depth: int = 200) -> tuple[int | None, int, list[dict[str, A
 
 
 def check_manifest(root: str) -> tuple[dict[str, Any] | None, str]:
-    """Check if manifest exists and is valid."""
+    """Check if .claude/git-memory-manifest.json exists and is valid JSON.
+
+    Returns:
+        Tuple of (parsed manifest dict or None, status message).
+    """
     manifest_path = os.path.join(root, ".claude", "git-memory-manifest.json")
     if not os.path.isfile(manifest_path):
         return None, "not found"
@@ -222,7 +261,11 @@ def check_manifest(root: str) -> tuple[dict[str, Any] | None, str]:
 
 
 def check_symlinks(root: str) -> tuple[list[str], list[str]]:
-    """Check that .claude/hooks/ and .claude/skills/ symlinks are valid."""
+    """Check that .claude/hooks/ and .claude/skills/ symlinks exist and resolve.
+
+    Returns:
+        Tuple of (broken/missing hook names, broken/missing skill names).
+    """
     claude_dir = os.path.join(root, ".claude")
     broken_hooks = []
     broken_skills = []
@@ -245,12 +288,16 @@ def check_symlinks(root: str) -> tuple[list[str], list[str]]:
 
 
 def check_hooks_json(root: str) -> bool:
-    """Check that hooks.json exists."""
+    """Check that hooks.json exists at the repo root."""
     return os.path.isfile(os.path.join(root, "hooks.json"))
 
 
 def check_claude_md(root: str) -> tuple[bool, str]:
-    """Check if CLAUDE.md has the managed block."""
+    """Check if CLAUDE.md exists and contains the managed block.
+
+    Returns:
+        Tuple of (block_present, status message).
+    """
     claude_md = os.path.join(root, "CLAUDE.md")
     if not os.path.isfile(claude_md):
         return False, "CLAUDE.md not found"
@@ -267,7 +314,15 @@ def check_claude_md(root: str) -> tuple[bool, str]:
 # ── Report ────────────────────────────────────────────────────────────────
 
 def run_doctor(silent: bool = False, as_json: bool = False) -> int:
-    """Run all checks and produce report."""
+    """Run all health checks and produce a diagnostic report.
+
+    Args:
+        silent: If True, suppress all output (exit code only).
+        as_json: If True, output machine-readable JSON.
+
+    Returns:
+        Exit code: 0 if healthy (or warnings only), 1 if errors found.
+    """
     root = find_project_root()
     results = []
     has_errors = False
@@ -415,6 +470,7 @@ def run_doctor(silent: bool = False, as_json: bool = False) -> int:
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
+    """Entry point: parse args and run the doctor checks."""
     parser = argparse.ArgumentParser(description="Health check for the git-memory system.")
     parser.add_argument("--silent", action="store_true", help="Exit code only")
     parser.add_argument("--json", dest="json", action="store_true", help="Machine-readable JSON output")
