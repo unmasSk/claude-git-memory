@@ -60,7 +60,7 @@ def test_doctor_fresh_repo(lifecycle_repo):
     assert result.get("status") != "ok", "Doctor reported 'ok' on fresh repo"
 
     hook_check = next((c for c in result.get("checks", []) if c.get("component") == "Hooks"), None)
-    assert hook_check and "0/4" in hook_check.get("message", "")
+    assert hook_check and "0/6" in hook_check.get("message", "")
 
     skill_check = next((c for c in result.get("checks", []) if c.get("component") == "Skills"), None)
     assert skill_check and "0/4" in skill_check.get("message", "")

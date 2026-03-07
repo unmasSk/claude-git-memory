@@ -38,6 +38,8 @@ HOOKS = [
     "post-validate-commit-trailers.py",
     "precompact-snapshot.py",
     "stop-dod-check.py",
+    "session-start-boot.py",
+    "user-prompt-memory-check.py",
 ]
 
 SKILLS = [
@@ -271,7 +273,7 @@ def main() -> None:
 
     # Build plan
     plan = []
-    plan.append("Remove hooks (4 files + symlinks)")
+    plan.append("Remove hooks (6 files + symlinks)")
     plan.append("Remove skills (4 directories + symlinks)")
     plan.append("Remove CLI (bin/ scripts)")
     plan.append("Remove CLAUDE.md managed block")

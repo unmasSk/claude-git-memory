@@ -42,6 +42,8 @@ HOOKS = [
     "post-validate-commit-trailers.py",
     "precompact-snapshot.py",
     "stop-dod-check.py",
+    "session-start-boot.py",
+    "user-prompt-memory-check.py",
 ]
 
 SKILLS = [

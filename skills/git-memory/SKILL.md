@@ -90,13 +90,30 @@ Keys are case-sensitive, max once per commit, single-line values.
 
 Confirmations: `wip:` auto-commit. Final/context/decision → show message, wait for "ok".
 
-## Conversational Capture
+## Conversational Capture (CONTINUOUS — enforced by UserPromptSubmit hook)
 
-- "let's go with X" / "decidido" → `decision()` immediately
-- "always X" / "never Y" → `memo()` with category
-- "client wants X" → `memo(requirement)`
-- Ambiguous → ask "register as decision/memo?" (1 line, no ceremony)
-- Always show proposed message + wait for "ok". Never silently commit decisions/memos.
+A `UserPromptSubmit` hook fires on EVERY user message and injects a `[memory-check]` reminder into Claude's context. When you see this reminder, evaluate the user's message:
+
+**Decision signals** → `decision()` immediately:
+- "let's go with X", "decided", "we'll use Y", "go with Z"
+- "the approach is X", "final answer: Y"
+
+**Memo signals** → `memo()` with category:
+- "always X" / "never Y" / "from now on" → `memo(preference)`
+- "client wants X" / "it must" / "mandatory" → `memo(requirement)`
+- "don't ever do X again" / "that broke because" → `memo(antipattern)`
+
+**Not memory-worthy** (ignore silently):
+- Questions, brainstorming, "what if", "maybe", "let's explore"
+- Temporary debugging, one-off instructions
+- Already captured in an existing decision/memo
+
+**When detected**:
+1. Propose: "Saving as decision/memo: [one-line summary]. Ok?"
+2. Wait for "ok" — never silently commit decisions or memos
+3. Create the commit immediately after confirmation
+
+Ambiguous cases → ask "register as decision/memo?" (1 line, no ceremony).
 
 ## Memory Search (before asking the user)
 

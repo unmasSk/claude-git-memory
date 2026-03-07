@@ -51,6 +51,16 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/user-prompt-memory-check.py"
+          }
+        ]
+      }
     ]
   }
 }

@@ -33,7 +33,7 @@ Execute with `python3 $CLAUDE_PLUGIN_ROOT/bin/git-memory-<command>.py [flags]`.
 4. VERIFY → run doctor automatically
 
 5. HEALTH PROOF
-   - "4/4 components installed. If anything fails, I can repair or uninstall."
+   - "All components installed. If anything fails, I can repair or uninstall."
 ```
 
 Never install without showing plan first. Never merge JSON blindly.
@@ -45,7 +45,7 @@ Check and report, one line per item:
 ```
 Memory System Status
 ─────────────────────────
-✅ Hooks: 4/4 registered
+✅ Hooks: 6/6 registered
 ✅ Skills: 4/4 present
 ✅ CLI: bin/git-memory accessible
 ⚠️  Hook pre-commit: not executed in last 3 commits
@@ -91,7 +91,7 @@ Say: "Removing runtime without touching past history."
   "managed_blocks": [
     { "file": "CLAUDE.md", "begin": "BEGIN claude-git-memory", "end": "END claude-git-memory" }
   ],
-  "hook_registrations": ["PreToolUse", "PostToolUse", "Stop", "PreCompact"],
+  "hook_registrations": ["PreToolUse", "PostToolUse", "Stop", "PreCompact", "SessionStart", "UserPromptSubmit"],
   "last_healthcheck_at": "ISO8601",
   "install_fingerprint": "sha256:..."
 }

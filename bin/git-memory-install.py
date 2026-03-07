@@ -39,6 +39,8 @@ HOOKS = [
     "post-validate-commit-trailers.py",
     "precompact-snapshot.py",
     "stop-dod-check.py",
+    "session-start-boot.py",
+    "user-prompt-memory-check.py",
 ]
 
 SKILLS = [
@@ -62,7 +64,29 @@ Git is the memory. Every commit is resumable across sessions and machines.
 3. Never ask the user to run memory system commands — run them yourself
 4. If the user says "install/repair/uninstall/doctor/status" → read skill `git-memory-lifecycle` and act
 5. If the user says "what do you remember" → run extended boot
-6. System in alpha: verify everything, report failures to the user, do not assume it works"""
+6. System in alpha: verify everything, report failures to the user, do not assume it works
+
+### Continuous Memory Capture (active throughout every conversation)
+After EVERY user message, silently evaluate if it contains memory-worthy content:
+
+**Capture immediately** (propose commit, wait for "ok"):
+- Decisions: "let's use X", "go with Y", "decided", "we'll do Z this way"
+- Preferences: "always X", "never Y", "I prefer Z", "from now on"
+- Requirements: "the client wants", "it must", "it's mandatory that"
+- Anti-patterns: "don't ever do X again", "that broke because", "lesson learned"
+
+**Do NOT capture** (noise — ignore):
+- Questions, brainstorming, provisional ideas ("what if", "maybe", "let's explore")
+- Session-only context (temporary debugging, one-off instructions)
+- Things already captured in a previous decision/memo
+
+**How to capture**:
+1. Detect the signal in the user's message
+2. Propose: "Saving as decision/memo: [one-line summary]. Ok?"
+3. Wait for confirmation — never silently commit decisions or memos
+4. Create the `decision()` or `memo()` commit with `--allow-empty`
+
+This evaluation happens CONTINUOUSLY, not just at session start or end."""
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
@@ -495,7 +519,7 @@ def _create_manifest(target: str, mode: str) -> None:
                 "end": "END claude-git-memory",
             }
         ],
-        "hook_registrations": ["PreToolUse", "PostToolUse", "Stop", "PreCompact"],
+        "hook_registrations": ["PreToolUse", "PostToolUse", "Stop", "PreCompact", "SessionStart", "UserPromptSubmit"],
         "last_healthcheck_at": datetime.now().isoformat(),
         "install_fingerprint": compute_fingerprint(target),
     }

@@ -53,6 +53,32 @@ def get_change_summary() -> str:
         return "\n".join(lines[:5]) + f"\n... and {len(lines) - 5} more files"
 
 
+def has_recent_memory_commits(depth: int = 10) -> bool:
+    """Check if any recent commits are decision() or memo() commits.
+
+    Scans the last `depth` commits for subjects containing "decision("
+    or "memo(" (case-insensitive), indicating memory was captured.
+
+    Args:
+        depth: Number of recent commits to scan.
+
+    Returns:
+        True if at least one decision/memo commit was found.
+    """
+    code, output = run_git(["log", f"-n{depth}", "--pretty=format:%s"])
+    if code != 0 or not output:
+        return True  # If git fails, don't nag
+
+    for line in output.splitlines():
+        subject = line.strip().lower()
+        # Strip emoji prefix before checking
+        cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
+        if cleaned.startswith("decision(") or cleaned.startswith("memo("):
+            return True
+
+    return False
+
+
 def get_last_commit_next() -> str | None:
     """Check if the last commit has an unresolved Next: trailer.
 
@@ -102,6 +128,13 @@ def main() -> None:
     if next_item:
         msg = f"\n{YELLOW}>>> Note: Last commit has pending work: Next: {next_item}{RESET}"
         msg += f"\n{YELLOW}>>> Consider informing the user about unfinished tasks.{RESET}"
+        messages.append(msg)
+
+    # Check 3: Memory capture reminder
+    if not has_recent_memory_commits():
+        msg = f"\n{YELLOW}>>> Memory check: No decision() or memo() commits in recent history.{RESET}"
+        msg += f"\n{YELLOW}>>> Were any decisions, preferences, or requirements discussed this session?{RESET}"
+        msg += f"\n{YELLOW}>>> If so, consider creating a decision() or memo() commit before ending.{RESET}"
         messages.append(msg)
 
     if messages:

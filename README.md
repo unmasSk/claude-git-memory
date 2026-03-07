@@ -15,7 +15,7 @@
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
   <a href="#what-you-say-vs-what-claude-does">Conversational capture</a> &nbsp;·&nbsp;
   <a href="#dashboard">Dashboard</a> &nbsp;·&nbsp;
-  <a href="#the-four-hooks">Hooks</a>
+  <a href="#the-six-hooks">Hooks</a>
 </p>
 
 ---
@@ -96,7 +96,7 @@ You can choose the installation scope:
 
 That's it. **No configuration needed.** When Claude starts a session in your project, the plugin activates automatically:
 
-1. **Hooks register** — pre-commit, post-commit, session exit, context compression
+1. **Hooks register** — pre-commit, post-commit, session start, user message, session exit, context compression
 2. **Skills load** — memory rules, lifecycle, protocol, recovery
 3. **Auto-boot runs** — silent health check + memory summary
 
@@ -210,15 +210,17 @@ No trailers required. Feature branches only. Squashed before merge.
 
 ---
 
-## The four hooks
+## The six hooks
 
-The memory system protects itself with four automatic hooks. You don't configure them — they activate on install.
+The memory system protects itself with six automatic hooks. You don't configure them — they activate on install.
 
 | Hook | Nickname | When it runs | What it does |
 |------|----------|-------------|--------------|
 | **Pre-commit** | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing. Human commits get a warning only — never blocked. |
 | **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). Also regenerates the dashboard in the background. |
-| **Session exit** | DoD | When Claude ends a session | If there are uncommitted changes, blocks exit and offers options: wip commit, context bookmark, stash, or discard. |
+| **Session start** | Boot | When Claude starts a session | Silent health check + memory extraction from last 30 commits. Shows a compact summary. |
+| **User message** | Radar | Every time you send a message | Injects a `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
+| **Session exit** | DoD | When Claude ends a session | If there are uncommitted changes, blocks exit and offers options: wip commit, context bookmark, stash, or discard. Also checks if decisions were discussed but not captured. |
 | **Context compression** | Hippocampus | Before Claude compresses context | Extracts a compact snapshot (branch, pending items, decisions, memos) and re-injects it so memory survives compression. |
 
 ### How Belt + Suspenders work together
@@ -475,6 +477,8 @@ claude-git-memory/
 ├── hooks/
 │   ├── pre-validate-commit-trailers.py     # Belt — blocks bad commits
 │   ├── post-validate-commit-trailers.py    # Suspenders — safety net
+│   ├── session-start-boot.py              # Boot — auto-boot + memory summary
+│   ├── user-prompt-memory-check.py        # Radar — memory signal reminder
 │   ├── precompact-snapshot.py              # Hippocampus — memory before compression
 │   └── stop-dod-check.py                  # DoD — blocks exit with pending work
 ├── skills/
@@ -497,7 +501,7 @@ claude-git-memory/
 │   ├── git_helpers.py                      # Git subprocess wrappers
 │   ├── parsing.py                          # Commit parsing, trailer extraction
 │   └── colors.py                           # ANSI terminal colors
-├── dashboard-template.html                 # HTML template (Primer dark theme)
+├── dashboard-preview.html                   # HTML template (Primer dark theme)
 └── tests/
     ├── conftest.py                         # Shared fixtures and helpers
     ├── test_bootstrap.py                   # Scout detection tests
