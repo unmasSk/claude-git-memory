@@ -61,7 +61,7 @@ Git is the memory. Every commit is resumable across sessions and machines.
 ### What the hooks do (you receive their output automatically)
 
 **SessionStart hook** — fires once when you start. Its output starts with "Branch:".
-When you see it: display a brief boot summary to the user (branch, pending items, decisions, memos). If it says "WARNING" or "auto-repaired", tell the user.
+When you see it: display the FULL hook output to the user as your first response. Do NOT summarize or condense — show every line the hook produced (branch, pending items, decisions, memos, blockers). If a section has content (e.g. "Active decisions:"), you MUST include it. Only omit sections that are empty. If it says "WARNING" or "auto-repaired", tell the user.
 
 **UserPromptSubmit hook** — fires on every user message. Its output starts with "[memory-check]".
 When you see it: silently evaluate the user's message for memory-worthy content (see "Continuous Memory Capture" below). Do NOT mention the hook to the user.
