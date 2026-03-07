@@ -15,19 +15,19 @@ Exit codes:
   1: Error
 """
 
-import html
+import html as html_mod
 import json
 import os
-import re
-import subprocess
 import sys
 import webbrowser
 from datetime import datetime
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
 
-def _normalize(text):
-    """Normalize text for tombstone matching: lowercase, collapse whitespace, strip."""
-    return re.sub(r"\s+", " ", text.strip().lower())
+from constants import CODE_TYPES, MEMORY_TYPES
+from git_helpers import run_git
+from parsing import normalize, parse_commit_type, parse_scope, parse_trailers_full
 
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -36,71 +36,16 @@ SCAN_DEPTH = 500
 STALE_DAYS = 30
 DASHBOARD_PATH = os.path.join(".claude", "dashboard.html")
 
-VALID_KEYS = {
-    "Issue", "Why", "Touched", "Decision", "Memo", "Next",
-    "Blocker", "Risk", "Conflict", "Resolution", "Refs",
-    "Resolved-Next", "Stale-Blocker",
-}
 
-CODE_TYPES = {"feat", "fix", "refactor", "perf", "chore", "ci", "test", "docs"}
-MEMORY_TYPES = {"context", "decision", "memo"}
-
-
-# ── Git Helpers ───────────────────────────────────────────────────────────
-
-def run_git(args):
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=30,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
+# ── Helpers ───────────────────────────────────────────────────────────────
 
 def get_repo_info():
     info = {}
-    code, branch = run_git(["branch", "--show-current"])
+    code, branch = run_git(["branch", "--show-current"], timeout=30)
     info["branch"] = branch if code == 0 else "unknown"
-    code, root = run_git(["rev-parse", "--show-toplevel"])
+    code, root = run_git(["rev-parse", "--show-toplevel"], timeout=30)
     info["name"] = os.path.basename(root) if code == 0 else "unknown"
     return info
-
-
-# ── Parsing (reuses patterns from gc.py / precompact-snapshot.py) ─────────
-
-def parse_scope(subject):
-    cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
-    m = re.match(r"^\w+\(([^)]+)\)", cleaned)
-    return m.group(1) if m else None
-
-
-def parse_commit_type(subject):
-    cleaned = re.sub(r"^((?:fixup!|squash!|amend!)\s*)+", "", subject).strip()
-    cleaned = re.sub(r"^[^\w#]+", "", cleaned).strip()
-    m = re.match(r"^(\w+)(?:\([^)]*\))?[!]?:", cleaned)
-    if m:
-        return m.group(1).lower()
-    return "other"
-
-
-def parse_trailers(body):
-    trailers = {}
-    for line in body.strip().split("\n"):
-        line = line.strip()
-        m = re.match(r"^([A-Z][a-z]+(?:-[A-Z][a-z]+)*):\s*(.+)$", line)
-        if m and m.group(1) in VALID_KEYS:
-            key = m.group(1)
-            val = m.group(2).strip()
-            if key in trailers:
-                if isinstance(trailers[key], list):
-                    trailers[key].append(val)
-                else:
-                    trailers[key] = [trailers[key], val]
-            else:
-                trailers[key] = val
-    return trailers
 
 
 # ── Single-pass extraction ────────────────────────────────────────────────
@@ -109,7 +54,7 @@ def scan_commits():
     code, output = run_git([
         "log", "-n", str(SCAN_DEPTH),
         "--pretty=format:%h%x1f%s%x1f%b%x1f%aI%x1e",
-    ])
+    ], timeout=30)
     if code != 0 or not output:
         return []
 
@@ -127,9 +72,9 @@ def scan_commits():
         body = parts[2].strip()
         date_str = parts[3].strip()
 
-        ctype = parse_commit_type(subject)
+        ctype = parse_commit_type(subject) or "other"
         scope = parse_scope(subject)
-        trailers = parse_trailers(body)
+        trailers = parse_trailers_full(body)
 
         try:
             date = datetime.fromisoformat(date_str.split("+")[0].split("-0")[0].replace("Z", ""))
@@ -200,7 +145,7 @@ def aggregate(commits):
             if val:
                 vals = val if isinstance(val, list) else [val]
                 for v in vals:
-                    tombstones.add(_normalize(v))
+                    tombstones.add(normalize(v))
 
     # Pending
     pending = []
@@ -210,7 +155,7 @@ def aggregate(commits):
             if not isinstance(texts, list):
                 texts = [texts]
             for t in texts:
-                if _normalize(t) not in tombstones:
+                if normalize(t) not in tombstones:
                     pending.append({
                         "text": t, "sha": c["sha"], "scope": c["scope"] or "",
                         "age_days": c["age_days"] or 0, "date": c["date"],
@@ -221,7 +166,7 @@ def aggregate(commits):
     for c in commits:
         if "Blocker" in c["trailers"]:
             text = c["trailers"]["Blocker"]
-            if _normalize(text) not in tombstones:
+            if normalize(text) not in tombstones:
                 ttl = STALE_DAYS - (c["age_days"] or 0)
                 blockers.append({
                     "text": text, "sha": c["sha"], "scope": c["scope"] or "",
@@ -340,7 +285,7 @@ def get_html_template():
 def _sanitize_value(val):
     """Recursively escape all string values to prevent XSS."""
     if isinstance(val, str):
-        return html.escape(val, quote=True)
+        return html_mod.escape(val, quote=True)
     elif isinstance(val, dict):
         return {k: _sanitize_value(v) for k, v in val.items()}
     elif isinstance(val, list):
@@ -384,7 +329,7 @@ def main():
     silent = "--silent" in sys.argv
 
     # Verify git repo
-    code, root = run_git(["rev-parse", "--show-toplevel"])
+    code, root = run_git(["rev-parse", "--show-toplevel"], timeout=30)
     if code != 0:
         if not silent:
             print("Error: not inside a git repository", file=sys.stderr)
@@ -406,7 +351,7 @@ def main():
 
     # Read template and inject data
     html_template = get_html_template()
-    html = inject_data(html_template, data)
+    html_output = inject_data(html_template, data)
 
     # Write dashboard (atomic: write to tmp then replace)
     output_path = os.path.join(root, DASHBOARD_PATH)
@@ -414,7 +359,7 @@ def main():
 
     tmp_path = output_path + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
-        f.write(html)
+        f.write(html_output)
     os.replace(tmp_path, output_path)
 
     if not silent:

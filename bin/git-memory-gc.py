@@ -24,9 +24,18 @@ Exit codes:
 
 import os
 import re
-import subprocess
 import sys
 from datetime import datetime, timedelta
+
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
+from git_helpers import run_git as _run_git
+from parsing import parse_scope
+
+
+def run_git(args):
+    """Wrapper with longer timeout for GC operations."""
+    return _run_git(args, timeout=30)
 
 
 # ── Config ────────────────────────────────────────────────────────────────
@@ -46,29 +55,10 @@ STOP_WORDS = {
 
 # ── Helpers ───────────────────────────────────────────────────────────────
 
-def run_git(args):
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=30,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
-
 def extract_keywords(text):
     """Extract meaningful keywords from a text string."""
     words = re.findall(r"[a-zA-Z0-9_-]+", text.lower())
     return {w for w in words if len(w) >= MIN_KEYWORD_LENGTH and w not in STOP_WORDS}
-
-
-def parse_scope(subject):
-    """Extract scope from conventional commit subject."""
-    cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
-    match = re.match(r"^\w+\(([^)]+)\)", cleaned)
-    return match.group(1) if match else None
 
 
 def parse_date(date_str):

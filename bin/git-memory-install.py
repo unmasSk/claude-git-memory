@@ -23,6 +23,10 @@ import subprocess
 import sys
 from datetime import datetime
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
+from git_helpers import run_git
+
 
 # ── Config ────────────────────────────────────────────────────────────────
 
@@ -60,18 +64,6 @@ Git es la memoria. Cada commit es resumible entre sesiones y máquinas.
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
-
-def run_git(args):
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
 
 def find_source_root():
     """Find the git-memory plugin source root (where this script lives)."""
@@ -211,6 +203,9 @@ def create_plan(report, source, target, mode=None):
     # CLI
     plan["actions"].append(("copy_cli", "Install bin/git-memory CLI"))
 
+    # Shared lib
+    plan["actions"].append(("copy_lib", "Install lib/ shared modules"))
+
     # Symlinks (.claude/ → source)
     plan["actions"].append(("create_symlinks", "Create .claude/hooks/ and .claude/skills/ symlinks"))
 
@@ -252,6 +247,9 @@ def apply_plan(plan, source, target):
             elif action == "copy_cli":
                 if not is_self:
                     _copy_cli(source, target)
+            elif action == "copy_lib":
+                if not is_self:
+                    _copy_lib(source, target)
             elif action == "create_symlinks":
                 _create_symlinks(target)
             elif action == "update_claude_md":
@@ -316,6 +314,20 @@ def _copy_cli(source, target):
             _safe_copy(src, dst)
             if f == "git-memory":
                 os.chmod(dst, 0o755)
+
+
+def _copy_lib(source, target):
+    """Copy shared lib/ modules to target."""
+    src_lib = os.path.join(source, "lib")
+    dst_lib = os.path.join(target, "lib")
+    if not os.path.isdir(src_lib):
+        return
+    os.makedirs(dst_lib, exist_ok=True)
+    for f in os.listdir(src_lib):
+        src = os.path.join(src_lib, f)
+        dst = os.path.join(dst_lib, f)
+        if os.path.isfile(src) and not os.path.islink(src):
+            _safe_copy(src, dst)
 
 
 def _create_symlinks(target):
@@ -420,6 +432,9 @@ def _create_manifest(target, mode):
                        "git-memory-repair.py", "git-memory-uninstall.py",
                        "git-memory-bootstrap.py", "git-memory-upgrade.py"]:
         managed_files.append(f"bin/{cli_script}")
+    # Shared lib modules
+    for lib_file in ["__init__.py", "constants.py", "git_helpers.py", "parsing.py", "colors.py"]:
+        managed_files.append(f"lib/{lib_file}")
     # Non-bin managed files
     managed_files.append("hooks.json")
     managed_files.append(".claude-plugin/plugin.json")

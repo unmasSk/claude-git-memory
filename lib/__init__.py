@@ -1,0 +1,1 @@
+# git-memory shared library

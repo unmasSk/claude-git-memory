@@ -18,30 +18,13 @@ import re
 import subprocess
 import sys
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
 
-VALID_KEYS = {
-    "Issue", "Why", "Touched", "Decision", "Memo", "Next",
-    "Blocker", "Risk", "Conflict", "Resolution", "Refs",
-    "Resolved-Next", "Stale-Blocker",  # GC tombstone trailers
-}
-
-RISK_VALUES = {"low", "medium", "high"}
-MEMO_CATEGORIES = {"preference", "requirement", "antipattern", "stack"}
-
-CODE_TYPES = {"feat", "fix", "refactor", "perf", "chore", "ci", "test", "docs"}
-MEMORY_TYPES = {"context", "decision", "memo"}
-
-
-def run_git(args: list[str]) -> tuple[int, str]:
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
+from constants import CODE_TYPES, MEMO_CATEGORIES, MEMORY_TYPES, RISK_VALUES, VALID_KEYS
+from git_helpers import run_git
+from parsing import parse_commit_type, parse_trailers
+from colors import RED, YELLOW, RESET
 
 
 def get_last_commit() -> str:
@@ -79,49 +62,6 @@ def is_head_published() -> bool:
     # Upstream exists. Check if HEAD is already in remote.
     code, _ = run_git(["merge-base", "--is-ancestor", "HEAD", "@{u}"])
     return code == 0  # exit 0 = HEAD is ancestor of upstream = published
-
-
-def parse_commit_type(subject: str) -> str | None:
-    """Extract commit type from conventional commit subject.
-    Supports optional emoji prefix: '✨ feat(scope): ...' or 'feat(scope): ...'
-    Also supports Git prefixes: 'fixup!', 'squash!', 'amend!'
-    """
-    # Whitelist internal Git messages
-    if re.match(r"^(Merge branch|Merge remote-tracking branch|Revert |Cherry-pick )", subject):
-        return "internal"
-
-    # Strip Git prefixes for validation (handles nested: squash! fixup! feat:)
-    cleaned = re.sub(r"^((?:fixup!|squash!|amend!)\s*)+", "", subject).strip()
-
-    # Strip leading emoji(s) and whitespace (preserve # for issue refs)
-    cleaned = re.sub(r"^[^\w#]+", "", cleaned).strip()
-    match = re.match(r"^(\w+)(?:\([^)]*\))?[!]?:", cleaned)
-    if match:
-        return match.group(1).lower()
-    if cleaned.lower().startswith("wip:"):
-        return "wip"
-    return None
-
-
-def parse_trailers(message: str) -> dict[str, str]:
-    """Extract trailers from commit message."""
-    trailers = {}
-    lines = message.strip().split("\n")
-
-    for line in reversed(lines):
-        line = line.strip()
-        if not line:
-            break
-        match = re.match(r"^([A-Z][a-z]+(?:-[A-Z][a-z]+)*):\s*(.+)$", line)
-        if match:
-            key = match.group(1)
-            value = match.group(2).strip()
-            if key in VALID_KEYS:
-                trailers[key] = value
-        else:
-            break
-
-    return trailers
 
 
 def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str]:
@@ -239,8 +179,8 @@ def main():
                 if code == 0:
                     file_count = len([f for f in diff_output.split("\n") if f.strip()])
                     if file_count <= 10:
-                        warn = f"\n\033[93m>>> Warning: Touched: uses glob but only {file_count} files changed."
-                        warn += " Consider listing paths explicitly.\033[0m"
+                        warn = f"\n{YELLOW}>>> Warning: Touched: uses glob but only {file_count} files changed."
+                        warn += f" Consider listing paths explicitly.{RESET}"
                         print(warn, file=sys.stderr)
             except Exception:
                 pass
@@ -265,33 +205,33 @@ def main():
 
     if not is_claude:
         # Human commit — warn only, never block or reset
-        warn_msg = f"\n\033[93m>>> Commit without trailers. No pasa nada.\033[0m"
-        warn_msg += f"\n\033[93m>>> Missing: {missing}\033[0m"
+        warn_msg = f"\n{YELLOW}>>> Commit without trailers. No pasa nada.{RESET}"
+        warn_msg += f"\n{YELLOW}>>> Missing: {missing}{RESET}"
         print(warn_msg, file=sys.stderr)
         sys.exit(0)
 
     # Claude commit — enforce strictly
     if is_head_published():
         # HEAD is published → DO NOT reset → suggest correction commit
-        error_msg = f"\n\033[91m>>> COMMIT MISSING TRAILERS: {missing}\033[0m"
-        error_msg += f"\n\033[91m>>> Type: {commit_type} | Branch: {branch}\033[0m"
-        error_msg += "\n\033[91m>>> HEAD is published — cannot reset safely.\033[0m"
-        error_msg += "\n\033[91m>>> Create a correction commit: chore(memory): add missing trailers\033[0m"
-        error_msg += f"\n\033[91m>>> Required trailers: {missing}\033[0m"
+        error_msg = f"\n{RED}>>> COMMIT MISSING TRAILERS: {missing}{RESET}"
+        error_msg += f"\n{RED}>>> Type: {commit_type} | Branch: {branch}{RESET}"
+        error_msg += f"\n{RED}>>> HEAD is published — cannot reset safely.{RESET}"
+        error_msg += f"\n{RED}>>> Create a correction commit: chore(memory): add missing trailers{RESET}"
+        error_msg += f"\n{RED}>>> Required trailers: {missing}{RESET}"
         print(error_msg, file=sys.stderr)
         sys.exit(2)
     else:
         # Safe to reset
         if safe_reset():
-            error_msg = f"\n\033[91m>>> COMMIT ROLLED BACK (reset --soft HEAD~1)\033[0m"
-            error_msg += f"\n\033[91m>>> Missing trailers: {missing}\033[0m"
-            error_msg += f"\n\033[91m>>> Type: {commit_type} | Branch: {branch}\033[0m"
-            error_msg += "\n\033[91m>>> Changes are staged. Fix the message and recommit.\033[0m"
+            error_msg = f"\n{RED}>>> COMMIT ROLLED BACK (reset --soft HEAD~1){RESET}"
+            error_msg += f"\n{RED}>>> Missing trailers: {missing}{RESET}"
+            error_msg += f"\n{RED}>>> Type: {commit_type} | Branch: {branch}{RESET}"
+            error_msg += f"\n{RED}>>> Changes are staged. Fix the message and recommit.{RESET}"
             print(error_msg, file=sys.stderr)
             sys.exit(2)
         else:
-            error_msg = f"\n\033[91m>>> COMMIT MISSING TRAILERS: {missing}\033[0m"
-            error_msg += "\n\033[91m>>> Reset failed. Amend the commit manually.\033[0m"
+            error_msg = f"\n{RED}>>> COMMIT MISSING TRAILERS: {missing}{RESET}"
+            error_msg += f"\n{RED}>>> Reset failed. Amend the commit manually.{RESET}"
             print(error_msg, file=sys.stderr)
             sys.exit(2)
 

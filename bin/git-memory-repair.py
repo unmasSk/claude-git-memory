@@ -22,6 +22,10 @@ import shutil
 import subprocess
 import sys
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
+from git_helpers import run_git
+
 
 # ── Config ────────────────────────────────────────────────────────────────
 
@@ -43,18 +47,6 @@ SKILLS = [
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────
-
-def run_git(args):
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
 
 def find_source_root():
     """Find the git-memory plugin source root (where this script lives)."""

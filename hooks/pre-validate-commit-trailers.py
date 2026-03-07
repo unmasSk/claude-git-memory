@@ -16,37 +16,21 @@ Exit codes:
 import json
 import os
 import re
-import subprocess
 import sys
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
 
-# Trailer keys (case-sensitive)
-VALID_KEYS = {
-    "Issue", "Why", "Touched", "Decision", "Memo", "Next",
-    "Blocker", "Risk", "Conflict", "Resolution", "Refs",
-    "Resolved-Next", "Stale-Blocker",  # GC tombstone trailers
-}
-
-RISK_VALUES = {"low", "medium", "high"}
-MEMO_CATEGORIES = {"preference", "requirement", "antipattern", "stack"}
-
-# Commit types that require code trailers (Why + Touched)
-CODE_TYPES = {"feat", "fix", "refactor", "perf", "chore", "ci", "test", "docs"}
-
-# Commit types that are memory-only (allow-empty)
-MEMORY_TYPES = {"context", "decision", "memo"}
+from constants import CODE_TYPES, MEMO_CATEGORIES, MEMORY_TYPES, RISK_VALUES, VALID_KEYS
+from git_helpers import run_git
+from parsing import extract_commit_message, parse_commit_type, parse_trailers
+from colors import RED, YELLOW, RESET
 
 
 def get_branch_name():
     """Get current branch name."""
-    try:
-        result = subprocess.run(
-            ["git", "branch", "--show-current"],
-            capture_output=True, text=True, timeout=5,
-        )
-        return result.stdout.strip()
-    except Exception:
-        return ""
+    code, output = run_git(["branch", "--show-current"], timeout=5)
+    return output if code == 0 else ""
 
 
 def branch_has_issue(branch: str) -> bool:
@@ -54,76 +38,6 @@ def branch_has_issue(branch: str) -> bool:
     if not branch:
         return False
     return bool(re.search(r"(CU-\d+|issue-\d+|#\d+)", branch, re.IGNORECASE))
-
-
-def extract_commit_message(command: str) -> str | None:
-    """
-    Try to extract commit message from a git commit command.
-    Returns None if cannot parse (heredoc, -F, no -m, etc.)
-    """
-    if "git commit" not in command:
-        return None
-
-    # Try to find -m "message" or -m 'message'
-    # Handle multiple -m flags (git commit -m "subject" -m "body" -m "trailers")
-    messages = []
-    pattern = r'-m\s+(?:"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\'|(\S+))'
-    matches = re.finditer(pattern, command)
-    for match in matches:
-        msg = match.group(1) or match.group(2) or match.group(3)
-        if msg:
-            messages.append(msg)
-
-    if not messages:
-        return None
-
-    return "\n\n".join(messages)
-
-
-def parse_commit_type(subject: str) -> str | None:
-    """Extract commit type from conventional commit subject.
-    Supports optional emoji prefix: '✨ feat(scope): ...' or 'feat(scope): ...'
-    Also supports Git prefixes: 'fixup!', 'squash!', 'amend!'
-    """
-    # Whitelist internal Git messages
-    if re.match(r"^(Merge branch|Merge remote-tracking branch|Revert |Cherry-pick )", subject):
-        return "internal"
-
-    # Strip Git prefixes for validation (handles nested: squash! fixup! feat:)
-    cleaned = re.sub(r"^((?:fixup!|squash!|amend!)\s*)+", "", subject).strip()
-
-    # Strip leading emoji(s) and whitespace (preserve # for issue refs)
-    cleaned = re.sub(r"^[^\w#]+", "", cleaned).strip()
-    # Match: type(scope): or type:
-    match = re.match(r"^(\w+)(?:\([^)]*\))?[!]?:", cleaned)
-    if match:
-        return match.group(1).lower()
-    # Match wip: (not conventional but allowed)
-    if cleaned.lower().startswith("wip:"):
-        return "wip"
-    return None
-
-
-def parse_trailers(message: str) -> dict[str, str]:
-    """Extract trailers from commit message."""
-    trailers = {}
-    lines = message.strip().split("\n")
-
-    # Read from bottom up, collecting trailer lines
-    for line in reversed(lines):
-        line = line.strip()
-        if not line:
-            break  # Empty line = end of trailer block
-        match = re.match(r"^([A-Z][a-z]+(?:-[A-Z][a-z]+)*):\s*(.+)$", line)
-        if match:
-            key = match.group(1)
-            value = match.group(2).strip()
-            if key in VALID_KEYS:
-                trailers[key] = value
-        else:
-            break  # Non-trailer line = end of trailer block
-
-    return trailers
 
 
 def validate_trailers(commit_type: str, trailers: dict, branch: str) -> list[str]:
@@ -209,9 +123,9 @@ def main():
     is_claude = bool(os.environ.get("CLAUDE_CODE"))
 
     if commit_type is None:
-        error_msg = f"\n\033[91m>>> {'BLOCKED' if is_claude else 'WARNING'}: Not a conventional commit format\033[0m"
-        error_msg += f"\n\033[91m>>> Subject: {subject}\033[0m"
-        error_msg += "\n\033[91m>>> Expected: type(scope): description\033[0m"
+        error_msg = f"\n{RED}>>> {'BLOCKED' if is_claude else 'WARNING'}: Not a conventional commit format{RESET}"
+        error_msg += f"\n{RED}>>> Subject: {subject}{RESET}"
+        error_msg += f"\n{RED}>>> Expected: type(scope): description{RESET}"
         print(error_msg, file=sys.stderr)
         sys.exit(2 if is_claude else 0)
 
@@ -230,16 +144,16 @@ def main():
 
     if errors:
         if is_claude:
-            error_msg = "\n\033[91m>>> BLOCKED: Missing commit trailers\033[0m"
-            error_msg += f"\n\033[91m>>> Type: {commit_type} | Branch: {branch}\033[0m"
+            error_msg = f"\n{RED}>>> BLOCKED: Missing commit trailers{RESET}"
+            error_msg += f"\n{RED}>>> Type: {commit_type} | Branch: {branch}{RESET}"
             for err in errors:
-                error_msg += f"\n\033[91m>>>   - {err}\033[0m"
-            error_msg += "\n\033[91m>>> Fix the commit message and retry.\033[0m"
+                error_msg += f"\n{RED}>>>   - {err}{RESET}"
+            error_msg += f"\n{RED}>>> Fix the commit message and retry.{RESET}"
             print(error_msg, file=sys.stderr)
             sys.exit(2)
         else:
-            warn_msg = "\n\033[93m>>> Commit without trailers. No pasa nada.\033[0m"
-            warn_msg += f"\n\033[93m>>> Missing: {', '.join(errors)}\033[0m"
+            warn_msg = f"\n{YELLOW}>>> Commit without trailers. No pasa nada.{RESET}"
+            warn_msg += f"\n{YELLOW}>>> Missing: {', '.join(errors)}{RESET}"
             print(warn_msg, file=sys.stderr)
             sys.exit(0)
 

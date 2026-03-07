@@ -11,27 +11,15 @@ Exit codes:
 - 2: Block stop (uncommitted changes or unresolved Next:)
 """
 
+import os
 import re
-import subprocess
 import sys
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
 
-def run_git(args: list[str]) -> tuple[int, str]:
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
-
-def is_git_repo() -> bool:
-    """Check if we're in a git repository."""
-    code, _ = run_git(["rev-parse", "--is-inside-work-tree"])
-    return code == 0
+from git_helpers import run_git, is_git_repo
+from colors import RED, YELLOW, RESET
 
 
 def has_uncommitted_changes() -> bool:
@@ -82,23 +70,23 @@ def main():
     if has_uncommitted_changes():
         should_block = True
         changes = get_change_summary()
-        msg = "\n\033[91m>>> STOP BLOCKED: Uncommitted changes detected\033[0m"
-        msg += f"\n\033[91m>>> Changes:\n{changes}\033[0m"
-        msg += "\n\033[91m>>>\033[0m"
-        msg += "\n\033[91m>>> Choose an option:\033[0m"
-        msg += "\n\033[91m>>>   (1) wip: commit with partial trailers (saves your work)\033[0m"
-        msg += "\n\033[91m>>>   (2) context() allow-empty commit (bookmark session state)\033[0m"
-        msg += "\n\033[91m>>>   (3) git stash (save for later, experimental changes)\033[0m"
-        msg += "\n\033[91m>>>   (4) Discard changes (requires confirmation)\033[0m"
-        msg += "\n\033[91m>>>\033[0m"
-        msg += "\n\033[91m>>> Ask the user which option to use.\033[0m"
+        msg = f"\n{RED}>>> STOP BLOCKED: Uncommitted changes detected{RESET}"
+        msg += f"\n{RED}>>> Changes:\n{changes}{RESET}"
+        msg += f"\n{RED}>>>{RESET}"
+        msg += f"\n{RED}>>> Choose an option:{RESET}"
+        msg += f"\n{RED}>>>   (1) wip: commit with partial trailers (saves your work){RESET}"
+        msg += f"\n{RED}>>>   (2) context() allow-empty commit (bookmark session state){RESET}"
+        msg += f"\n{RED}>>>   (3) git stash (save for later, experimental changes){RESET}"
+        msg += f"\n{RED}>>>   (4) Discard changes (requires confirmation){RESET}"
+        msg += f"\n{RED}>>>{RESET}"
+        msg += f"\n{RED}>>> Ask the user which option to use.{RESET}"
         messages.append(msg)
 
     # Check 2: Last commit has unresolved Next:
     next_item = get_last_commit_next()
     if next_item:
-        msg = f"\n\033[93m>>> Note: Last commit has pending work: Next: {next_item}\033[0m"
-        msg += "\n\033[93m>>> Consider informing the user about unfinished tasks.\033[0m"
+        msg = f"\n{YELLOW}>>> Note: Last commit has pending work: Next: {next_item}{RESET}"
+        msg += f"\n{YELLOW}>>> Consider informing the user about unfinished tasks.{RESET}"
         messages.append(msg)
 
     if messages:

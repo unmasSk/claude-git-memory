@@ -12,39 +12,15 @@ Exit codes:
 - 0: Always (non-blocking, injects context)
 """
 
-import json
+import os
 import re
-import subprocess
 import sys
 
+# ── Shared lib ────────────────────────────────────────────────────────────
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
 
-def _normalize(text):
-    """Normalize text for tombstone matching: lowercase, collapse whitespace, strip."""
-    return re.sub(r"\s+", " ", text.strip().lower())
-
-
-def run_git(args: list[str]) -> tuple[int, str]:
-    """Run a git command and return (exit_code, stdout)."""
-    try:
-        result = subprocess.run(
-            ["git"] + args,
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.returncode, result.stdout.strip()
-    except Exception:
-        return 1, ""
-
-
-def is_git_repo() -> bool:
-    """Check if we're in a git repository."""
-    code, _ = run_git(["rev-parse", "--is-inside-work-tree"])
-    return code == 0
-
-
-def is_shallow_clone() -> bool:
-    """Check if the repository is a shallow clone."""
-    code, output = run_git(["rev-parse", "--is-shallow-repository"])
-    return code == 0 and output == "true"
+from git_helpers import run_git, is_git_repo, is_shallow_clone
+from parsing import normalize
 
 
 def extract_memory_from_log() -> dict:
@@ -54,7 +30,7 @@ def extract_memory_from_log() -> dict:
     """
     # Use ASCII Unit Separator (\x1f) and Record Separator (\x1e) as delimiters.
     # These are impossible to type in commit messages, preventing delimiter collision
-    # if a message accidentally contains "|---END---" or "|" characters.
+    # if a message accidentally contains "|---END---|" or "|" characters.
     code, output = run_git([
         "log", "-n", "30",
         "--pretty=format:%h%x1f%s%x1f%b%x1e",
@@ -84,7 +60,7 @@ def extract_memory_from_log() -> dict:
             line = line.strip()
             ts_match = re.match(r"^(Resolved-Next|Stale-Blocker):\s*(.+)$", line)
             if ts_match:
-                tombstones.add(_normalize(ts_match.group(2)))
+                tombstones.add(normalize(ts_match.group(2)))
 
     # Second pass: extract memory, skipping tombstoned items
     for commit in commits:
@@ -120,7 +96,7 @@ def extract_memory_from_log() -> dict:
             if next_match:
                 next_text = next_match.group(1)
                 # Skip if tombstoned by GC (normalized matching)
-                if _normalize(next_text) not in tombstones:
+                if normalize(next_text) not in tombstones:
                     memory["pending"].append({
                         "sha": sha,
                         "subject": subject,
@@ -131,7 +107,7 @@ def extract_memory_from_log() -> dict:
             if blocker_match:
                 blocker_text = blocker_match.group(1)
                 # Skip if tombstoned by GC (normalized matching)
-                if _normalize(blocker_text) in tombstones:
+                if normalize(blocker_text) in tombstones:
                     continue
                 # Dedup: skip if a similar blocker already exists
                 existing = [b["blocker"].lower() for b in memory["blockers"]]
