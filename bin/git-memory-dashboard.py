@@ -85,7 +85,9 @@ def scan_commits() -> list[dict[str, Any]]:
         trailers = parse_trailers_full(body)
 
         try:
-            date = datetime.fromisoformat(date_str.split("+")[0].split("-0")[0].replace("Z", ""))
+            date = datetime.fromisoformat(date_str)
+            # Strip timezone for naive age calculations
+            date = date.replace(tzinfo=None)
         except (ValueError, IndexError):
             date = None
 
