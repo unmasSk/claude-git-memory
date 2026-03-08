@@ -12,3 +12,4 @@ __pycache__/
 # Generated
 .claude/dashboard.html
 .claude/plans/
+.claude/
