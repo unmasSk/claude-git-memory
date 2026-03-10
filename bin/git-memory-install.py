@@ -282,6 +282,9 @@ def create_plan(report: dict[str, Any], source: str, target: str,
     # Manifest
     plan["actions"].append(("create_manifest", "Create/update .claude/git-memory-manifest.json"))
 
+    # Statusline wrapper for context awareness
+    plan["actions"].append(("setup_statusline", "Configure statusline wrapper for context tracking"))
+
     return plan
 
 
@@ -310,6 +313,8 @@ def apply_plan(plan: dict[str, Any], source: str, target: str) -> list[str]:
                 _update_claude_md(target)
             elif action == "create_manifest":
                 _create_manifest(target, plan["mode"])
+            elif action == "setup_statusline":
+                _setup_statusline_wrapper(source)
         except Exception as e:
             errors.append(f"{action}: {e}")
 
@@ -429,6 +434,55 @@ def _create_manifest(target: str, mode: str) -> None:
     manifest_path = os.path.join(claude_dir, "git-memory-manifest.json")
     with open(manifest_path, "w") as f:
         json.dump(manifest, f, indent=2)
+
+
+def _setup_statusline_wrapper(source: str) -> None:
+    """Configure the statusline wrapper in ~/.claude/settings.json.
+
+    Saves the user's current statusline command (if any) to a backup file,
+    then sets our context-writer.py as the statusline command. The wrapper
+    writes context window data to <project>/.claude/.context-status.json
+    and passes through to the user's original statusline.
+    """
+    claude_home = os.path.join(os.path.expanduser("~"), ".claude")
+    settings_path = os.path.join(claude_home, "settings.json")
+    backup_path = os.path.join(claude_home, ".git-memory-original-statusline")
+    wrapper_script = os.path.join(source, "hooks", "context-writer.py")
+
+    # Read current settings
+    settings: dict[str, Any] = {}
+    if os.path.isfile(settings_path):
+        with open(settings_path) as f:
+            try:
+                settings = json.load(f)
+            except (json.JSONDecodeError, ValueError):
+                return  # Don't touch corrupt settings
+
+    current_sl = settings.get("statusLine", {})
+    current_cmd = current_sl.get("command", "") if isinstance(current_sl, dict) else ""
+
+    # Our wrapper command
+    wrapper_cmd = f"{sys.executable} {wrapper_script}"
+
+    # Already configured — skip
+    if current_cmd == wrapper_cmd:
+        return
+
+    # If there's an existing statusline that isn't ours, back it up
+    if current_cmd and "context-writer" not in current_cmd:
+        with open(backup_path, "w") as f:
+            f.write(current_cmd)
+
+    # Set our wrapper as the statusline
+    settings["statusLine"] = {
+        "type": "command",
+        "command": wrapper_cmd,
+        "padding": current_sl.get("padding", 0) if isinstance(current_sl, dict) else 0,
+    }
+
+    with open(settings_path, "w") as f:
+        json.dump(settings, f, indent=2)
+        f.write("\n")
 
 
 # ── Phase 4 & 5: Verify + Health Proof ───────────────────────────────────

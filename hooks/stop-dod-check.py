@@ -10,6 +10,7 @@ Exit codes:
     2: Block stop (uncommitted changes detected).
 """
 
+import json
 import os
 import re
 import sys
@@ -26,6 +27,10 @@ COOLDOWN_SECONDS = 30
 
 from git_helpers import run_git, is_git_repo
 from colors import RED, YELLOW, RESET
+
+# Context awareness thresholds (percentage used)
+CTX_WARN_THRESHOLD = 60   # Suggest context commit
+CTX_URGENT_THRESHOLD = 75  # Strongly urge context commit (near auto-compact at ~80%)
 
 # git-memory project files — only CLAUDE.md and manifest live at the project root.
 # The stop hook should not block for these.
@@ -142,6 +147,30 @@ def get_last_commit_next() -> str | None:
     return None
 
 
+def get_context_status() -> dict | None:
+    """Read context window status from .claude/.context-status.json.
+
+    Returns:
+        Dict with used_percentage, remaining_percentage, etc., or None.
+    """
+    code, root = run_git(["rev-parse", "--show-toplevel"])
+    if code != 0 or not root:
+        return None
+    status_path = os.path.join(root, ".claude", ".context-status.json")
+    if not os.path.isfile(status_path):
+        return None
+    try:
+        with open(status_path) as f:
+            data = json.load(f)
+        # Stale data check: ignore if older than 5 minutes
+        ts = data.get("timestamp", 0)
+        if time.time() - ts > 300:
+            return None
+        return data
+    except (json.JSONDecodeError, OSError, ValueError):
+        return None
+
+
 def main() -> None:
     """Entry point. Blocks session stop if uncommitted changes exist."""
     # Skip if not in a git repo
@@ -190,6 +219,21 @@ def main() -> None:
         msg += f"\n{YELLOW}>>> Were any decisions, preferences, or requirements discussed this session?{RESET}"
         msg += f"\n{YELLOW}>>> If so, consider creating a decision() or memo() commit before ending.{RESET}"
         messages.append(msg)
+
+    # Check 4: Context window status
+    ctx = get_context_status()
+    if ctx:
+        used = ctx.get("used_percentage")
+        remaining = ctx.get("remaining_percentage")
+        if used is not None and remaining is not None:
+            if used >= CTX_URGENT_THRESHOLD:
+                msg = f"\n{RED}>>> CONTEXT CRITICAL: {used:.0f}% used ({remaining:.0f}% remaining).{RESET}"
+                msg += f"\n{RED}>>> Auto-compact imminent (~80%). Create a context() commit NOW.{RESET}"
+                messages.append(msg)
+            elif used >= CTX_WARN_THRESHOLD:
+                msg = f"\n{YELLOW}>>> Context: {used:.0f}% used ({remaining:.0f}% remaining).{RESET}"
+                msg += f"\n{YELLOW}>>> Consider creating a context() commit to preserve session state.{RESET}"
+                messages.append(msg)
 
     if messages:
         for m in messages:

@@ -22,6 +22,7 @@ Exit codes:
 """
 
 import argparse
+import json
 import os
 import shutil
 import sys
@@ -211,6 +212,51 @@ def remove_old_install_files(target: str) -> list[str]:
     return removed
 
 
+def _restore_statusline() -> bool:
+    """Restore the user's original statusline in ~/.claude/settings.json."""
+    claude_home = os.path.join(os.path.expanduser("~"), ".claude")
+    settings_path = os.path.join(claude_home, "settings.json")
+    backup_path = os.path.join(claude_home, ".git-memory-original-statusline")
+
+    if not os.path.isfile(settings_path):
+        return False
+
+    try:
+        with open(settings_path) as f:
+            settings = json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        return False
+
+    current_sl = settings.get("statusLine", {})
+    current_cmd = current_sl.get("command", "") if isinstance(current_sl, dict) else ""
+
+    # Only restore if our wrapper is active
+    if "context-writer" not in current_cmd:
+        return False
+
+    # Restore original or remove statusline entirely
+    orig_cmd = ""
+    if os.path.isfile(backup_path):
+        with open(backup_path) as f:
+            orig_cmd = f.read().strip()
+        os.unlink(backup_path)
+
+    if orig_cmd:
+        settings["statusLine"] = {
+            "type": "command",
+            "command": orig_cmd,
+            "padding": current_sl.get("padding", 0) if isinstance(current_sl, dict) else 0,
+        }
+    else:
+        del settings["statusLine"]
+
+    with open(settings_path, "w") as f:
+        json.dump(settings, f, indent=2)
+        f.write("\n")
+
+    return True
+
+
 # ── Main ──────────────────────────────────────────────────────────────────
 
 def main() -> None:
@@ -280,6 +326,15 @@ def main() -> None:
 
     if full_local:
         all_removed.extend(remove_generated_files(target))
+
+    # Restore original statusline
+    if _restore_statusline():
+        all_removed.append("statusline wrapper (original restored)")
+
+    # Remove context status file
+    ctx_file = os.path.join(target, ".claude", ".context-status.json")
+    if safe_remove(ctx_file):
+        all_removed.append(".claude/.context-status.json")
 
     print(f"\nRemoved {len(all_removed)} items:")
     for item in all_removed:
