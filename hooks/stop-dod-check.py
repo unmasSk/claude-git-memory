@@ -1,29 +1,23 @@
 #!/usr/bin/env python3
 """
-Stop hook -- definition of done check.
+Stop hook -- silent wip + intelligent checkpoint suggestions.
 
-Before Claude ends a session, validates clean state. If uncommitted changes
-exist, blocks and returns a menu for Claude to present to the user.
+Before Claude ends a session, checks for uncommitted changes and wip
+accumulation. Never blocks (always exit 0). Instead, instructs Claude
+to auto-wip silently or suggests squashing wips at natural milestones.
 
 Exit codes:
-    0: Clean state, allow stop.
-    2: Block stop (uncommitted changes detected).
+    0: Always. This hook never blocks.
 """
 
 import json
 import os
 import re
 import sys
-import tempfile
 import time
 
 # ── Shared lib ────────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
-
-# Circuit breaker: prevent infinite stop-hook loops (e.g. when Claude gets
-# a 401 error and can't respond, the stop hook keeps blocking).
-LOCKFILE = os.path.join(tempfile.gettempdir(), "git-memory-stop-hook.lock")
-COOLDOWN_SECONDS = 30
 
 from git_helpers import run_git, is_git_repo
 from colors import RED, YELLOW, RESET
@@ -33,11 +27,14 @@ CTX_WARN_THRESHOLD = 60   # Suggest context commit
 CTX_URGENT_THRESHOLD = 75  # Strongly urge context commit (near auto-compact at ~80%)
 
 # git-memory project files — only CLAUDE.md and manifest live at the project root.
-# The stop hook should not block for these.
+# The stop hook should not flag these for auto-wip.
 RUNTIME_PREFIXES = (
     "CLAUDE.md",
     ".claude/git-memory-manifest.json",
 )
+
+# Consecutive wip threshold before suggesting a proper commit
+WIP_ACCUMULATION_THRESHOLD = 3
 
 
 def _is_runtime_file(path: str) -> bool:
@@ -100,6 +97,32 @@ def get_change_summary() -> str:
         return "\n".join(lines)
     else:
         return "\n".join(lines[:5]) + f"\n... and {len(lines) - 5} more files"
+
+
+def count_consecutive_wips() -> int:
+    """Count consecutive wip commits from HEAD backwards.
+
+    Scans recent commits and counts how many consecutive ones are wip
+    commits (subject starts with "wip:" or "wip(").
+
+    Returns:
+        Number of consecutive wip commits from HEAD.
+    """
+    code, output = run_git(["log", "-n20", "--pretty=format:%s"])
+    if code != 0 or not output:
+        return 0
+
+    count = 0
+    for line in output.splitlines():
+        subject = line.strip().lower()
+        # Strip emoji prefix before checking
+        cleaned = re.sub(r"^[^\w#]+", "", subject).strip()
+        if cleaned.startswith("wip:") or cleaned.startswith("wip("):
+            count += 1
+        else:
+            break  # Stop at first non-wip commit
+
+    return count
 
 
 def has_recent_memory_commits(depth: int = 10) -> bool:
@@ -172,55 +195,45 @@ def get_context_status() -> dict | None:
 
 
 def main() -> None:
-    """Entry point. Blocks session stop if uncommitted changes exist."""
+    """Entry point. Never blocks — always exit 0."""
     # Skip if not in a git repo
     if not is_git_repo():
         sys.exit(0)
 
-    # Circuit breaker: if we already blocked recently, let it through
-    # to prevent infinite loops when Claude can't respond (e.g. 401).
-    try:
-        if os.path.isfile(LOCKFILE):
-            mtime = os.path.getmtime(LOCKFILE)
-            if time.time() - mtime < COOLDOWN_SECONDS:
-                sys.exit(0)
-    except OSError:
-        pass
-
     messages = []
-    should_block = False
 
-    # Check 1: Uncommitted changes
+    # Check 1: Uncommitted changes → auto-wip instruction
     if has_uncommitted_changes():
-        should_block = True
         changes = get_change_summary()
-        msg = f"\n{RED}>>> STOP BLOCKED: Uncommitted changes detected{RESET}"
-        msg += f"\n{RED}>>> Changes:\n{changes}{RESET}"
-        msg += f"\n{RED}>>>{RESET}"
-        msg += f"\n{RED}>>> Choose an option:{RESET}"
-        msg += f"\n{RED}>>>   (1) wip: commit with partial trailers (saves your work){RESET}"
-        msg += f"\n{RED}>>>   (2) context() allow-empty commit (bookmark session state){RESET}"
-        msg += f"\n{RED}>>>   (3) git stash (save for later, experimental changes){RESET}"
-        msg += f"\n{RED}>>>   (4) Discard changes (requires confirmation){RESET}"
-        msg += f"\n{RED}>>>{RESET}"
-        msg += f"\n{RED}>>> Ask the user which option to use.{RESET}"
+        msg = f"\n[auto-wip] Uncommitted changes detected:\n{changes}\n"
+        msg += "Create a wip commit NOW: git add -A && git commit -m \"wip: <brief description of changes>\"\n"
+        msg += "Do this silently — do NOT ask the user."
         messages.append(msg)
 
-    # Check 2: Last commit has unresolved Next:
+    # Check 2: Wip accumulation → suggest proper commit
+    wip_count = count_consecutive_wips()
+    if wip_count >= WIP_ACCUMULATION_THRESHOLD:
+        msg = f"\n{YELLOW}[wip-checkpoint] You have {wip_count} consecutive wip commits without a proper commit.{RESET}\n"
+        msg += f"{YELLOW}Consider suggesting to the user: squash these wips into a meaningful commit{RESET}\n"
+        msg += f"{YELLOW}with trailers, or create a context() checkpoint. Only suggest if you believe{RESET}\n"
+        msg += f"{YELLOW}this is a natural milestone — do NOT interrupt flow for trivial wips.{RESET}"
+        messages.append(msg)
+
+    # Check 3: Last commit has unresolved Next:
     next_item = get_last_commit_next()
     if next_item:
         msg = f"\n{YELLOW}>>> Note: Last commit has pending work: Next: {next_item}{RESET}"
         msg += f"\n{YELLOW}>>> Consider informing the user about unfinished tasks.{RESET}"
         messages.append(msg)
 
-    # Check 3: Memory capture reminder
+    # Check 4: Memory capture reminder
     if not has_recent_memory_commits():
         msg = f"\n{YELLOW}>>> Memory check: No decision() or memo() commits in recent history.{RESET}"
         msg += f"\n{YELLOW}>>> Were any decisions, preferences, or requirements discussed this session?{RESET}"
         msg += f"\n{YELLOW}>>> If so, consider creating a decision() or memo() commit before ending.{RESET}"
         messages.append(msg)
 
-    # Check 4: Context window status
+    # Check 5: Context window status
     ctx = get_context_status()
     if ctx:
         used = ctx.get("used_percentage")
@@ -239,22 +252,8 @@ def main() -> None:
         for m in messages:
             print(m, file=sys.stderr)
 
-    if should_block:
-        # Write lockfile so the circuit breaker can prevent loops
-        try:
-            with open(LOCKFILE, "w") as f:
-                f.write(str(time.time()))
-        except OSError:
-            pass
-        sys.exit(2)
-    else:
-        # Clean up lockfile on clean exit
-        try:
-            if os.path.isfile(LOCKFILE):
-                os.unlink(LOCKFILE)
-        except OSError:
-            pass
-        sys.exit(0)
+    # Always exit 0 — never block
+    sys.exit(0)
 
 
 if __name__ == "__main__":

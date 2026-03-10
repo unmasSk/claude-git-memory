@@ -60,7 +60,7 @@ Base: `dev`. Work in `feat/*`, `fix/*`, `chore/*`. 1 issue = 1 branch. Default m
 | 📝 | `docs` | Docs only |
 | 🔧 | `chore` | Maintenance |
 | 👷 | `ci` | Pipeline |
-| 🚧 | `wip` | Checkpoint (feature branches only, squash before merge) |
+| 🚧 | `wip` | Silent checkpoint (auto-created, no trailers needed, squash before merge) |
 | 💾 | `context` | Session bookmark (--allow-empty) |
 | 🧭 | `decision` | Architecture/design choice (--allow-empty) |
 | 📌 | `memo` | Soft knowledge (--allow-empty) |
@@ -89,14 +89,26 @@ Keys are case-sensitive, max once per commit, single-line values.
 
 | Situation | Action |
 |-----------|--------|
-| Code changes | `wip:` checkpoint (no ask). Push needs confirmation |
+| Code changes + stop hook fires | `wip:` silent auto-commit (NEVER ask the user) |
+| 3+ consecutive wips accumulated | Evaluate: suggest squash or proper commit at natural milestones |
 | Task complete | Squash WIPs + final commit + merge to dev |
 | "I'm done" / "tomorrow" | `context()` with Next/Blocker |
 | Design choice made | `decision()` |
 | Preference/requirement stated | `memo()` |
 | Dev advanced | Merge dev into current branch |
 
-Confirmations: `wip:` auto-commit. Final/context/decision → show message, wait for "ok".
+Confirmations: `wip:` always silent. Squash/final/context/decision → show message, wait for "ok".
+
+## Wip Strategy
+
+wip commits are silent checkpoints. The stop hook creates them automatically when it detects uncommitted changes. Rules:
+- Use descriptive subjects: `wip: refactor auth middleware` not just `wip`
+- Never ask the user before creating a wip — they are noise-free by design
+- After 3+ consecutive wips, the stop hook suggests a checkpoint. Evaluate with judgement:
+  - If you just completed a feature/fix/refactor → suggest squashing into a real commit with trailers
+  - If the user is mid-flow → let the wips accumulate, don't interrupt
+  - Squashing means: `git reset --soft HEAD~N` + proper commit with Why/Touched/etc. trailers
+- wip commits NEVER have trailers. They are temporary by definition.
 
 ## Conversational Capture (CONTINUOUS — enforced by UserPromptSubmit hook)
 

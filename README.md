@@ -15,7 +15,9 @@
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
   <a href="#what-you-say-vs-what-claude-does">Conversational capture</a> &nbsp;·&nbsp;
   <a href="#dashboard">Dashboard</a> &nbsp;·&nbsp;
-  <a href="#the-six-hooks">Hooks</a>
+  <a href="#the-six-hooks">Hooks</a> &nbsp;·&nbsp;
+  <a href="#gitto---memory-oracle-agent">Gitto agent</a> &nbsp;·&nbsp;
+  <a href="#context-awareness">Context awareness</a>
 </p>
 
 ---
@@ -233,8 +235,9 @@ The memory system protects itself with six automatic hooks. You don't configure 
 | **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). Also regenerates the dashboard in the background. |
 | **Session start** | Boot | When Claude starts a session | Silent health check + memory extraction from last 30 commits. Shows a compact summary. |
 | **User message** | Radar | Every time you send a message | Injects a `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
-| **Session exit** | DoD | When Claude ends a session | If there are uncommitted changes, blocks exit and offers options: wip commit, context bookmark, stash, or discard. Also checks if decisions were discussed but not captured. |
+| **Session exit** | DoD | When Claude ends a session | Never blocks. If there are uncommitted changes, instructs Claude to create a silent wip commit. If wips accumulate (3+), suggests squashing into a proper commit at natural milestones. Also checks if decisions were discussed but not captured. |
 | **Context compression** | Hippocampus | Before Claude compresses context | Extracts a compact snapshot (branch, pending items, decisions, memos) and re-injects it so memory survives compression. |
+| **Statusline** | Context writer | After every Claude message | Intercepts context window data from Claude Code and writes it to disk so hooks can know how much context remains. |
 
 ### How Belt + Suspenders work together
 
@@ -486,6 +489,8 @@ Everything below lives in the plugin cache (`~/.claude/plugins/cache/`), **not**
 claude-git-memory/
 ├── .claude-plugin/
 │   └── plugin.json                         # Plugin manifest (name, version, entry points)
+├── agents/
+│   └── gitto.md                            # Memory oracle subagent (read-only)
 ├── hooks/
 │   ├── hooks.json                          # Hook registration (Claude Code reads this)
 │   ├── pre-validate-commit-trailers.py     # Belt — blocks bad commits
@@ -493,7 +498,8 @@ claude-git-memory/
 │   ├── session-start-boot.py              # Boot — auto-boot + memory summary
 │   ├── user-prompt-memory-check.py        # Radar — memory signal reminder
 │   ├── precompact-snapshot.py              # Hippocampus — memory before compression
-│   └── stop-dod-check.py                  # DoD — blocks exit with pending work
+│   ├── stop-dod-check.py                  # DoD — silent wip + checkpoint suggestions
+│   └── context-writer.py                  # Statusline wrapper — context window tracking
 ├── skills/
 │   ├── git-memory/                         # Core: boot, search, trailers, workflow
 │   ├── git-memory-lifecycle/               # Doctor, repair, health management
@@ -528,7 +534,7 @@ claude-git-memory/
 
 ## Testing
 
-47 tests across 5 suites:
+49 tests across 5 suites:
 
 | Suite | What it covers |
 |-------|---------------|
@@ -547,6 +553,65 @@ Type checking with mypy strict mode:
 ```bash
 python3 -m mypy bin/ hooks/
 ```
+
+---
+
+## Gitto - Memory oracle agent
+
+Gitto is a read-only subagent that answers questions about past decisions, preferences, requirements, and pending work. Claude delegates to Gitto automatically when you ask about the project's memory.
+
+| You ask | Gitto does |
+|---------|-----------|
+| "what did we decide about auth?" | Searches all `Decision:` trailers across the full git history |
+| "any pending tasks?" | Finds all unresolved `Next:` trailers |
+| "what preferences do we have?" | Lists all `Memo:` trailers by scope |
+| "what's blocking us?" | Shows all active `Blocker:` trailers |
+
+Gitto uses `git log --all --grep` to search the entire history, not just the last 30 commits. Results are formatted as structured markdown, grouped by scope, sorted newest first.
+
+**Key properties:**
+- **Read-only.** No commits, no file writes, no edits.
+- **Deep search.** Queries full git history, not just recent commits.
+- **Contradiction detection.** If two decisions in the same scope contradict, shows both with the most recent marked as active.
+- **Result limits.** Maximum 10 results per query, with a count of older results.
+- **Fallback.** If the `git memory` CLI is not available, falls back to raw `git log --grep`.
+
+Gitto is auto-discovered by Claude Code from the plugin's `agents/` directory. No configuration needed.
+
+---
+
+## Context awareness
+
+The plugin monitors Claude's context window usage and warns before auto-compaction hits. This prevents losing session state when context fills up (~80% threshold).
+
+### How it works
+
+Claude Code sends JSON session data (including `context_window.used_percentage`) to the statusline command after every message. A **statusline wrapper** (`context-writer.py`) intercepts this data:
+
+1. Writes context stats to `<project>/.claude/.context-status.json`
+2. Passes the JSON through to your original statusline (so it still works normally)
+
+The stop hook reads this file and shows warnings:
+
+| Context used | Warning |
+|-------------|---------|
+| < 60% | No warning |
+| 60-75% | Yellow: "Consider creating a context() commit" |
+| 75%+ | Red: "CONTEXT CRITICAL. Auto-compact imminent. Create context() commit NOW" |
+
+The install script configures the wrapper automatically, backing up your original statusline. Uninstall restores it.
+
+---
+
+## Silent wip strategy
+
+The stop hook never blocks the session. Instead, it uses a silent wip strategy:
+
+1. **Uncommitted changes?** Claude creates a `wip:` commit automatically, without asking.
+2. **3+ consecutive wips?** Claude evaluates if it's a good time to suggest squashing them into a proper commit with trailers.
+3. **Natural milestones** (feature complete, bug fixed, refactor done) trigger the suggestion. Trivial wips accumulate silently.
+
+This means you never get interrupted by "choose an option" dialogs, and your work is always saved.
 
 ---
 
