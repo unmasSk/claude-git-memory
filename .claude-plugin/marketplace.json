@@ -1,0 +1,14 @@
+{
+  "name": "unmassk-claude-git-memory",
+  "owner": {
+    "name": "unmasSk"
+  },
+  "plugins": [
+    {
+      "name": "claude-git-memory",
+      "version": "3.0.0",
+      "description": "Persistent memory for Claude Code via git commit trailers",
+      "source": "./"
+    }
+  ]
+}
