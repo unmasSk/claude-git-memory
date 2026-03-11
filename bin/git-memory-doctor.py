@@ -398,6 +398,37 @@ def run_doctor(silent: bool = False, as_json: bool = False) -> int:
         has_errors = True
         results.append(("error", "Manifest", manifest_msg))
 
+    # 11. Stale hooks in project settings.json
+    settings_path = os.path.join(project_root, ".claude", "settings.json")
+    if os.path.isfile(settings_path):
+        try:
+            with open(settings_path) as f:
+                proj_settings = json.load(f)
+            if "hooks" in proj_settings:
+                has_stale = False
+                hooks_data = proj_settings["hooks"]
+                if isinstance(hooks_data, dict):
+                    for event_hooks in hooks_data.values():
+                        if not isinstance(event_hooks, list):
+                            continue
+                        for hook_group in event_hooks:
+                            hook_list = hook_group.get("hooks", []) if isinstance(hook_group, dict) else []
+                            for hook in hook_list:
+                                cmd = hook.get("command", "") if isinstance(hook, dict) else ""
+                                if cmd and "${CLAUDE_PLUGIN_ROOT}" not in cmd and (
+                                    "hooks/" in cmd or "bin/" in cmd
+                                ):
+                                    has_stale = True
+                                    break
+                if has_stale:
+                    has_errors = True
+                    results.append(("error", "Settings hooks",
+                                    "stale local hooks in .claude/settings.json — run install to fix"))
+                else:
+                    results.append(("ok", "Settings hooks", "clean"))
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # Output
     if as_json:
         status = "error" if has_errors else ("warn" if has_warnings else "ok")

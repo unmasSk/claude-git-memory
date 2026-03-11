@@ -249,6 +249,28 @@ def inspect(target: str) -> dict[str, Any]:
         except (json.JSONDecodeError, OSError):
             pass
 
+    # Detect stale hook entries in project .claude/settings.json
+    project_settings_path = os.path.join(target, ".claude", "settings.json")
+    if os.path.isfile(project_settings_path):
+        try:
+            with open(project_settings_path) as f:
+                project_settings = json.load(f)
+            hooks = project_settings.get("hooks", {})
+            if hooks and isinstance(hooks, dict):
+                # Check if any hook command references local paths without ${CLAUDE_PLUGIN_ROOT}
+                for _hook_name, hook_cfg in hooks.items():
+                    if isinstance(hook_cfg, dict):
+                        cmd = hook_cfg.get("command", "")
+                    elif isinstance(hook_cfg, str):
+                        cmd = hook_cfg
+                    else:
+                        continue
+                    if cmd and ("python3 hooks/" in cmd or "python3 bin/" in cmd) and "${CLAUDE_PLUGIN_ROOT}" not in cmd:
+                        report["has_stale_hooks"] = True
+                        break
+        except (json.JSONDecodeError, OSError):
+            pass
+
     return report
 
 
@@ -281,6 +303,9 @@ def create_plan(report: dict[str, Any], source: str, target: str,
     is_self = os.path.realpath(source) == os.path.realpath(target)
     if report["has_old_install"] and not is_self:
         plan["actions"].append(("cleanup_old", "Remove old-style install files from project root"))
+
+    if report.get("has_stale_hooks"):
+        plan["actions"].append(("cleanup_stale_hooks", "Remove stale hook entries from .claude/settings.json"))
 
     # CLAUDE.md managed block
     if report["has_managed_block"]:
@@ -318,6 +343,8 @@ def apply_plan(plan: dict[str, Any], source: str, target: str) -> list[str]:
                 return [description]
             elif action == "cleanup_old":
                 _cleanup_old_install(target, source)
+            elif action == "cleanup_stale_hooks":
+                _cleanup_stale_settings_hooks(target)
             elif action == "update_claude_md":
                 _update_claude_md(target)
             elif action == "create_manifest":
@@ -390,6 +417,36 @@ def _cleanup_old_install(target: str, source: str) -> None:
 
     if removed:
         print(f"  Cleaned {len(removed)} old-style install files/directories")
+
+
+def _cleanup_stale_settings_hooks(target: str) -> None:
+    """Remove stale hook entries from the project's .claude/settings.json.
+
+    When migrating from old-style installs, the project settings may contain
+    hook commands that reference local paths (e.g. python3 hooks/...) instead
+    of using ${CLAUDE_PLUGIN_ROOT}. Since the plugin now provides hooks via
+    hooks.json, these entries are stale and should be removed.
+    """
+    settings_path = os.path.join(target, ".claude", "settings.json")
+    if not os.path.isfile(settings_path):
+        return
+
+    try:
+        with open(settings_path) as f:
+            settings = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return
+
+    if "hooks" not in settings:
+        return
+
+    del settings["hooks"]
+
+    with open(settings_path, "w") as f:
+        json.dump(settings, f, indent=2)
+        f.write("\n")
+
+    print("  Removed stale hook entries from .claude/settings.json")
 
 
 def _update_claude_md(target: str) -> None:
@@ -473,14 +530,29 @@ def _setup_statusline_wrapper(source: str) -> None:
     # Our wrapper command
     wrapper_cmd = f"{sys.executable} {wrapper_script}"
 
-    # Already configured — skip
+    # Case 1: Already configured with exact same command — skip
     if current_cmd == wrapper_cmd:
+        if not os.path.isfile(backup_path):
+            print("  Warning: statusline wrapper active but backup missing")
         return
 
-    # If there's an existing statusline that isn't ours, back it up
-    if current_cmd and "context-writer" not in current_cmd:
-        with open(backup_path, "w") as f:
-            f.write(current_cmd)
+    # Case 2: Our wrapper but different path (reinstall/upgrade) — update path only
+    if "context-writer" in current_cmd:
+        settings["statusLine"] = {
+            "type": "command",
+            "command": wrapper_cmd,
+            "padding": current_sl.get("padding", 0) if isinstance(current_sl, dict) else 0,
+        }
+        with open(settings_path, "w") as f:
+            json.dump(settings, f, indent=2)
+            f.write("\n")
+        if not os.path.isfile(backup_path):
+            print("  Warning: statusline wrapper updated but original backup missing — user must restore manually")
+        return
+
+    # Case 3: Fresh install — back up current command (even if empty)
+    with open(backup_path, "w") as f:
+        f.write(current_cmd)
 
     # Set our wrapper as the statusline
     settings["statusLine"] = {
