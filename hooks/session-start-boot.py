@@ -196,6 +196,9 @@ def main() -> None:
 
     lines: list[str] = []
 
+    # 0. Fetch remote refs silently (so boot sees remote commits)
+    run_git(["fetch", "--quiet"])
+
     # 1. Silent doctor
     doctor_result = run_doctor()
     if doctor_result.get("status") == "error":
@@ -214,6 +217,12 @@ def main() -> None:
     if status:
         count = len([l for l in status.splitlines() if l.strip()])
         lines.append(f"Uncommitted changes: {count} files")
+
+    # 3b. Check if remote is ahead of local (suggest pull)
+    if branch:
+        code, behind = run_git(["rev-list", "--count", f"HEAD..@{{u}}"])
+        if code == 0 and behind.strip() not in ("", "0"):
+            lines.append(f"Remote is {behind.strip()} commit(s) ahead — suggest pulling before starting work.")
 
     # 4. Memory extraction
     memory = extract_memory()

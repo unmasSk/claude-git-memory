@@ -12,7 +12,7 @@ Git is the memory. Every commit is resumable. Claude handles git — the user fo
 1. Never commit to `main` directly
 2. Never commit without trailers (hooks enforce it for Claude; humans get warnings only)
 3. `context()`, `decision()`, `memo()` always use `--allow-empty`
-4. If conflict/risky op → stop, see PROTOCOL.md
+4. If conflict/risky op → stop (see Conflict Resolution section below)
 5. Claude writes trailers automatically — never ask the user to write them
 
 ## Memory Policy
@@ -34,13 +34,14 @@ Use that path to run scripts: `python3 <plugin-root>/bin/git-memory-doctor.py --
 
 ### Boot sequence
 
-1. Run `python3 <plugin-root>/bin/git-memory-doctor.py --json` silently. If errors → run `python3 <plugin-root>/bin/git-memory-repair.py --auto` and tell the user what was fixed.
-2. `git log -n 30 --pretty=format:"%h%x1f%s%x1f%b%x1e"` → extract Next, Blocker, Decision, Memo, last context()
-3. `git status --porcelain` → detect uncommitted state
-4. Show compact summary (≤18 lines):
+1. `git fetch --quiet` — sync remote refs silently. If no network or no remote, continues without error.
+2. Run `python3 <plugin-root>/bin/git-memory-doctor.py --json` silently. If errors → run `python3 <plugin-root>/bin/git-memory-repair.py --auto` and tell the user what was fixed.
+3. `git log -n 30 --pretty=format:"%h%x1f%s%x1f%b%x1e"` → extract Next, Blocker, Decision, Memo, last context()
+4. `git status --porcelain` → detect uncommitted state
+5. Show compact summary (≤18 lines):
    - Branch + last context + pending (max 2) + blockers (max 2) + decisions (max 3) + memos (max 2)
    - Overflow: last slot becomes `+ N more`
-5. If nothing: "Repo up to date. What are we working on?"
+6. If nothing: "Repo up to date. What are we working on?"
 
 **Critical**: Never ask the user to run CLI commands. Claude runs everything. The user only sees results.
 

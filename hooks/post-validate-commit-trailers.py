@@ -224,18 +224,6 @@ def main() -> None:
             except Exception:
                 pass
 
-        # Regenerate dashboard in background (non-blocking)
-        try:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            dashboard_script = os.path.join(script_dir, "..", "bin", "git-memory-dashboard.py")
-            if os.path.exists(dashboard_script):
-                subprocess.Popen(
-                    ["python3", dashboard_script, "--silent"],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                )
-        except Exception:
-            pass  # Dashboard regen is best-effort, never block commits
-
         sys.exit(0)
 
     # Trailers invalid — decide action based on author

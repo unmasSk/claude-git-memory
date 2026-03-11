@@ -2,7 +2,7 @@
 Git command helpers for git-memory.
 
 Thin wrappers around subprocess calls to git. Used by hooks,
-CLI scripts, and the dashboard to run git commands safely.
+CLI scripts to run git commands safely.
 """
 
 import subprocess

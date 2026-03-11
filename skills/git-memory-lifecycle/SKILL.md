@@ -34,7 +34,7 @@ Check and report, one line per item:
 Memory System Status
 ─────────────────────────
 ✅ Hooks: 6/6 in plugin cache
-✅ Skills: 4/4 in plugin cache
+✅ Skills: 2/2 in plugin cache
 ✅ CLAUDE.md: managed block present
 ✅ Hook activity: 12/15 commits have trailers (80%)
 ✅ GC: last run 4 days ago
@@ -60,7 +60,7 @@ Run silently on session start. Only report if problems found.
 | Mode | Removes | Keeps |
 |------|---------|-------|
 | **safe** (default) | CLAUDE.md block, manifest | Git history |
-| **full-local** | Above + generated files (.claude/dashboard.html) | Git history |
+| **full-local** | Above + generated files | Git history |
 
 Git history (commits with trailers) is **never deleted automatically**.
 To remove the plugin itself: `/plugin uninstall claude-git-memory`
@@ -69,7 +69,7 @@ To remove the plugin itself: `/plugin uninstall claude-git-memory`
 
 ```json
 {
-  "version": "2.1.0",
+  "version": "3.0.0",
   "installed_at": "ISO8601",
   "runtime_mode": "normal|compatible|read-only",
   "managed_blocks": [

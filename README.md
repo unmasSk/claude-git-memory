@@ -14,7 +14,6 @@
   <a href="#how-it-works">How it works</a> &nbsp;·&nbsp;
   <a href="#quick-start">Quick start</a> &nbsp;·&nbsp;
   <a href="#what-you-say-vs-what-claude-does">Conversational capture</a> &nbsp;·&nbsp;
-  <a href="#dashboard">Dashboard</a> &nbsp;·&nbsp;
   <a href="#the-six-hooks">Hooks</a> &nbsp;·&nbsp;
   <a href="#gitto---memory-oracle-agent">Gitto agent</a> &nbsp;·&nbsp;
   <a href="#context-awareness">Context awareness</a> &nbsp;·&nbsp;
@@ -199,7 +198,6 @@ This is the most important thing to understand:
 - Need to search old decisions? Just ask: "what did we decide about auth?"
 - Memory system broken? Claude detects and repairs it.
 - Want to clean stale items? Say "clean up old blockers".
-- Want a dashboard? Say "show me the dashboard".
 - Want to uninstall? Say "remove git-memory".
 
 The CLI commands exist, but they're for Claude to use internally — not for you. You just talk.
@@ -296,7 +294,7 @@ The memory system protects itself with six automatic hooks. You don't configure 
 | Hook | Nickname | When it runs | What it does |
 |------|----------|-------------|--------------|
 | **Pre-commit** | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing. Human commits get a warning only — never blocked. |
-| **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). Also regenerates the dashboard in the background. |
+| **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). |
 | **Session start** | Boot | When Claude starts a session | Silent health check + memory extraction from last 30 commits. Shows a compact summary. |
 | **User message** | Radar | Every time you send a message | Injects a `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
 | **Session exit** | DoD | When Claude ends a session | Never blocks. If there are uncommitted changes, instructs Claude to create a silent wip commit. If wips accumulate (3+), suggests squashing into a proper commit at natural milestones. Also checks if decisions were discussed but not captured. |
@@ -352,24 +350,6 @@ You don't ask for this. It happens automatically.
 
 ---
 
-## Dashboard
-
-A self-contained static HTML dashboard using the GitHub Primer dark theme. No server, no dependencies — just one file.
-
-Say "show me the dashboard" and Claude generates it.
-
-<p align="center">
-  <img src="dashboard-screenshot.png" alt="git-memory dashboard" width="800">
-</p>
-
-**7 sections:** pending tasks, active blockers with age, decisions by scope, memos by category, compliance health (% of commits with proper trailers), GC status, and commit timeline.
-
-**Auto-updates:** After every valid commit, the post-hook regenerates the dashboard in the background. The HTML auto-reloads every 10 seconds. Open it once and forget about it.
-
-**State preserved:** Search queries, scroll position, and collapsed sections persist across reloads.
-
----
-
 ## Garbage collector
 
 Stale `Next:` and `Blocker:` items accumulate over time. The GC cleans them using three heuristics:
@@ -380,7 +360,7 @@ Stale `Next:` and `Blocker:` items accumulate over time. The GC cleans them usin
 | **H2** — TTL expiry | `Blocker:` items gone stale | Blockers older than 30 days with no recent mention |
 | **H3** — explicit resolution | Items resolved by a `Resolution:` trailer | Paired with `Conflict:` in merge conflict commits |
 
-The GC **never deletes commits**. It creates a new commit with tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that hide cleaned items from future snapshots and the dashboard. Fully reversible with `git revert`.
+The GC **never deletes commits**. It creates a new commit with tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that hide cleaned items from future snapshots. Fully reversible with `git revert`.
 
 Say "clean up stale items" or "run gc" and Claude handles it.
 
@@ -518,7 +498,6 @@ The memory system has a full CLI. **Claude runs all of these automatically — y
 | "is the memory system healthy?" | `git memory doctor` | Full diagnostic: plugin cache, CLAUDE.md, manifest, GC status, version |
 | "something's broken" | `git memory repair` | Checks CLAUDE.md and manifest, fixes what's broken |
 | "clean up old stuff" | `git memory gc` | Garbage collects stale Next/Blocker items with tombstones |
-| "show me the dashboard" | `git memory dashboard` | Generates a static HTML dashboard and opens it |
 | "scan this project" | `git memory bootstrap` | Scouts stack, frameworks, monorepo patterns, CI config |
 | "install memory system" | `git memory install` | Writes CLAUDE.md block + manifest (plugin runs from cache, nothing copied to root) |
 | "upgrade memory system" | `git memory upgrade` | Safe version migration with backup |
@@ -575,8 +554,9 @@ claude-git-memory/
 │   ├── git-memory-uninstall.py             # Clean removal
 │   ├── git-memory-upgrade.py               # Safe version migration
 │   ├── git-memory-bootstrap.py             # Project scout
-│   ├── git-memory-gc.py                    # Garbage collector
-│   └── git-memory-dashboard.py             # Dashboard generator
+│   └── git-memory-gc.py                    # Garbage collector
+├── archived/
+│   └── dashboard/                          # Dashboard generator (deactivated, preserved for future use)
 ├── lib/
 │   ├── constants.py                        # Trailer keys, commit types, risk levels
 │   ├── git_helpers.py                      # Git subprocess wrappers

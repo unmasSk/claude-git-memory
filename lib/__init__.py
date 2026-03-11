@@ -1,1 +1,1 @@
-"""Shared library for git-memory hooks, CLI scripts, and dashboard."""
+"""Shared library for git-memory hooks and CLI scripts."""

@@ -2,7 +2,7 @@
 Parsing functions for git-memory.
 
 Commit type extraction, trailer parsing, scope detection, and text
-normalization. Used by validation hooks and the dashboard.
+normalization. Used by validation hooks and CLI scripts.
 """
 
 import re

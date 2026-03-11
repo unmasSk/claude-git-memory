@@ -1,5 +1,5 @@
 """
-Shared constants for git-memory hooks, CLI scripts, and dashboard.
+Shared constants for git-memory hooks and CLI scripts.
 
 Single source of truth for trailer keys, commit types, risk levels,
 and memo categories. Imported everywhere.

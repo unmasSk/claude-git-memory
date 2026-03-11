@@ -83,7 +83,7 @@ def test_install_only_creates_claude_md_and_manifest(tmp_path):
 
     # Manifest exists
     with open(os.path.join(repo, ".claude", "git-memory-manifest.json")) as f:
-        assert json.load(f).get("version") == "2.1.0"
+        assert json.load(f).get("version") == "3.0.0"
 
     # Nothing else copied to project root
     assert not os.path.isdir(os.path.join(repo, "hooks"))

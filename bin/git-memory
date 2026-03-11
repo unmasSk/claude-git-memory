@@ -11,7 +11,6 @@
 #   search    Search memory for a keyword: git memory search <term>
 #   boot      Show compact boot summary (same as AUTO-BOOT)
 #   gc        Garbage collect stale Next:/Blocker: items
-#   dashboard Generate static HTML dashboard (.claude/dashboard.html)
 #   doctor    Health check for the memory system
 #   install   Install git-memory in current repo
 #   repair    Fix broken components
@@ -57,11 +56,6 @@ case "${1:-all}" in
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     shift
     python3 "$SCRIPT_DIR/git-memory-gc.py" "$@"
-    ;;
-  dashboard|dash)
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-    shift
-    python3 "$SCRIPT_DIR/git-memory-dashboard.py" "$@"
     ;;
   doctor|doc)
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -129,9 +123,6 @@ case "${1:-all}" in
     echo "             --dry-run  Show what would be cleaned"
     echo "             --auto     Auto-commit without asking"
     echo "             --days N   Blocker TTL in days (default 30)"
-    echo "  dashboard  Generate static HTML dashboard"
-    echo "             Opens .claude/dashboard.html in browser"
-    echo "             --silent   Generate only, no browser open"
     echo "  doctor     Health check for the memory system"
     echo "             --json     Machine-readable output"
     echo "             --silent   Exit code only"
