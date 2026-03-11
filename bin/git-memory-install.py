@@ -220,14 +220,28 @@ def inspect(target: str) -> dict[str, Any]:
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
     report["has_manifest"] = os.path.isfile(manifest_path)
 
-    # Detect old-style install (files copied to project root)
-    for f in OLD_BIN_FILES + OLD_HOOK_FILES:
-        if os.path.isfile(os.path.join(target, f)):
-            report["has_old_install"] = True
-            break
-    if not report["has_old_install"]:
-        if os.path.isdir(os.path.join(target, ".claude-plugin")):
-            report["has_old_install"] = True
+    # Detect old-style install (files copied to project root).
+    # Skip if target IS the plugin source repo (has .claude-plugin/plugin.json
+    # with our plugin name) — those files are source code, not old install copies.
+    is_plugin_source = False
+    plugin_json_path = os.path.join(target, ".claude-plugin", "plugin.json")
+    if os.path.isfile(plugin_json_path):
+        try:
+            with open(plugin_json_path) as f:
+                pj = json.load(f)
+            if pj.get("name") == "claude-git-memory":
+                is_plugin_source = True
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    if not is_plugin_source:
+        for f in OLD_BIN_FILES + OLD_HOOK_FILES:
+            if os.path.isfile(os.path.join(target, f)):
+                report["has_old_install"] = True
+                break
+        if not report["has_old_install"]:
+            if os.path.isdir(os.path.join(target, ".claude-plugin")):
+                report["has_old_install"] = True
 
     # Commitlint / CI that might reject trailers
     for ci_file in [".commitlintrc.json", ".commitlintrc.yml",
