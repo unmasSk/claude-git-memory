@@ -17,7 +17,8 @@
   <a href="#dashboard">Dashboard</a> &nbsp;·&nbsp;
   <a href="#the-six-hooks">Hooks</a> &nbsp;·&nbsp;
   <a href="#gitto---memory-oracle-agent">Gitto agent</a> &nbsp;·&nbsp;
-  <a href="#context-awareness">Context awareness</a>
+  <a href="#context-awareness">Context awareness</a> &nbsp;·&nbsp;
+  <a href="#updating--troubleshooting">Updating</a>
 </p>
 
 ---
@@ -74,17 +75,24 @@ No questions. It knows where you left off.
 
 ### Option A: Install from GitHub (recommended)
 
-Add the repository as a marketplace source, then install the plugin:
+**Step 1:** Add the repository as a marketplace source:
 
 ```
-/plugin marketplace add unmasSk/claude-git-memory
-/plugin install claude-git-memory@unmassk-claude-git-memory
+/plugin marketplace add https://github.com/unmasSk/claude-git-memory
 ```
 
-You can choose the installation scope:
+**Step 2:** Install the plugin (use the interactive menu, NOT the URL):
+
+```
+/plugin install
+```
+
+Then select `claude-git-memory` from the list. Choose your scope:
 - **User** (default): for yourself across all projects
 - **Project**: for all collaborators on this repository (saved in `.claude/settings.json`)
 - **Local**: for yourself in this repo only
+
+> **Important:** `/plugin install` does NOT accept URLs. You must add the marketplace first, then install by name from the interactive menu.
 
 ### Option B: Install from the official marketplace
 
@@ -109,7 +117,7 @@ This uses the plugin in-place (no cache copy). Useful for development and testin
 That's it. **No configuration needed.** When Claude starts a session in your project, the plugin activates automatically:
 
 1. **Hooks register** — pre-commit, post-commit, session start, user message, session exit, context compression
-2. **Skills load** — memory rules, lifecycle, protocol, recovery
+2. **Skills load** — core memory rules + lifecycle management (2 skills)
 3. **Auto-boot runs** — silent health check + memory summary
 4. **CLAUDE.md updated** — a managed block is added with memory system instructions
 
@@ -122,6 +130,62 @@ The plugin uses `${CLAUDE_PLUGIN_ROOT}` internally to locate its own hooks and s
 - Python 3.10+
 - Git
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) v1.0.33+ (plugin support)
+
+---
+
+## Updating & troubleshooting
+
+### Updating the plugin
+
+> **Known issue (as of March 2026):** `/plugin update` does NOT invalidate the plugin cache. This is a [confirmed Claude Code bug](https://github.com/anthropics/claude-code/issues/14061). Running `/plugin update claude-git-memory` will say "already at latest version" even when a new version exists.
+
+**To update, you must do all 3 steps in order:**
+
+```bash
+# Step 1: Delete the stale cache (run in your terminal, NOT in Claude Code)
+rm -rf ~/.claude/plugins/cache/unmassk-claude-git-memory/
+
+# Step 2: Uninstall (in Claude Code)
+/plugin uninstall claude-git-memory
+
+# Step 3: Remove the marketplace
+/plugin marketplace remove unmassk-claude-git-memory
+
+# Step 4: Re-add the marketplace (fetches fresh from GitHub)
+/plugin marketplace add https://github.com/unmasSk/claude-git-memory
+
+# Step 5: Reinstall (use the interactive menu)
+/plugin install
+# Select claude-git-memory from the list
+```
+
+**Why all these steps?** Claude Code caches plugin files keyed by name + version. Even after uninstall, the cache directory persists. And even after re-adding the marketplace, the old cache is reused if the directory still exists. The only reliable way is: delete cache → uninstall → remove marketplace → re-add → reinstall.
+
+### The marketplace.json matters
+
+The version in `.claude-plugin/marketplace.json` is what Claude Code uses to determine whether an update is available. If `marketplace.json` says `2.0.0` but `plugin.json` says `3.0.0`, Claude Code will think the plugin is at `2.0.0`. **Both files must have the same version.**
+
+### Common issues
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `/plugin update` says "already at latest" | Cache not invalidated (known bug) | Follow the 5-step update process above |
+| `/plugin install <URL>` says "Marketplace not found" | `/plugin install` doesn't accept URLs | Use `/plugin marketplace add <URL>` first, then `/plugin install` from menu |
+| Hooks error "can't open file" after update | Stale cache pointing to old version directory | Delete `~/.claude/plugins/cache/unmassk-claude-git-memory/` and reinstall |
+| Stop hook blocks in infinite loop | Cache was deleted but plugin still registered | Ctrl+C to kill, then restore cache manually or reinstall |
+| All Bash commands blocked | PreToolUse hook references deleted cache path | Kill session (Ctrl+C), restore cache or reinstall in a new terminal |
+
+### Deadlock recovery
+
+If you delete the plugin cache while a session is running, you'll enter a deadlock: hooks can't find their scripts, and you can't use Bash to fix it because the PreToolUse hook blocks every command.
+
+**To recover:**
+
+1. Kill the Claude Code session (Ctrl+C or close terminal)
+2. In a normal terminal, either:
+   - Restore the cache: `mkdir -p ~/.claude/plugins/cache/unmassk-claude-git-memory/claude-git-memory/<version>/ && cp -R <plugin-source>/* <that-dir>/`
+   - Or reinstall cleanly: follow the 5-step update process above
+3. Start a new Claude Code session
 
 ---
 
@@ -237,7 +301,6 @@ The memory system protects itself with six automatic hooks. You don't configure 
 | **User message** | Radar | Every time you send a message | Injects a `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
 | **Session exit** | DoD | When Claude ends a session | Never blocks. If there are uncommitted changes, instructs Claude to create a silent wip commit. If wips accumulate (3+), suggests squashing into a proper commit at natural milestones. Also checks if decisions were discussed but not captured. |
 | **Context compression** | Hippocampus | Before Claude compresses context | Extracts a compact snapshot (branch, pending items, decisions, memos) and re-injects it so memory survives compression. |
-| **Statusline** | Context writer | After every Claude message | Intercepts context window data from Claude Code and writes it to disk so hooks can know how much context remains. |
 
 ### How Belt + Suspenders work together
 
@@ -488,7 +551,8 @@ Everything below lives in the plugin cache (`~/.claude/plugins/cache/`), **not**
 ```
 claude-git-memory/
 ├── .claude-plugin/
-│   └── plugin.json                         # Plugin manifest (name, version, entry points)
+│   ├── plugin.json                         # Plugin manifest (name, version, entry points)
+│   └── marketplace.json                    # Marketplace metadata (version MUST match plugin.json)
 ├── agents/
 │   └── gitto.md                            # Memory oracle subagent (read-only)
 ├── hooks/
@@ -498,15 +562,13 @@ claude-git-memory/
 │   ├── session-start-boot.py              # Boot — auto-boot + memory summary
 │   ├── user-prompt-memory-check.py        # Radar — memory signal reminder
 │   ├── precompact-snapshot.py              # Hippocampus — memory before compression
-│   ├── stop-dod-check.py                  # DoD — silent wip + checkpoint suggestions
-│   └── context-writer.py                  # Statusline wrapper — context window tracking
+│   └── stop-dod-check.py                  # DoD — silent wip + checkpoint suggestions
 ├── skills/
-│   ├── git-memory/                         # Core: boot, search, trailers, workflow
-│   ├── git-memory-lifecycle/               # Doctor, repair, health management
-│   ├── git-memory-protocol/                # Authority, releases, conflicts, undo
-│   └── git-memory-recovery/                # Rebase, reset, force-push, CI issues
+│   ├── git-memory/                         # Core: boot, search, trailers, workflow, protocol, recovery
+│   └── git-memory-lifecycle/               # Doctor, repair, install, uninstall
 ├── bin/
 │   ├── git-memory                          # CLI router (bash)
+│   ├── context-writer.py                   # Statusline wrapper — context window tracking
 │   ├── git-memory-install.py               # Transactional installer
 │   ├── git-memory-doctor.py                # Health check
 │   ├── git-memory-repair.py                # Runtime repair
@@ -520,7 +582,6 @@ claude-git-memory/
 │   ├── git_helpers.py                      # Git subprocess wrappers
 │   ├── parsing.py                          # Commit parsing, trailer extraction
 │   └── colors.py                           # ANSI terminal colors
-├── dashboard-preview.html                   # HTML template (Primer dark theme)
 └── tests/
     ├── conftest.py                         # Shared fixtures and helpers
     ├── test_bootstrap.py                   # Scout detection tests
@@ -586,7 +647,7 @@ The plugin monitors Claude's context window usage and warns before auto-compacti
 
 ### How it works
 
-Claude Code sends JSON session data (including `context_window.used_percentage`) to the statusline command after every message. A **statusline wrapper** (`context-writer.py`) intercepts this data:
+Claude Code sends JSON session data (including `context_window.used_percentage`) to the statusline command after every message. A **statusline wrapper** (`context-writer.py` in `bin/`) intercepts this data:
 
 1. Writes context stats to `<project>/.claude/.context-status.json`
 2. Passes the JSON through to your original statusline (so it still works normally)
@@ -640,6 +701,9 @@ A: The Hippocampus hook extracts critical memory before compression and re-injec
 
 **Q: What if I rebase or force-push?**
 A: Claude detects the amnesia on next session start, rebuilds memory from current state, and warns about any gaps.
+
+**Q: `/plugin update` doesn't work?**
+A: This is a [known Claude Code bug](https://github.com/anthropics/claude-code/issues/14061). See the [Updating section](#updating--troubleshooting) for the workaround.
 
 ---
 
