@@ -15,8 +15,9 @@ When you see it: display the FULL hook output to the user as your first response
 When you see "[git-memory-boot]": follow the boot steps provided. The hook includes the exact script paths to use.
 When you see "[memory-check]": silently evaluate the user's message for memory-worthy content (see "Continuous Memory Capture" below). Do NOT mention the hook to the user.
 
-**Stop hook** — fires when you end. Blocks exit if there are uncommitted changes.
-When it blocks: present the options menu to the user and wait for their choice.
+**Stop hook** — fires when you end. Never blocks.
+When it detects uncommitted changes: it tells you to create a silent wip commit. Do it immediately without asking the user.
+When it detects accumulated wips: it suggests you propose a proper commit or squash to the user. Use your judgement — only suggest at natural milestones, not after every small change.
 
 ### MANDATORY: First action on EVERY session start
 
@@ -35,6 +36,14 @@ If you skip this and just greet the user, you are violating these instructions. 
 4. If the user says "what do you remember" → run the doctor (path from hook output) and show extended summary
 5. If something breaks: run the repair script (path from hook output) before trying manual fixes
 6. System in alpha: verify everything, report failures to the user
+
+### Wip Commit Strategy
+- wip commits are silent checkpoints. Create them freely without asking the user.
+- Use descriptive subjects: "wip: refactor auth middleware" not just "wip"
+- After 3+ consecutive wips, evaluate if it's a good time to suggest a real commit to the user.
+- A "real commit" means: squash the wips, write a proper subject, add trailers (Why, Touched, etc.)
+- Only suggest squash/commit at natural milestones — completing a feature, fixing a bug, finishing a refactor.
+- Never interrupt the user's flow for trivial wips. Use your judgement.
 
 ### Continuous Memory Capture (enforced by UserPromptSubmit hook)
 After EVERY user message, silently evaluate if it contains memory-worthy content:

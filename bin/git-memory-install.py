@@ -255,19 +255,20 @@ def inspect(target: str) -> dict[str, Any]:
         try:
             with open(project_settings_path) as f:
                 project_settings = json.load(f)
-            hooks = project_settings.get("hooks", {})
-            if hooks and isinstance(hooks, dict):
-                # Check if any hook command references local paths without ${CLAUDE_PLUGIN_ROOT}
-                for _hook_name, hook_cfg in hooks.items():
-                    if isinstance(hook_cfg, dict):
-                        cmd = hook_cfg.get("command", "")
-                    elif isinstance(hook_cfg, str):
-                        cmd = hook_cfg
-                    else:
+            hooks_data = project_settings.get("hooks", {})
+            if hooks_data and isinstance(hooks_data, dict):
+                for event_hooks in hooks_data.values():
+                    if not isinstance(event_hooks, list):
                         continue
-                    if cmd and ("python3 hooks/" in cmd or "python3 bin/" in cmd) and "${CLAUDE_PLUGIN_ROOT}" not in cmd:
-                        report["has_stale_hooks"] = True
-                        break
+                    for hook_group in event_hooks:
+                        hook_list = hook_group.get("hooks", []) if isinstance(hook_group, dict) else []
+                        for hook in hook_list:
+                            cmd = hook.get("command", "") if isinstance(hook, dict) else ""
+                            if cmd and "${CLAUDE_PLUGIN_ROOT}" not in cmd and (
+                                "hooks/" in cmd or "bin/" in cmd
+                            ):
+                                report["has_stale_hooks"] = True
+                                break
         except (json.JSONDecodeError, OSError):
             pass
 
