@@ -50,7 +50,7 @@ EXPECTED_SKILLS = [
 
 STALE_BLOCKER_DAYS = 30
 SCAN_DEPTH = 50
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────

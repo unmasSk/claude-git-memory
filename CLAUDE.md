@@ -3,7 +3,7 @@
 <!-- BEGIN claude-git-memory (managed block — do not edit) -->
 ## Git Memory Active
 
-This project uses claude-git-memory v2.
+This project uses claude-git-memory v3.
 Git is the memory. Every commit is resumable across sessions and machines.
 
 ### What the hooks do (you receive their output automatically)

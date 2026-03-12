@@ -35,14 +35,14 @@ from git_helpers import run_git
 
 # ── Config ────────────────────────────────────────────────────────────────
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 
 MANAGED_BLOCK_BEGIN = "<!-- BEGIN claude-git-memory (managed block — do not edit) -->"
 MANAGED_BLOCK_END = "<!-- END claude-git-memory -->"
 
 MANAGED_BLOCK_CONTENT = """## Git Memory Active
 
-This project uses claude-git-memory v2.
+This project uses claude-git-memory v3.
 Git is the memory. Every commit is resumable across sessions and machines.
 
 ### What the hooks do (you receive their output automatically)

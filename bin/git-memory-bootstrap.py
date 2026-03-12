@@ -35,7 +35,7 @@ from git_helpers import run_git
 
 # ── Config ────────────────────────────────────────────────────────────────
 
-VERSION = "3.0.0"
+VERSION = "3.1.0"
 SCAN_COMMITS = 20
 MAX_TREE_DEPTH = 2
 
