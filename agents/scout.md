@@ -122,3 +122,19 @@ For **simple projects** (< 10 files or single-purpose), use flat scopes instead:
 1. Create `.claude/` if it doesn't exist: `mkdir -p .claude`
 2. Write the file to `.claude/git-memory-scopes.json`
 3. Print a compact summary: project type, top-level scopes, and any interesting findings
+
+## Persistent Memory
+
+On startup, read `MEMORY.md` to recall previous scan results and project patterns.
+
+**What to save:**
+- Project types detected and why (e.g., "detected Next.js from package.json scripts")
+- Manually added scopes the user confirmed — preserve these across rescans
+- Monorepo workspace structures that were tricky to detect
+- Scope decisions that differed from the default patterns
+
+**What NOT to save:**
+- File counts, timestamps, or anything that changes every scan
+- Anything already in the generated `.claude/git-memory-scopes.json`
+
+**Format:** `MEMORY.md` as short index (<200 lines) with links to topic files if needed.
