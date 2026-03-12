@@ -372,7 +372,7 @@ The memory system protects itself with six automatic hooks. You don't configure 
 
 | Hook | Nickname | When it runs | What it does |
 |------|----------|-------------|--------------|
-| **Pre-commit** | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing **and** blocks direct `git commit`/`git log` — Claude must use wrapper scripts (`git-memory-commit.py`, `git-memory-log.py`). Human commits get a warning only — never blocked. |
+| **Pre-commit** | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing **and** blocks direct `git commit`/`git log` — Claude must use wrapper scripts (`git-memory-commit.py`, `git-memory-log.py`). Catches all flag variants (`git -C path log`, `git --no-pager commit`, etc.). Human commits get a warning only — never blocked. |
 | **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). |
 | **Session start** | Boot | When Claude starts a session | Silent health check + memory extraction from last 30 commits + **full glossary scan** of all decisions and memos across entire git history. Shows a compact summary with recent memory and a grouped glossary. |
 | **User message** | Radar | Every time you send a message | Injects a `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
@@ -626,6 +626,7 @@ claude-git-memory/
 │   ├── plugin.json                         # Plugin manifest (name, version, entry points)
 │   └── marketplace.json                    # Marketplace metadata (version MUST match plugin.json)
 ├── agents/
+│   ├── alexandria.md                      # Documentation agent — changelog + CLAUDE.md sync (coming soon)
 │   ├── gitto.md                            # Memory oracle subagent (read-only)
 │   └── scout.md                      # Project structure analyzer → generates scope map
 ├── hooks/
@@ -649,6 +650,7 @@ claude-git-memory/
 │   ├── git-memory-upgrade.py               # Safe version migration
 │   ├── git-memory-bootstrap.py             # Project scout
 │   ├── git-memory-gc.py                    # Garbage collector
+│   ├── git-memory-changelog.py            # Changelog generator from merge trailers (coming soon)
 │   ├── git-memory-commit.py               # Pretty commit wrapper (ANSI output, emoji, trailers)
 │   └── git-memory-log.py                  # Pretty log viewer (colored, filterable by type)
 ├── archived/
@@ -723,6 +725,26 @@ Scope Scout inspects your codebase and generates a hierarchical scope map at `.c
 
 Claude launches Scope Scout automatically on first install, or when you say "scan scopes" / "update scopes". It runs in the background and writes only the scope map file — it never modifies your code.
 
+### Alexandria — Documentation agent (coming soon)
+
+Alexandria keeps documentation synchronized with codebase reality. She activates automatically after merges to `dev`:
+
+1. **PostToolUse hook** detects the merge and runs `git-memory-changelog.py`
+2. The script reads commits from the merged branch, filters noise (wip, context, memo, decision, remember, agent infrastructure), and groups by type using `Why:` trailers as descriptions
+3. The hook outputs an `[alexandria-trigger]` with the changelog data + affected folders
+4. Claude launches Alexandria in background
+5. Alexandria updates `CHANGELOG.md` under `[Unreleased]` (Keep a Changelog format) and checks `CLAUDE.md` freshness for affected folders
+6. Alexandria commits: `docs(changelog): update from merge feat/xxx → dev`
+
+**Key properties:**
+- **Only merges to `dev`** — staging and main don't trigger changelog generation
+- **Idempotent** — checks commit SHAs before inserting, no duplicates on session restart
+- **Silent fallback** — if no actionable commits after filtering, no trigger fires
+- **Autonomous** — Alexandria commits the changelog herself with the wrapper script
+- **Noise-free** — agent infrastructure scopes (`agents`, `agent-memory`) are filtered out
+
+Alexandria also has autonomous responsibilities on every launch: CLAUDE.md staleness detection, CHANGELOG freshness checks, and contradiction detection between root and folder docs.
+
 **All agents run in background** (`run_in_background: true`), so they never block your conversation.
 
 ---
@@ -764,6 +786,12 @@ This means you never get interrupted by "choose an option" dialogs, and your wor
 ---
 
 ## Roadmap
+
+### Next — Alexandria changelog automation
+
+> **Status: Designed.** Design doc at `docs/plans/2026-03-12-alexandria-changelog-design.md`. Implementation pending.
+
+Automatic CHANGELOG.md generation from git-memory trailers on every merge to dev. Alexandria agent handles the update autonomously — detects merge via PostToolUse hook, generates changelog entries from `Why:` trailers, updates CHANGELOG.md in Keep a Changelog format, and commits the result.
 
 ### v5.0 — VS Code Extension (`claude-git-memory-vscode`)
 
