@@ -1,6 +1,6 @@
 {
   "name": "claude-git-memory",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "description": "Persistent memory system for Claude Code using git commit trailers. Git is the memory — every commit is resumable across machines and sessions.",
   "author": {
     "name": "unmasSk",

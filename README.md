@@ -116,7 +116,7 @@ This uses the plugin in-place (no cache copy). Useful for development and testin
 That's it. **No configuration needed.** When Claude starts a session in your project, the plugin activates automatically:
 
 1. **Hooks register** — pre-commit, post-commit, session start, user message, session exit, context compression
-2. **Skills load** — core memory rules + lifecycle management (2 skills)
+2. **Skills load** — core memory rules + lifecycle management + issues/milestones (3 skills)
 3. **Agents available** — Gitto (memory oracle) + Scope Scout (project structure analyzer)
 4. **Auto-boot runs** — silent health check + memory summary + full glossary
 5. **CLAUDE.md updated** — a minimal managed block pointing to the skills
@@ -271,6 +271,8 @@ You don't need to learn any syntax. Claude detects intent from natural language:
 | "I need to stop here" / "pause" | Creates a `context()` bookmark with Next: |
 | "what did we decide about X?" | Searches memory before asking you |
 | "scan scopes" | Launches the scout agent to analyze project structure |
+| "create an issue for X" | Creates a GitHub issue with full template (checklist, DoD, risks) |
+| "create a milestone for X" | Creates a milestone grouping related issues |
 
 Decisions, memos, and remembers are captured without asking — Claude commits immediately and tells you what it saved in one line. No friction, no "ok?" prompts. Saying "remember that I..." creates a personality note that future Claudes read on boot. Context bookmarks still show the message before committing.
 
@@ -637,8 +639,9 @@ claude-git-memory/
 │   ├── precompact-snapshot.py              # Hippocampus — memory before compression
 │   └── stop-dod-check.py                  # DoD — silent wip + checkpoint suggestions
 ├── skills/
-│   ├── git-memory/                         # Core: boot, search, trailers, workflow, protocol, recovery
-│   └── git-memory-lifecycle/               # Doctor, repair, install, uninstall
+│   ├── git-memory/                         # Core: boot, search, trailers, workflow, protocol, safety
+│   ├── git-memory-lifecycle/               # Doctor, repair, install, uninstall
+│   └── git-memory-issues/                  # GitHub issues + milestones as shared memory
 ├── bin/
 │   ├── git-memory                          # CLI router (bash)
 │   ├── context-writer.py                   # Statusline wrapper — context window tracking
@@ -723,6 +726,8 @@ Gitto is auto-discovered by Claude Code from the plugin's `agents/` directory. N
 Scope Scout inspects your codebase and generates a hierarchical scope map at `.claude/git-memory-scopes.json`. It detects frameworks, monorepo patterns, and existing scopes from git history.
 
 Claude launches Scope Scout automatically on first install, or when you say "scan scopes" / "update scopes". It runs in the background and writes only the scope map file — it never modifies your code.
+
+**On first install**, Scout also generates a **project profile** (tech stack, architecture, commands, conventions) and creates an **inaugural commit** — the "point zero" of git-memory in your project. Any future Claude can find it with `git log --grep="onboarding"`.
 
 ### Alexandria — Documentation agent (coming soon)
 
