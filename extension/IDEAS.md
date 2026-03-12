@@ -1,5 +1,7 @@
 # git-memory VS Code Extension — Ideas & Research
 
+> **STATUS: PARKED (2026-03-12).** Extensión aparcada para trabajar en otras prioridades. Todo el research y decisiones están capturados aquí y en el README (sección Roadmap v5.0). Retomar cuando sea el momento.
+
 ## Concepto
 
 Extensión de VS Code que muestra un panel lateral (Activity Bar) con una línea de tiempo en tiempo real de toda la actividad de git-memory: wips, memos, decisiones, context commits, squashes, commits de código.

@@ -656,6 +656,46 @@ This means you never get interrupted by "choose an option" dialogs, and your wor
 
 ---
 
+## Roadmap
+
+### v5.0 — VS Code Extension (`claude-git-memory-vscode`)
+
+> **Status: Parked.** Research and design complete. Implementation not started.
+
+A VS Code extension that shows a real-time timeline of git-memory activity in the sidebar: wips, decisions, memos, context commits, code commits — all visible as Claude works.
+
+**What's been decided:**
+
+| Decision | Detail |
+|----------|--------|
+| Repo | Separate: `claude-git-memory-vscode` |
+| Visual style | Style E (Glassmorphic) — dual gradients + glow + dark inner details |
+| Icon reference | Flow Icons (thang-nm.flow-icons) — rounded-square pastel backgrounds, simple centered symbols |
+| Icons | Custom SVG, not emojis. 12 types: feat, fix, refactor, docs, test, chore, perf, ci, wip, context, decision, memo |
+| Panel | WebviewView in Activity Bar (not TreeView — too limited for rich cards) |
+| Data source | Git native API (`onDidCommit` + trailer parsing). No custom bridge needed |
+| Tech stack | TypeScript + esbuild |
+| Ask Claude | Copies formatted reference to clipboard (`@git-memory decision <sha> — <text>`) |
+| Distribution | Local `.vsix` first, marketplace after validation |
+
+**MVP scope (v0.1):**
+- Sidebar panel with custom Activity Bar icon
+- Vertical timeline with colored SVG icons per commit type
+- Expandable items showing full trailers
+- Real-time commit detection via `onDidCommit`
+- Text search (local filter, no AI)
+- "Ask Claude" button (copies reference to clipboard)
+
+**Future (v0.2+):**
+- Gitto-powered semantic search
+- AST / RAG search over git history
+- Squash group visualization
+- Session info (time, counters)
+
+**Research artifacts:** `extension/IDEAS.md`, `extension/mockups/` (5 visual style comparisons, D vs E timeline mockups)
+
+---
+
 ## FAQ
 
 **Q: Does this work with GitHub/GitLab/Bitbucket?**
