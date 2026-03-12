@@ -337,7 +337,16 @@ def main() -> None:
 
     lines: list[str] = []
 
-    # 0. Ensure statusline wrapper is configured (needed for context tracking)
+    # 0. Clean session-booted flag (new session = fresh boot)
+    code_root, project_root = run_git(["rev-parse", "--show-toplevel"])
+    if code_root == 0 and project_root:
+        booted_flag = os.path.join(project_root, ".claude", ".session-booted")
+        try:
+            os.remove(booted_flag)
+        except FileNotFoundError:
+            pass
+
+    # 0a. Ensure statusline wrapper is configured (needed for context tracking)
     _ensure_statusline()
 
     # 0b. Fetch remote refs silently (so boot sees remote commits)

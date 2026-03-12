@@ -96,23 +96,28 @@ def main() -> None:
             capture_output=True, text=True, cwd=root, timeout=15,
         )
 
-    # Case 2: Installed — always remind about boot + memory check
+    # Case 2: Installed — check if session already booted
     lines = []
+    booted_flag = os.path.join(root, ".claude", ".session-booted")
+    session_booted = os.path.isfile(booted_flag)
 
-    # Boot reminder on every message (Claude may not have booted yet)
-    lines.append(
-        f"[git-memory-boot] Plugin root: {PLUGIN_ROOT}\n"
-        "If you have NOT yet booted this session, "
-        "do ALL of these steps NOW before responding to the user:\n"
-        "  Step 1: Use the Skill tool with skill=\"git-memory\" "
-        "(this is a TOOL CALL, not a bash command)\n"
-        f"  Step 2: Run: python3 {PLUGIN_ROOT}/bin/git-memory-doctor.py --json\n"
-        f"  Step 3: Run: python3 {PLUGIN_ROOT}/bin/git-memory-log.py 20\n"
-        "  Step 4: Show the user a boot summary\n"
-        "If you already booted this session, skip this."
-    )
+    if not session_booted:
+        # First message — full boot instructions
+        lines.append(
+            f"[git-memory-boot] Plugin root: {PLUGIN_ROOT}\n"
+            "Do ALL of these steps NOW before responding to the user:\n"
+            "  Step 1: Use the Skill tool with skill=\"git-memory\" "
+            "(this is a TOOL CALL, not a bash command)\n"
+            f"  Step 2: Run: python3 {PLUGIN_ROOT}/bin/git-memory-doctor.py --json\n"
+            f"  Step 3: Run: python3 {PLUGIN_ROOT}/bin/git-memory-log.py 20\n"
+            "  Step 4: Show the user a boot summary\n"
+            "After booting, run: touch " + booted_flag
+        )
+    else:
+        # Already booted — just plugin root for reference
+        lines.append(f"[git-memory] root: {PLUGIN_ROOT}")
 
-    # Memory capture check — covers all memory commit types
+    # Memory capture check — always present, covers all memory commit types
     lines.append(
         "[memory-check] Evaluate this message: "
         "does it contain a decision, preference, requirement, anti-pattern, "
