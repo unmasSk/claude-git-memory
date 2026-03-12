@@ -72,6 +72,24 @@ These scripts produce clean, colored output for the user instead of raw git outp
 
 **Critical**: Never ask the user to run CLI commands. Claude runs everything. The user only sees results.
 
+## Hierarchical Scopes
+
+Use **hierarchical scopes** separated by `/` in commit subjects. Max 2 levels deep.
+
+Examples:
+- `feat(backend/api): add rate limiting`
+- `decision(frontend/ux): usar glassmorphic style`
+- `memo(backend/auth): preference - JWT over sessions`
+- `fix(infra/ci): pipeline timeout`
+
+**Where to find the scope map:**
+- If `.claude/git-memory-scopes.json` exists, read it for the project's scope hierarchy
+- If it doesn't exist, use the `scope-scout` agent to generate it (or ask the user)
+- You can use unlisted scopes — the map is a guide, not a constraint
+- For simple changes that don't fit a hierarchy, flat scopes are fine (`chore(docs): ...`)
+
+**On first install or "scan scopes":** launch the `scope-scout` agent to analyze the project and generate the scope map.
+
 ## Branches
 
 Base: `dev`. Work in `feat/*`, `fix/*`, `chore/*`. 1 issue = 1 branch. Default merge (not rebase).

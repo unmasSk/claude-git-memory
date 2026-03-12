@@ -320,11 +320,23 @@ def main() -> None:
     extra_memos = [(s, t) for s, t in glossary_memos if s not in recent_memo_scopes]
 
     if extra_decisions or extra_memos:
+        # Group by first level of scope for hierarchy
+        groups: dict[str, list[str]] = {}
+        for emoji, items in [("🧭", extra_decisions), ("📌", extra_memos)]:
+            for scope, text in items:
+                # scope is like "(backend/api)" or "(plugin)"
+                clean = scope.strip("()")
+                top = clean.split("/")[0] if "/" in clean else clean
+                if top not in groups:
+                    groups[top] = []
+                groups[top].append(f"  {emoji} {scope} {text}")
+
         lines.append("Glossary (full history):")
-        for scope, text in extra_decisions:
-            lines.append(f"  🧭 {scope} {text}")
-        for scope, text in extra_memos:
-            lines.append(f"  📌 {scope} {text}")
+        for group_name in sorted(groups.keys()):
+            if len(groups) > 1:
+                lines.append(f"  [{group_name}]")
+            for item in groups[group_name]:
+                lines.append(f"  {item}" if len(groups) > 1 else item)
 
     # 6. Reminder about memory capture
     lines.append("")

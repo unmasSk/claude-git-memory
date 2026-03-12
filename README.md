@@ -227,6 +227,22 @@ The CLI commands exist, but they're for Claude to use internally — not for you
 
 ---
 
+## Hierarchical scopes
+
+Commit scopes use a hierarchical format separated by `/`, max 2 levels:
+
+```
+feat(backend/api): add rate limiting
+decision(frontend/ux): use glassmorphic style
+memo(backend/auth): preference - JWT over sessions
+```
+
+On first install, Claude launches a **scope scout agent** that inspects your project structure and generates a scope map at `.claude/git-memory-scopes.json`. You can also say "scan scopes" at any time to regenerate it.
+
+The scope map is a guide, not a constraint — Claude can use unlisted scopes when they make sense.
+
+---
+
 ## What you say vs. what Claude does
 
 You don't need to learn any syntax. Claude detects intent from natural language:
