@@ -210,14 +210,14 @@ You don't need to learn any syntax. Claude detects intent from natural language:
 
 | You say | Claude does |
 |---------|-------------|
-| "let's go with X" | Creates a `decision()` commit |
-| "always use X" / "never use Y" | Creates a `memo(preference)` |
-| "the client requires X" | Creates a `memo(requirement)` |
-| "don't ever do X again" | Creates a `memo(antipattern)` |
+| "let's go with X" | Creates a `decision()` commit immediately, informs you in one line |
+| "always use X" / "never use Y" | Creates a `memo(preference)` immediately, informs you in one line |
+| "the client requires X" | Creates a `memo(requirement)` immediately, informs you in one line |
+| "don't ever do X again" | Creates a `memo(antipattern)` immediately, informs you in one line |
 | "I need to stop here" / "pause" | Creates a `context()` bookmark with Next: |
 | "what did we decide about X?" | Searches memory before asking you |
 
-Claude always shows you the proposed commit message and waits for your "ok" before committing decisions, memos, and context bookmarks.
+Decisions and memos are captured without asking — Claude commits immediately and tells you what it saved in one line. No friction, no "ok?" prompts. Context bookmarks still show the message before committing.
 
 ---
 

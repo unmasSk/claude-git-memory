@@ -48,7 +48,7 @@ If you skip this and just greet the user, you are violating these instructions. 
 ### Continuous Memory Capture (enforced by UserPromptSubmit hook)
 After EVERY user message, silently evaluate if it contains memory-worthy content:
 
-**Capture** (propose commit, wait for "ok"):
+**Capture** (commit immediately, inform in one line):
 - Decisions: "let's use X", "go with Y", "decided"
 - Preferences: "always X", "never Y", "I prefer Z", "from now on"
 - Requirements: "the client wants", "it must", "it's mandatory"
@@ -61,9 +61,9 @@ After EVERY user message, silently evaluate if it contains memory-worthy content
 
 **How to capture**:
 1. Detect the signal in the user's message
-2. Propose: "Saving as decision/memo: [one-line summary]. Ok?"
-3. Wait for confirmation — never silently commit
-4. Create the `decision()` or `memo()` commit with `--allow-empty`
+2. Create the `decision()` or `memo()` commit immediately with `--allow-empty`
+3. Inform the user in ONE line: "📌 memo saved: [summary]" or "🧭 decision saved: [summary]"
+4. Do NOT ask for confirmation. Do NOT propose. Just do it.
 
 ### Context Checkpoint Commits (CRITICAL for session continuity)
 A context() commit is a rich snapshot of what you've been working on. It is the PRIMARY way the next AI session understands what happened. Without it, the next session starts blind.

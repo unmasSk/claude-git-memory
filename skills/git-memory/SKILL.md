@@ -98,7 +98,7 @@ Keys are case-sensitive, max once per commit, single-line values.
 | Preference/requirement stated | `memo()` |
 | Dev advanced | Merge dev into current branch |
 
-Confirmations: `wip:` always silent. Squash/final/context/decision → show message, wait for "ok".
+Confirmations: `wip:` always silent. `decision()`/`memo()` → commit immediately, inform in one line. Squash/final/context → show message, wait for "ok".
 
 ## Wip Strategy
 
@@ -130,11 +130,11 @@ A `UserPromptSubmit` hook fires on EVERY user message and injects a `[memory-che
 - Already captured in an existing decision/memo
 
 **When detected**:
-1. Propose: "Saving as decision/memo: [one-line summary]. Ok?"
-2. Wait for "ok" — never silently commit decisions or memos
-3. Create the commit immediately after confirmation
+1. Create the `decision()` or `memo()` commit immediately with `--allow-empty`
+2. Inform the user in ONE line: "📌 memo saved: [summary]" or "🧭 decision saved: [summary]"
+3. Do NOT ask for confirmation. Do NOT propose. Just do it.
 
-Ambiguous cases → ask "register as decision/memo?" (1 line, no ceremony).
+Ambiguous cases → still commit. Better to capture and be wrong than to miss and lose context.
 
 ## Memory Search (before asking the user)
 
