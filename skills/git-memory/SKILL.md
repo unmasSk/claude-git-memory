@@ -32,6 +32,33 @@ Use that path to run scripts: `python3 <plugin-root>/bin/git-memory-doctor.py --
 
 **NEVER hardcode paths** like `python3 bin/...` — the project root has NO bin/, hooks/, skills/, or lib/ directories from the plugin.
 
+### MANDATORY: Use wrapper scripts for git commit and git log
+
+**NEVER use `git commit` or `git log` directly.** A PreToolUse hook will BLOCK them.
+
+**For commits**, use:
+```
+python3 <plugin-root>/bin/git-memory-commit.py <type> <scope> <message> [--body TEXT] [--trailer KEY=VALUE]... [--push]
+```
+
+Examples:
+```
+python3 <plugin-root>/bin/git-memory-commit.py decision auth "usar JWT" --trailer "Decision=JWT over cookies" --trailer "Why=stateless API"
+python3 <plugin-root>/bin/git-memory-commit.py memo api "preference - async/await" --trailer "Memo=preference - async/await everywhere"
+python3 <plugin-root>/bin/git-memory-commit.py feat forms "add date picker" --trailer "Why=users need it" --trailer "Touched=src/forms/" --push
+python3 <plugin-root>/bin/git-memory-commit.py context forms "validation done" --trailer "Next=wire to API" --push
+python3 <plugin-root>/bin/git-memory-commit.py wip forms "half-done picker"
+```
+
+**For logs**, use:
+```
+python3 <plugin-root>/bin/git-memory-log.py [N]          # last N commits (default 10)
+python3 <plugin-root>/bin/git-memory-log.py --all        # only memory commits
+python3 <plugin-root>/bin/git-memory-log.py --type memo  # only memos
+```
+
+These scripts produce clean, colored output for the user instead of raw git output.
+
 ### Boot sequence
 
 1. `git fetch --quiet` — sync remote refs silently. If no network or no remote, continues without error.

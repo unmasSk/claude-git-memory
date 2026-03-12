@@ -127,7 +127,25 @@ def main() -> None:
     tool_input = input_data.get("tool_input", {})
     command = tool_input.get("command", "")
 
-    # Only check git commit commands
+    # ── Block direct git commit / git log — force use of wrapper scripts ──
+    # Only enforce for Claude (CLAUDE_CODE env set), not humans or tests
+    is_claude = bool(os.environ.get("CLAUDE_CODE"))
+    uses_wrapper = "git-memory-commit.py" in command or "git-memory-log.py" in command
+    if is_claude and not uses_wrapper:
+        if "git commit" in command:
+            plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "${CLAUDE_PLUGIN_ROOT}")
+            msg = f"\n{RED}>>> BLOCKED: Use the git-memory commit script instead of git commit directly.{RESET}"
+            msg += f"\n{RED}>>> Run: python3 {plugin_root}/bin/git-memory-commit.py <type> <scope> <message> [--trailer KEY=VALUE]...{RESET}"
+            print(msg, file=sys.stderr)
+            sys.exit(2)
+        if re.search(r"\bgit\s+log\b", command):
+            plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "${CLAUDE_PLUGIN_ROOT}")
+            msg = f"\n{RED}>>> BLOCKED: Use the git-memory log script instead of git log directly.{RESET}"
+            msg += f"\n{RED}>>> Run: python3 {plugin_root}/bin/git-memory-log.py [N] [--all] [--type TYPE]{RESET}"
+            print(msg, file=sys.stderr)
+            sys.exit(2)
+
+    # Only check git commit commands (from wrapper or direct)
     if "git commit" not in command:
         sys.exit(0)
 

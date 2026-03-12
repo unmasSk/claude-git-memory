@@ -69,7 +69,7 @@ To remove the plugin itself: `/plugin uninstall claude-git-memory`
 
 ```json
 {
-  "version": "3.1.0",
+  "version": "3.2.0",
   "installed_at": "ISO8601",
   "runtime_mode": "normal|compatible|read-only",
   "managed_blocks": [
