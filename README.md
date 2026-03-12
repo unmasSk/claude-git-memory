@@ -626,7 +626,6 @@ claude-git-memory/
 │   ├── plugin.json                         # Plugin manifest (name, version, entry points)
 │   └── marketplace.json                    # Marketplace metadata (version MUST match plugin.json)
 ├── agents/
-│   ├── alexandria.md                      # Documentation agent — changelog + CLAUDE.md sync (coming soon)
 │   ├── gitto.md                            # Memory oracle subagent (read-only)
 │   └── scout.md                      # Project structure analyzer → generates scope map
 ├── hooks/
@@ -727,9 +726,11 @@ Claude launches Scope Scout automatically on first install, or when you say "sca
 
 ### Alexandria — Documentation agent (coming soon)
 
-Alexandria keeps documentation synchronized with codebase reality. She activates automatically after merges to `dev`:
+Alexandria is a **project-level agent** — she lives in your project's `.claude/agents/alexandria.md`, not in the plugin. The plugin provides the infrastructure (hook trigger + changelog script), and Alexandria does the work.
 
-1. **PostToolUse hook** detects the merge and runs `git-memory-changelog.py`
+She activates automatically after merges to `dev`:
+
+1. **PostToolUse hook** (from the plugin) detects the merge and runs `git-memory-changelog.py`
 2. The script reads commits from the merged branch, filters noise (wip, context, memo, decision, remember, agent infrastructure), and groups by type using `Why:` trailers as descriptions
 3. The hook outputs an `[alexandria-trigger]` with the changelog data + affected folders
 4. Claude launches Alexandria in background
