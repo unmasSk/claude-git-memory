@@ -142,13 +142,13 @@ def main() -> None:
     is_claude = bool(os.environ.get("CLAUDE_CODE"))
     uses_wrapper = "git-memory-commit.py" in command or "git-memory-log.py" in command
     if is_claude and not uses_wrapper:
-        if "git commit" in command:
+        if re.search(r"\bgit\b.*\bcommit\b", command):
             plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "${CLAUDE_PLUGIN_ROOT}")
             msg = f"\n{RED}>>> BLOCKED: Use the git-memory commit script instead of git commit directly.{RESET}"
             msg += f"\n{RED}>>> Run: python3 {plugin_root}/bin/git-memory-commit.py <type> <scope> <message> [--trailer KEY=VALUE]...{RESET}"
             print(msg, file=sys.stderr)
             sys.exit(2)
-        if re.search(r"\bgit\s+log\b", command):
+        if re.search(r"\bgit\b.*\blog\b", command):
             plugin_root = os.environ.get("CLAUDE_PLUGIN_ROOT", "${CLAUDE_PLUGIN_ROOT}")
             msg = f"\n{RED}>>> BLOCKED: Use the git-memory log script instead of git log directly.{RESET}"
             msg += f"\n{RED}>>> Run: python3 {plugin_root}/bin/git-memory-log.py [N] [--all] [--type TYPE]{RESET}"
@@ -156,7 +156,7 @@ def main() -> None:
             sys.exit(2)
 
     # Only check git commit commands (from wrapper or direct)
-    if "git commit" not in command:
+    if not re.search(r"\bgit\b.*\bcommit\b", command):
         sys.exit(0)
 
     # Try to extract the commit message
