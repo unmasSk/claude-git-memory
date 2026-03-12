@@ -1,6 +1,6 @@
 ---
 name: git-memory-issues
-description: Use when user mentions issues, pending tasks, backlog, milestone, "create an issue", "note this for later", "this is a bug", "feature request", "technical debt", or when Claude detects improvements while working on something else.
+description: Use when user explicitly asks to create a GitHub issue, manage milestones, or says "note this for later" / "create an issue" / "add to backlog". Also when Claude detects a bug or improvement while working on something else and needs to park it as an issue. Do not trigger on general mentions of bugs, features, or tasks in conversation.
 ---
 
 # Git Memory — Issues & Milestones
