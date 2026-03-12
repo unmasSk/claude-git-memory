@@ -230,14 +230,34 @@ Base: `dev`. Work in `feat/*`, `fix/*`, `chore/*`. 1 issue = 1 branch. Default m
 | `push --force-with-lease` | **high** | YES — feature branches only |
 | `push --force` main/staging | **FORBIDDEN** | N/A |
 
-Any `rebase`, `push --force`, `reset --hard` → **STOP**. Show: command, branch, risk, consequences. Require explicit confirmation.
+Any `rebase`, `push --force`, `reset --hard` → **STOP**. Use this confirmation format:
+
+```
+⚠️ DANGEROUS OPERATION: <command>
+Branch: <branch-name>
+Risk: <high>
+
+This can cause:
+- <consequence 1>
+- <consequence 2>
+
+Type "I understand the risk, proceed" to continue.
+```
+
+### Merge Rules
+
+- **Always `--no-ff`** when merging to dev: `git merge --no-ff <branch>`. This preserves the branch history and creates a merge commit that hooks can detect.
+- **Pre-merge checklist** (before any merge to dev):
+  1. Run lint/format/tests if the project has them
+  2. Verify no debug code left (`console.log`, `dd`, `dump`)
+  3. Check for uncommitted changes on target branch
 
 ### Releases
 
 - PR mandatory: `dev → staging`. Production: `staging → main` with release protocol.
 - No `Next:` on main commits. `Risk:` always required on hotfixes.
 - PR body auto-generated from trailers.
-- Hotfix flow: branch from main → fix → PR to main → back-merge to dev immediately.
+- Hotfix flow: branch from main → fix → PR to main → **back-merge to dev IMMEDIATELY** (same session, no delay). If you skip this, the bug reappears next time dev merges to staging.
 
 ## Routing
 
