@@ -270,7 +270,7 @@ You don't need to learn any syntax. Claude detects intent from natural language:
 | "remember that I X" / "recuerda que yo X" | Creates a `remember(user)` — personality note for future sessions |
 | "I need to stop here" / "pause" | Creates a `context()` bookmark with Next: |
 | "what did we decide about X?" | Searches memory before asking you |
-| "scan scopes" | Launches the scope-scout agent to analyze project structure |
+| "scan scopes" | Launches the scout agent to analyze project structure |
 
 Decisions, memos, and remembers are captured without asking — Claude commits immediately and tells you what it saved in one line. No friction, no "ok?" prompts. Saying "remember that I..." creates a personality note that future Claudes read on boot. Context bookmarks still show the message before committing.
 
@@ -627,7 +627,7 @@ claude-git-memory/
 │   └── marketplace.json                    # Marketplace metadata (version MUST match plugin.json)
 ├── agents/
 │   ├── gitto.md                            # Memory oracle subagent (read-only)
-│   └── scope-scout.md                      # Project structure analyzer → generates scope map
+│   └── scout.md                      # Project structure analyzer → generates scope map
 ├── hooks/
 │   ├── hooks.json                          # Hook registration (Claude Code reads this)
 │   ├── pre-validate-commit-trailers.py     # Belt — blocks bad commits

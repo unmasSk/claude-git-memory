@@ -1,5 +1,5 @@
 ---
-name: scope-scout
+name: scout
 description: "Use this agent on first install or when the user says 'scan scopes' or 'update scopes' to inspect the project structure and generate a hierarchical scope map for git-memory. Analyze the repository read-only, except for writing .claude/git-memory-scopes.json. Do not modify any other file."
 tools: Bash, Glob, Grep, Read, Write
 model: inherit
