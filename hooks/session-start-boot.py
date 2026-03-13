@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "lib"))
@@ -156,6 +157,76 @@ def run_repair() -> bool:
         return result.returncode == 0
     except Exception:
         return False
+
+
+def check_issue_status(pending_items: list[dict], timeout: float = 5.0) -> dict[int, dict]:
+    """Check GitHub issue status for pending items with issue refs.
+
+    Launches parallel gh calls and collects results within timeout.
+    Returns dict mapping issue number to {"state": "OPEN"|"CLOSED", "title": "..."}.
+    Missing entries mean gh failed or timed out.
+    """
+    issues = {item["issue"] for item in pending_items if item.get("issue")}
+    if not issues:
+        return {}
+
+    # Check gh availability (single probe)
+    try:
+        probe = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True, timeout=3,
+        )
+        if probe.returncode != 0:
+            return {}
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {}
+
+    # Launch parallel gh calls
+    procs: dict[int, subprocess.Popen] = {}
+    for issue_num in issues:
+        try:
+            procs[issue_num] = subprocess.Popen(
+                ["gh", "issue", "view", str(issue_num), "--json", "state,title"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+            )
+        except OSError:
+            continue
+
+    # Collect results with global timeout
+    deadline = time.time() + timeout
+    results: dict[int, dict] = {}
+    for issue_num, proc in procs.items():
+        remaining = max(0.1, deadline - time.time())
+        try:
+            stdout, _ = proc.communicate(timeout=remaining)
+            if proc.returncode == 0 and stdout.strip():
+                data = json.loads(stdout)
+                results[issue_num] = {
+                    "state": data.get("state", "OPEN"),
+                    "title": data.get("title", ""),
+                }
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+            proc.kill()
+            proc.wait()
+
+    return results
+
+
+def _issue_matches_next(next_text: str, issue_title: str) -> bool:
+    """Check if a GitHub issue title plausibly matches a Next trailer text.
+
+    Prevents false positives from issue #N belonging to a different context.
+    Returns True if >= 2 keywords (3+ chars) overlap.
+    """
+    stop = {"the", "and", "for", "from", "with", "that", "this", "not", "are", "was"}
+
+    def keywords(text: str) -> set[str]:
+        return {
+            w.lower() for w in re.findall(r"[a-zA-Z]{3,}", text)
+            if w.lower() not in stop
+        }
+
+    return len(keywords(next_text) & keywords(issue_title)) >= 2
 
 
 def extract_memory() -> dict:
