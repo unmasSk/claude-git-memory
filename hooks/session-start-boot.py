@@ -162,14 +162,14 @@ def extract_memory() -> dict:
     """Extract memory from recent commits."""
     code, log_output = run_git([
         "log", f"-n{SCAN_DEPTH}",
-        "--pretty=format:%h\x1f%s\x1f%b\x1e"
+        "--pretty=format:%h\x1f%s\x1f%b\x1f%at\x1e"
     ])
     if code != 0 or not log_output:
         return {}
 
     tombstones: set[str] = set()
     commits = log_output.split("\x1e")
-    pending: list[str] = []
+    pending: list[dict] = []
     blockers: list[str] = []
     decisions: list[tuple[str, str]] = []  # (scope, text)
     memos: list[tuple[str, str]] = []      # (scope, text)
@@ -183,10 +183,16 @@ def extract_memory() -> dict:
         entry = entry.strip()
         if not entry:
             continue
-        parts = entry.split("\x1f", 2)
+        parts = entry.split("\x1f", 3)
         if len(parts) < 3:
             continue
         sha, subject, body = parts[0], parts[1], parts[2]
+        ts = 0
+        if len(parts) >= 4:
+            try:
+                ts = int(parts[3].strip()) if parts[3].strip() else 0
+            except ValueError:
+                ts = 0
         trailers = scan_trailers(body)
 
         # Last context bookmark
@@ -206,7 +212,15 @@ def extract_memory() -> dict:
             text = trailers["Next"]
             if normalize(text) not in tombstones:
                 scope_prefix = f"({scope}) " if scope else ""
-                pending.append(f"{sha}: {scope_prefix}{text}")
+                issue_match = re.search(r"#(\d+)", text)
+                pending.append({
+                    "sha": sha,
+                    "scope": scope,
+                    "text": text,
+                    "display": f"{sha}: {scope_prefix}{text}",
+                    "issue": int(issue_match.group(1)) if issue_match else None,
+                    "timestamp": ts,
+                })
 
         # Blockers
         if "Blocker" in trailers and len(blockers) < MAX_BLOCKERS:
@@ -648,11 +662,11 @@ def main() -> None:
     # Next items — branch-scoped first
     if memory.get("pending"):
         branch_next, other_next = partition_by_relevance(
-            memory["pending"], branch_keywords, lambda x: x)
+            memory["pending"], branch_keywords, lambda x: x["display"])
         all_next = branch_next[:BOOT_MAX_BRANCH_NEXT] + other_next[:BOOT_MAX_OTHER_NEXT]
         all_next = all_next[:BOOT_MAX_NEXT]
         for item in all_next:
-            lines.append(f"  Next: {item}")
+            lines.append(f"  Next: {item['display']}")
         remaining = len(memory["pending"]) - len(all_next)
         if remaining > 0:
             lines.append(f"  ({remaining} more Next items in history. Use git-memory-log --type context)")
