@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Statusline context-writer and hook scripts now generate forward-slash paths for Git Bash compatibility on Windows (root cause: `sys.executable` and `os.path.join` produced backslash paths that broke under Git Bash)
+- Path generation fixed in context-writer.py, git-memory-install.py, session-start-boot.py, and user-prompt-memory-check.py
+
+### Added
+- Context percentage (ctx%) output in status bar with color coding (red at 75%+, yellow at 60%+)
+- `[context] XX%` now appears in hook output at all levels, not just above 60%
+- Separator between ctx% and original statusline passthrough
+
 ## [3.6.0] - 2026-03-13
 
 ### Added

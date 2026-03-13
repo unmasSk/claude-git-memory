@@ -1,7 +1,11 @@
 {
-  "head_sha": "223d4ada9b6dcd8a90f35fc9c90a88184b19c2a6",
-  "generated_at": "2026-03-13T15:40:21.854572+00:00",
+  "head_sha": "a6fcba51afdef731108205bc191bb7afdf8f45b0",
+  "generated_at": "2026-03-13T15:55:13.542553+00:00",
   "decisions": [
+    [
+      "(plugin)",
+      "README sin jerga interna, sin For developers, sin CLI reference, sin espa\u00f1ol en ejemplos"
+    ],
     [
       "(plugin/scout)",
       "scout se integra en boot (mostrar scopes) y en commit script (suggest_scope_from_paths). Opcion 1 pasiva descartada porque mejor dar contexto desde el inicio"
@@ -23,10 +27,6 @@
       "git-memory-commit.py detecta Next= sin #issue y crea issue con gh CLI, degradacion silenciosa si no hay gh"
     ],
     [
-      "(plugin)",
-      "Alexandria is project-level agent, not plugin agent"
-    ],
-    [
       "(plugin/alexandria)",
       "commits de agentes (scope agents/agent-memory) se filtran del changelog; idempotencia por SHA check; si no hay cambios accionables el hook no triggerea Alexandria"
     ],
@@ -45,6 +45,10 @@
   ],
   "memos": [
     [
+      "(feedback)",
+      "antipattern - prompts a agentes deben ser cortos: solo el QUE, no el COMO. El agente ya sabe sus instrucciones"
+    ],
+    [
       "(plugin/commit)",
       "requirement - co-author como constante, pendiente decision del valor exacto"
     ],
@@ -59,10 +63,6 @@
     [
       "(capture)",
       "preference - no pedir confirmaci\u00f3n para memos/decisiones. Detectar, commitear, informar. Sin \"ok?\"."
-    ],
-    [
-      "(feedback)",
-      "feedback - usuario prefiere /clear sobre compactar porque git-memory retoma perfecto. Indicador clave de confianza en el sistema."
     ],
     [
       "(extension)",
