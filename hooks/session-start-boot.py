@@ -414,7 +414,7 @@ def _ensure_statusline() -> None:
 
     # Already configured — just update path if plugin root changed
     if "context-writer" in current_cmd:
-        expected_cmd = f"{sys.executable} {wrapper_script}"
+        expected_cmd = f"python3 {wrapper_script.replace(os.sep, '/')}"
         if current_cmd != expected_cmd:
             settings["statusLine"] = {
                 "type": "command",
@@ -438,7 +438,7 @@ def _ensure_statusline() -> None:
 
     settings["statusLine"] = {
         "type": "command",
-        "command": f"{sys.executable} {wrapper_script}",
+        "command": f"python3 {wrapper_script.replace(os.sep, '/')}",
         "padding": 0,
     }
     try:
@@ -525,7 +525,7 @@ def main() -> None:
     if code != 0:
         sys.exit(0)
 
-    plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    plugin_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__))).replace(os.sep, "/")
     lines: list[str] = []
 
     # 0. Clean session-booted flag (new session = fresh boot)
@@ -726,8 +726,8 @@ def main() -> None:
         lines.append("")
 
     # ── BOOT COMPLETE ───────────────────────────────────────────────
-    commit_script = os.path.join(plugin_root, "bin", "git-memory-commit.py")
-    log_script = os.path.join(plugin_root, "bin", "git-memory-log.py")
+    commit_script = os.path.join(plugin_root, "bin", "git-memory-commit.py").replace(os.sep, "/")
+    log_script = os.path.join(plugin_root, "bin", "git-memory-log.py").replace(os.sep, "/")
     lines.append("---")
     lines.append("BOOT COMPLETE. Do NOT run doctor or git-memory-log. All context is above.")
     lines.append(f'Commit: python3 "{commit_script}"')

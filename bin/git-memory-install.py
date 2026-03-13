@@ -468,8 +468,8 @@ def _setup_statusline_wrapper(source: str) -> None:
     current_sl = settings.get("statusLine", {})
     current_cmd = current_sl.get("command", "") if isinstance(current_sl, dict) else ""
 
-    # Our wrapper command
-    wrapper_cmd = f"{sys.executable} {wrapper_script}"
+    # Our wrapper command — use forward slashes for Git Bash compatibility on Windows
+    wrapper_cmd = f"python3 {wrapper_script.replace(os.sep, '/')}"
 
     # Case 1: Already configured with exact same command — skip
     if current_cmd == wrapper_cmd:

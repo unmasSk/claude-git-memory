@@ -51,6 +51,16 @@ def main() -> None:
         except OSError:
             pass
 
+    # Always show context percentage in status bar
+    used = ctx.get("used_percentage")
+    if used is not None:
+        if used >= 75:
+            sys.stdout.write(f"\033[31m⚠ ctx {used:.0f}%\033[0m")
+        elif used >= 60:
+            sys.stdout.write(f"\033[33mctx {used:.0f}%\033[0m")
+        else:
+            sys.stdout.write(f"ctx {used:.0f}%")
+
     # Pass through to the user's original statusline command
     orig_file = os.path.join(
         os.path.expanduser("~"), ".claude", ".git-memory-original-statusline"
@@ -72,6 +82,8 @@ def main() -> None:
                 timeout=10,
             )
             if proc.stdout:
+                if used is not None:
+                    sys.stdout.write(" | ")
                 sys.stdout.write(proc.stdout)
         except (subprocess.TimeoutExpired, OSError):
             pass

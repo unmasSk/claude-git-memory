@@ -22,7 +22,7 @@ from git_helpers import is_git_repo, run_git
 
 # Plugin root — derived from this script's location in the cache.
 # hooks/user-prompt-memory-check.py → go up one level → plugin root.
-PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+PLUGIN_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__))).replace(os.sep, "/")
 
 
 def get_project_root() -> str | None:
@@ -145,6 +145,8 @@ def main() -> None:
                         f"[context-warning] {used:.0f}% used ({remaining:.0f}% remaining). "
                         "Consider creating a context() commit to checkpoint your work."
                     )
+                else:
+                    lines.append(f"[context] {used:.0f}%")
         except (json.JSONDecodeError, OSError, ValueError):
             pass
 
