@@ -152,7 +152,7 @@ def test_manifest_updated(tmp_path):
         manifest = json.load(f)
 
     assert "upgraded_at" in manifest
-    assert manifest["version"] == "3.4.0"
+    assert manifest["version"] == "3.5.1"
 
 
 if __name__ == "__main__":

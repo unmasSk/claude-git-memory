@@ -39,7 +39,7 @@ Memory System Status
 ✅ Hook activity: 12/15 commits have trailers (80%)
 ✅ GC: last run 4 days ago
 ❌ Stale blockers: 2 items >30 days
-✅ Version: v3.3.0 (current)
+✅ Version: v3.5.1 (current)
 ─────────────────────────
 Recommendation: review stale blockers
 ```
@@ -69,7 +69,7 @@ To remove the plugin itself: `/plugin uninstall claude-git-memory`
 
 ```json
 {
-  "version": "3.3.0",
+  "version": "3.5.1",
   "installed_at": "ISO8601",
   "runtime_mode": "normal|compatible|read-only",
   "managed_blocks": [
