@@ -57,7 +57,7 @@ Next: wire validation into the API layer
 ### What Claude sees when it starts a new session
 
 ```
-[git-memory-boot] v3.6.0 | ~/.claude/plugins/cache/.../claude-git-memory
+[git-memory-boot] v3.7.0 | ~/.claude/plugins/cache/.../claude-git-memory
 
 STATUS: ok
 
@@ -128,10 +128,10 @@ That's it. **No configuration needed.** When Claude starts a session in your pro
 
 1. **Hooks register** -- pre-commit validation, post-commit safety net, session start, user message, session exit, context compression
 2. **Skills load** -- core memory rules + lifecycle management + issues/milestones (3 skills)
-3. **Agents available** -- Gitto (memory oracle) + Scope Scout (project structure analyzer)
+3. **Agents available** -- Gitto (memory oracle) + Alexandria (documentation agent)
 4. **Auto-boot runs** -- silent health check + memory summary + scope map + full glossary
 5. **CLAUDE.md updated** -- a minimal managed block pointing to the skills
-6. **Scope map generated** -- Scope Scout analyzes your project structure in the background
+6. **Scope map generated** -- if missing, boot instructs Claude to generate it via Explore agent
 
 **Nothing gets copied to your project root** except `CLAUDE.md` and `.claude/git-memory-manifest.json`. The plugin runs entirely from the plugin cache at `~/.claude/plugins/cache/`.
 
@@ -305,11 +305,9 @@ Gitto is a read-only subagent that answers questions about past decisions, prefe
 - **Contradiction detection.** If two decisions in the same scope contradict, shows both with the most recent marked as active.
 - **Result limits.** Maximum 10 results per query, with a count of older results.
 
-### Scope Scout -- Project structure analyzer
+### Scope generation
 
-Scope Scout inspects your codebase and generates a hierarchical scope map at `.claude/git-memory-scopes.json`. It detects frameworks, monorepo patterns, and existing scopes from git history.
-
-Claude launches Scope Scout automatically on first install. Scout also generates a project profile and creates an inaugural commit -- the "point zero" of git-memory in your project.
+On first session (or when `git-memory-scopes.json` is missing), boot detects the absence and instructs Claude to launch an Explore agent that analyzes your project structure and generates a hierarchical scope map at `.claude/git-memory-scopes.json`. This replaces the former Scout agent -- no dedicated agent needed for a one-time task.
 
 ### Alexandria -- Documentation agent
 
@@ -327,9 +325,9 @@ The plugin monitors Claude's context window usage and warns before auto-compacti
 
 A **statusline wrapper** (`context-writer.py`) intercepts Claude Code's session data and writes context stats to `<project>/.claude/.context-status.json`. The UserPromptSubmit hook reads this file and warns Claude in real-time:
 
-| Context used | Warning |
+| Context used | Output |
 |-------------|---------|
-| < 60% | No warning |
+| < 60% | Context percentage shown (informational) |
 | 60-75% | `[context-warning]` -- "Consider creating a context() commit" |
 | 75%+ | `[CONTEXT CRITICAL]` -- "Auto-compact imminent. Create context() commit NOW" |
 

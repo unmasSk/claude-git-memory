@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] - 2026-03-13
+
+### Added
+- Boot auto-detects missing `git-memory-scopes.json` and instructs Claude to generate it via Explore agent
+- Next cleanup in boot: checks GitHub issue status for pending Next items — closed issues are filtered out, items older than 7 days without an issue ref are marked `[stale]`
+- Cross-repo guard prevents false positives when Next items reference issues in other repositories
+- GC tombstone support for `Resolved-Next:` trailers — resolved pending items are hidden from future boot output
+
+### Changed
+- Scout agent removed — scope scanning now handled by an Explore agent prompt during boot
+- Context percentage is now always shown in the UserPromptSubmit hook output (previously only displayed at 60%+ usage)
+
+### Fixed
+- Boot and commit script hardening from code review feedback
+
 ## [3.6.0] - 2026-03-13
 
 ### Added
