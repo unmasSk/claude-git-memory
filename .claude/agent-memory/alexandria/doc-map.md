@@ -15,6 +15,6 @@ type: project
 | Path | Type | Status |
 |------|------|--------|
 | `CHANGELOG.md` | Changelog | Created 2026-03-13 — covers 1.0.0 through 3.6.0 |
-| `README.md` | Project readme | Exists — not managed by Alexandria |
+| `README.md` | Project readme | Rewritten 2026-03-13 — full audit against codebase, all claims verified |
 
 **How to apply:** On each launch, check git commits since last verified date for each CLAUDE.md. If stale, update.

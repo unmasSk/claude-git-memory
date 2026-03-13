@@ -1,6 +1,6 @@
 {
-  "head_sha": "ef32e2e42907a2b4a766b8d29a35288410e70dfd",
-  "generated_at": "2026-03-13T15:31:14.652919+00:00",
+  "head_sha": "223d4ada9b6dcd8a90f35fc9c90a88184b19c2a6",
+  "generated_at": "2026-03-13T15:40:21.854572+00:00",
   "decisions": [
     [
       "(plugin/scout)",

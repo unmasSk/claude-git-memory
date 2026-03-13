@@ -16,8 +16,8 @@
   <a href="#what-you-say-vs-what-claude-does">Conversational capture</a> &nbsp;·&nbsp;
   <a href="#the-six-hooks">Hooks</a> &nbsp;·&nbsp;
   <a href="#agents">Agents</a> &nbsp;·&nbsp;
-  <a href="#context-awareness">Context awareness</a> &nbsp;·&nbsp;
-  <a href="#updating--troubleshooting">Updating</a>
+  <a href="#faq">FAQ</a> &nbsp;·&nbsp;
+  <a href="#updating--troubleshooting">Troubleshooting</a>
 </p>
 
 ---
@@ -32,13 +32,13 @@ Every time Claude starts a new session, it forgets everything:
 
 You end up repeating yourself, re-explaining decisions, and watching Claude reinvent wheels.
 
-**claude-git-memory fixes this.** After installing it, Claude remembers everything — across sessions, machines, and context resets. You don't need to do anything special. Just talk to Claude like you always do.
+**claude-git-memory fixes this.** After installing it, Claude remembers everything -- across sessions, machines, and context resets. You don't need to do anything special. Just talk to Claude like you always do.
 
 ---
 
 ## How it works
 
-**Git = Memory.** Every commit carries structured metadata (called "trailers") that Claude reads automatically when a session starts. No external files, no databases, no cloud services — everything lives in your git history.
+**Git = Memory.** Every commit carries structured metadata (called "trailers") that Claude reads automatically when a session starts. No external files, no databases, no cloud services -- everything lives in your git history.
 
 Here's what a commit looks like with memory:
 
@@ -64,6 +64,11 @@ STATUS: ok
 BRANCH: feat/CU-042-filters [0/2 vs upstream]
   PULL RECOMMENDED: remote is 2 ahead
 
+SCOPES:
+  frontend: UI components — forms, filters, date pickers [frontend/forms, frontend/ux]
+  backend: API and auth — rate limiting, OAuth, JWT [backend/api, backend/auth]
+  infra: CI/CD and deployment [infra/ci, infra/deploy]
+
 RESUME:
   Last: a3f2b1c 💾 context(forms): pause forms refactor | 2h ago
   Issue (from branch): #42
@@ -71,8 +76,8 @@ RESUME:
   Blocker: none
 
 REMEMBER:
-  (user) se frustra si asumes cosas — preguntar antes
-  (claude) trabaja en español, respuestas directas
+  (user) gets frustrated when assumptions are made — ask first
+  (claude) prefers direct answers, no filler
 
 DECISIONS:
   (forms) use dayjs over moment
@@ -90,17 +95,13 @@ TIMELINE (last 5):
 
 ---
 BOOT COMPLETE. Do NOT run doctor or git-memory-log. All context is above.
-Commit: python3 "~/.claude/plugins/cache/.../bin/git-memory-commit.py"
-Log: python3 "~/.claude/plugins/cache/.../bin/git-memory-log.py"
 ```
 
-No questions. It knows where you left off. One tool call (loading the skill), zero bash commands.
+No questions. It knows where you left off, what scopes exist, and what matters. One tool call (loading the skill), zero bash commands.
 
 ---
 
 ## Quick start
-
-### Option A: Install from GitHub (recommended)
 
 **Step 1:** Add the repository as a marketplace source:
 
@@ -111,7 +112,7 @@ No questions. It knows where you left off. One tool call (loading the skill), ze
 **Step 2:** Install the plugin (use the interactive menu, NOT the URL):
 
 ```
-/plugin install
+/plugin
 ```
 
 Then select `claude-git-memory` from the list. Choose your scope:
@@ -121,109 +122,24 @@ Then select `claude-git-memory` from the list. Choose your scope:
 
 > **Important:** `/plugin install` does NOT accept URLs. You must add the marketplace first, then install by name from the interactive menu.
 
-### Option B: Install from the official marketplace
-
-If the plugin is published to the [official Anthropic marketplace](https://github.com/anthropics/claude-plugins-official):
-
-```
-/plugin install claude-git-memory@claude-plugins-official
-```
-
-### Option C: Local development / testing
-
-Load the plugin directly from a local directory without installing:
-
-```bash
-claude --plugin-dir /path/to/claude-git-memory
-```
-
-This uses the plugin in-place (no cache copy). Useful for development and testing. Restart Claude Code to pick up changes.
-
 ### What happens after installing
 
 That's it. **No configuration needed.** When Claude starts a session in your project, the plugin activates automatically:
 
-1. **Hooks register** — pre-commit, post-commit, session start, user message, session exit, context compression
-2. **Skills load** — core memory rules + lifecycle management + issues/milestones (3 skills)
-3. **Agents available** — Gitto (memory oracle) + Scope Scout (project structure analyzer)
-4. **Auto-boot runs** — silent health check + memory summary + full glossary
-5. **CLAUDE.md updated** — a minimal managed block pointing to the skills
-6. **Scope map generated** — Scope Scout analyzes your project structure in the background
+1. **Hooks register** -- pre-commit validation, post-commit safety net, session start, user message, session exit, context compression
+2. **Skills load** -- core memory rules + lifecycle management + issues/milestones (3 skills)
+3. **Agents available** -- Gitto (memory oracle) + Scope Scout (project structure analyzer)
+4. **Auto-boot runs** -- silent health check + memory summary + scope map + full glossary
+5. **CLAUDE.md updated** -- a minimal managed block pointing to the skills
+6. **Scope map generated** -- Scope Scout analyzes your project structure in the background
 
-**Nothing gets copied to your project root** except `CLAUDE.md` and `.claude/git-memory-manifest.json`. The plugin runs entirely from the plugin cache at `~/.claude/plugins/cache/`. No `bin/`, `hooks/`, `skills/`, or `lib/` directories clutter your project.
-
-The plugin uses `${CLAUDE_PLUGIN_ROOT}` internally to locate its own hooks and scripts. Claude Code discovers hooks from `hooks/hooks.json` automatically.
+**Nothing gets copied to your project root** except `CLAUDE.md` and `.claude/git-memory-manifest.json`. The plugin runs entirely from the plugin cache at `~/.claude/plugins/cache/`.
 
 ### Requirements
 
 - Python 3.10+
 - Git
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) v1.0.33+ (plugin support)
-
----
-
-## Updating & troubleshooting
-
-### For developers: releasing a new version
-
-When you make changes to the plugin code, **you MUST bump the version** or the changes won't reach users. Claude Code caches plugins keyed by `name + version` — same version = same cache, no matter what changed in the code.
-
-**Version bump checklist (ALL of these, every time):**
-
-| File | What to change |
-|------|---------------|
-| `.claude-plugin/plugin.json` | `"version": "X.Y.Z"` |
-| `.claude-plugin/marketplace.json` | `"version": "X.Y.Z"` (MUST match plugin.json) |
-| `bin/git-memory-install.py` | `VERSION = "X.Y.Z"` |
-| `bin/git-memory-doctor.py` | `VERSION = "X.Y.Z"` |
-| `bin/git-memory-bootstrap.py` | `VERSION = "X.Y.Z"` |
-| `bin/git-memory-upgrade.py` | `VERSION = "X.Y.Z"` |
-| `skills/git-memory-lifecycle/SKILL.md` | version in example manifest |
-| `tests/*.py` | version assertions (3 files) |
-
-**Semver rules:** PATCH (3.1.0 → 3.1.1) for bugfixes. MINOR (3.1.0 → 3.2.0) for new features. MAJOR (3.x → 4.0.0) for breaking changes.
-
-After pushing, users need to refresh their plugin cache (see below).
-
-### Updating the plugin (for users)
-
-**To update to a new version:**
-
-1. Run `/plugin` in Claude Code (opens the interactive menu)
-2. Go to the **marketplace** section
-3. Select the **update** option for `claude-git-memory`
-
-That's it. Claude Code will download the new version to a fresh cache directory (keyed by version number). Your next session will use the updated version automatically.
-
-**Important:** `/plugin update` (the CLI command) does NOT work reliably. Always use the interactive `/plugin` menu instead.
-
-**Note:** Until you update, your projects keep using the OLD cached version. The CLAUDE.md managed block, hooks, and skills all run from the cache, not from the source repo.
-
-### The marketplace.json matters
-
-The version in `.claude-plugin/marketplace.json` is what Claude Code uses to determine whether an update is available. If `marketplace.json` says `2.0.0` but `plugin.json` says `3.0.0`, Claude Code will think the plugin is at `2.0.0`. **Both files must have the same version.**
-
-### Common issues
-
-| Problem | Cause | Fix |
-|---------|-------|-----|
-| `/plugin update` says "already at latest" | CLI command unreliable | Use `/plugin` interactive menu > marketplace > update instead |
-| `/plugin install <URL>` says "Marketplace not found" | `/plugin install` doesn't accept URLs | Use `/plugin marketplace add <URL>` first, then `/plugin install` from menu |
-| Hooks error "can't open file" after update | Stale cache pointing to old version directory | Delete `~/.claude/plugins/cache/unmassk-claude-git-memory/` and reinstall |
-| Stop hook blocks in infinite loop | Cache was deleted but plugin still registered | Ctrl+C to kill, then restore cache manually or reinstall |
-| All Bash commands blocked | PreToolUse hook references deleted cache path | Kill session (Ctrl+C), restore cache or reinstall in a new terminal |
-
-### Deadlock recovery
-
-If you delete the plugin cache while a session is running, you'll enter a deadlock: hooks can't find their scripts, and you can't use Bash to fix it because the PreToolUse hook blocks every command.
-
-**To recover:**
-
-1. Kill the Claude Code session (Ctrl+C or close terminal)
-2. In a normal terminal, either:
-   - Restore the cache: `mkdir -p ~/.claude/plugins/cache/unmassk-claude-git-memory/claude-git-memory/<version>/ && cp -R <plugin-source>/* <that-dir>/`
-   - Or reinstall cleanly: `/plugin` > marketplace > update
-3. Start a new Claude Code session
 
 ---
 
@@ -239,35 +155,7 @@ This is the most important thing to understand:
 - Want to clean stale items? Say "clean up old blockers".
 - Want to uninstall? Say "remove git-memory".
 
-The CLI commands exist, but they're for Claude to use internally — not for you. You just talk.
-
-### Pretty output
-
-Claude uses wrapper scripts instead of raw `git commit` and `git log`. A PreToolUse hook blocks direct git commands and forces Claude to use the wrappers, which produce clean, colored ANSI output:
-
-```
-🧭 decision(auth): usar JWT [a3f2b1c]
-📌 memo(api): preference - async/await everywhere [b4c3d2e]
-✨ feat(backend/api): add rate limiting [c5d4e3f]
-```
-
-Log output is also colored and filterable by type (`--type memo`, `--type decision`, `--all` for memory commits only).
-
----
-
-## Hierarchical scopes
-
-Commit scopes use a hierarchical format separated by `/`, max 2 levels:
-
-```
-feat(backend/api): add rate limiting
-decision(frontend/ux): use glassmorphic style
-memo(backend/auth): preference - JWT over sessions
-```
-
-On first install, Claude launches a **scope scout agent** that inspects your project structure and generates a scope map at `.claude/git-memory-scopes.json`. You can also say "scan scopes" at any time to regenerate it.
-
-The scope map is a guide, not a constraint — Claude can use unlisted scopes when they make sense.
+The CLI commands exist, but they're for Claude to use internally -- not for you. You just talk.
 
 ---
 
@@ -277,18 +165,16 @@ You don't need to learn any syntax. Claude detects intent from natural language:
 
 | You say | Claude does |
 |---------|-------------|
-| "let's go with X" | Creates a `decision()` commit immediately, informs you in one line |
-| "always use X" / "never use Y" | Creates a `memo(preference)` immediately, informs you in one line |
-| "the client requires X" | Creates a `memo(requirement)` immediately, informs you in one line |
-| "don't ever do X again" | Creates a `memo(antipattern)` immediately, informs you in one line |
-| "remember that I X" / "recuerda que yo X" | Creates a `remember(user)` — personality note for future sessions |
-| "I need to stop here" / "pause" | Creates a `context()` bookmark with Next: |
-| "what did we decide about X?" | Searches memory before asking you |
-| "scan scopes" | Launches the scout agent to analyze project structure |
-| "create an issue for X" | Creates a GitHub issue with full template (checklist, DoD, risks) |
-| "create a milestone for X" | Creates a milestone grouping related issues |
+| "let's go with X" | Saves the decision immediately, tells you in one line |
+| "always use X" / "never use Y" | Saves your preference immediately |
+| "the client requires X" | Saves the requirement immediately |
+| "don't ever do X again" | Saves the anti-pattern immediately |
+| "remember that I prefer short answers" | Saves a personality note that future sessions will read |
+| "I need to stop here" / "pause" | Bookmarks your progress so the next session picks up where you left off |
+| "what did we decide about auth?" | Searches memory before asking you |
+| "create an issue for X" | Creates a GitHub issue with full template |
 
-Decisions, memos, and remembers are captured without asking — Claude commits immediately and tells you what it saved in one line. No friction, no "ok?" prompts. Saying "remember that I..." creates a personality note that future Claudes read on boot. Context bookmarks still show the message before committing.
+Decisions, memos, and remembers are captured **without asking** -- Claude commits immediately and tells you what it saved in one line. No friction, no "ok?" prompts. Context bookmarks show the message before committing.
 
 ---
 
@@ -308,7 +194,7 @@ Issue: CU-101
 
 Required trailers: `Why:` + `Touched:` (+ `Issue:` if the branch name has one)
 
-### Context bookmarks — `context(scope)`
+### Context bookmarks -- `context(scope)`
 
 Created when you pause work or end a session:
 
@@ -321,9 +207,7 @@ Next: finish rate limiting middleware after bugfix
 
 Required: `Why:` + `Next:`
 
-### Decisions — `decision(scope)`
-
-Created when you make an architecture or design choice:
+### Decisions -- `decision(scope)`
 
 ```
 🧭 decision(backend/auth): use JWT over session cookies
@@ -334,9 +218,7 @@ Decision: JWT with 15min access + 7d refresh tokens
 
 Required: `Why:` + `Decision:`
 
-### Memos — `memo(scope)`
-
-Created when you state a preference, requirement, or antipattern:
+### Memos -- `memo(scope)`
 
 ```
 📌 memo(backend/api): preference — always use async/await over .then() chains
@@ -346,118 +228,128 @@ Memo: preference - async/await is more readable, team standard
 
 Required: `Memo:` with category (`preference`, `requirement`, `antipattern`, or `stack`)
 
-### Remembers — `remember(scope)`
+### Remembers -- `remember(scope)`
 
-Personality and working-style notes between Claude sessions. Two subtypes:
+Personality and working-style notes between sessions. Two subtypes:
 
-**User remembers** — explicit notes from you about yourself:
+- **User remembers** -- explicit notes from you about yourself: `remember(user)`
+- **Claude remembers** -- observations Claude makes about how you work: `remember(claude)`
 
-```
-🧠 remember(user): se frustra si asumes cosas
-
-Remember: user - no asumir, preguntar antes
-```
-
-**Claude remembers** — observations Claude makes about how you work:
-
-```
-🧠 remember(claude): trabaja en español, respuestas directas
-
-Remember: claude - idioma español, tono directo sin rodeos
-```
-
-Required: `Remember:` with category (`user` or `claude`)
-
-Remembers are NOT about the project — they're about the person. "Always use async/await" is a memo. "This user gets frustrated when I assume things" is a remember.
+Remembers are NOT about the project -- they're about the person. "Always use async/await" is a memo. "This user gets frustrated when I assume things" is a remember.
 
 ### WIP checkpoints
 
-Temporary saves during work. Claude creates these automatically:
+Temporary saves during work. Claude creates these automatically. No trailers required. Feature branches only. Squashed before merge.
+
+---
+
+## Hierarchical scopes
+
+Commit scopes use a hierarchical format separated by `/`, max 2 levels:
 
 ```
-🚧 wip: half-done login form
+feat(backend/api): add rate limiting
+decision(frontend/ux): use glassmorphic style
+memo(backend/auth): preference - JWT over sessions
 ```
 
-No trailers required. Feature branches only. Squashed before merge.
+On first install, Claude automatically analyzes your project structure and generates a scope map. The SCOPES section in the boot output shows these scopes every session, so Claude always knows the structure of your project.
 
 ---
 
 ## The six hooks
 
-The memory system protects itself with six automatic hooks. You don't configure them — they activate on install.
+The memory system protects itself with six automatic hooks. You don't configure them -- they activate on install.
 
 | Hook | Nickname | When it runs | What it does |
 |------|----------|-------------|--------------|
-| **Pre-commit** | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing **and** blocks direct `git commit`/`git log` — Claude must use wrapper scripts (`git-memory-commit.py`, `git-memory-log.py`). Catches all flag variants (`git -C path log`, `git --no-pager commit`, etc.). Human commits get a warning only — never blocked. |
-| **Post-commit** | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). |
-| **Session start** | Boot | When Claude starts a session | **Complete structured briefing** — silent health check + memory extraction + full glossary (cached) + branch-awareness + time-ago + version check. Outputs sectioned format: STATUS, BRANCH, RESUME, REMEMBER, DECISIONS, MEMOS, TIMELINE, BOOT COMPLETE. Claude receives everything in context — zero bash calls needed. |
-| **User message** | Radar | Every time you send a message | On first message: tells Claude to load the skill and show boot summary (no doctor/log). On every message: injects `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. |
-| **Session exit** | DoD | When Claude ends a session | Never blocks. If there are uncommitted changes, instructs Claude to create a silent wip commit. If wips accumulate (3+), suggests squashing into a proper commit. **Mandates a `context()` commit before every session end** — Claude must save what was accomplished and what's next. Also checks if decisions were discussed but not captured. |
-| **Context compression** | Hippocampus | Before Claude compresses context | Extracts a compact snapshot (branch, pending items, decisions, memos) and re-injects it so memory survives compression. |
+| **PreToolUse** (Bash) | Belt | Before `git commit` | Blocks Claude's commits if trailers are missing. Blocks direct `git commit`/`git log` -- Claude must use wrapper scripts. Human commits get a warning only, never blocked. |
+| **PostToolUse** (Bash) | Suspenders | After `git commit` | Safety net. If a bad commit slips through and hasn't been pushed, rolls it back safely (`reset --soft`). |
+| **SessionStart** | Boot | When Claude starts a session | Complete structured briefing -- silent health check + memory extraction + glossary (cached) + branch context + scopes. Outputs: STATUS, BRANCH, SCOPES, RESUME, REMEMBER, DECISIONS, MEMOS, TIMELINE. |
+| **UserPromptSubmit** | Radar | Every time you send a message | Injects `[memory-check]` reminder so Claude evaluates if your message contains a decision, preference, or requirement worth saving. Also handles context-window warnings. |
+| **Stop** | DoD | When Claude ends a session | Never blocks. Creates silent wip commits for uncommitted changes. Mandates a `context()` commit before session end. Checks if decisions were discussed but not captured. |
+| **PreCompact** | Hippocampus | Before Claude compresses context | Extracts a compact memory snapshot (~18 lines) and re-injects it so decisions, memos, and pending items survive compression. |
 
 ### How Belt + Suspenders work together
 
-**Belt** (pre-commit) catches problems before the commit happens. But some commit formats can't be parsed in advance (heredocs, `-F` flag). For those cases, **Suspenders** (post-commit) reads the actual commit after it lands and rolls it back if invalid.
+**Belt** (PreToolUse) catches problems before the commit happens. But some commit formats can't be parsed in advance (heredocs, `-F` flag). For those cases, **Suspenders** (PostToolUse) reads the actual commit after it lands and rolls it back if invalid.
 
-- If HEAD hasn't been pushed → safe rollback with `reset --soft HEAD~1` (changes stay staged)
-- If HEAD has been pushed → suggests a correction commit (never force-pushes)
-
-### How Hippocampus works
-
-When Claude's context window fills up, it compresses old messages. Before that happens, this hook extracts the most important memory from the last 30 commits:
-
-- Branch name
-- Last session bookmark
-- Pending items (max 2)
-- Blockers (max 2)
-- Active decisions (max 3, one per scope)
-- Active memos (max 2, one per scope)
-
-This compact snapshot (~18 lines) gets re-injected into Claude's context, so it remembers what matters even after compression.
-
-### GC tombstones
-
-The hooks respect garbage collector tombstones. If an item has been cleaned by the GC (`Resolved-Next:`, `Stale-Blocker:`), hooks will skip it — no zombie items resurface.
-
----
-
-## Automatic session boot
-
-Every time Claude starts a session in your project, it automatically:
-
-1. Fetches remote refs silently (detects if remote is ahead and suggests pulling).
-2. Runs a silent health check (doctor). If anything is broken, repairs it.
-3. Checks plugin version against manifest.
-4. Reads the last 30 commits and extracts memory trailers (pending, blockers, decisions, memos, remembers).
-5. Scans the **full git history** for a glossary of all decisions and memos by scope (cached with 24h TTL).
-6. Detects branch context — extracts keywords and issue references from branch name.
-7. Prioritizes branch-relevant items in each section.
-8. Calculates time since last context commit.
-9. Outputs a complete structured briefing with sections: STATUS, BRANCH, RESUME, REMEMBER, DECISIONS, MEMOS, TIMELINE, BOOT COMPLETE.
-
-Claude receives all of this in context from the SessionStart hook. It only needs to load the skill (one tool call) — no bash commands required. This saves ~1500-3000 tokens per boot compared to the previous 3-tool-call flow.
+- If HEAD hasn't been pushed: safe rollback with `reset --soft HEAD~1` (changes stay staged)
+- If HEAD has been pushed: suggests a correction commit (never force-pushes)
 
 ---
 
 ## Garbage collector
 
-Stale `Next:` and `Blocker:` items accumulate over time. The GC cleans them using three heuristics:
+Stale `Next:` and `Blocker:` items accumulate over time. Say "clean up stale items" or "run gc" and Claude handles it.
 
 | Heuristic | What it detects | How |
 |-----------|----------------|-----|
-| **H1** — keyword overlap | `Next:` items already done | If newer commits in the same scope share 2+ keywords with the Next: text, it's likely resolved |
-| **H2** — TTL expiry | `Blocker:` items gone stale | Blockers older than 30 days with no recent mention |
-| **H3** — explicit resolution | Items resolved by a `Resolution:` trailer | Paired with `Conflict:` in merge conflict commits |
+| **H1** -- keyword overlap | `Next:` items already done | Newer commits in the same scope share 2+ keywords with the Next: text |
+| **H2** -- TTL expiry | `Blocker:` items gone stale | Blockers older than 30 days with no recent mention |
+| **H3** -- explicit resolution | Items resolved by a `Resolution:` trailer | Paired with `Conflict:` in merge conflict commits |
 
-The GC **never deletes commits**. It creates a new commit with tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that hide cleaned items from future snapshots. Fully reversible with `git revert`.
+The GC **never deletes commits**. It creates tombstone trailers (`Resolved-Next:`, `Stale-Blocker:`) that hide cleaned items from future snapshots. Fully reversible with `git revert`.
 
-Say "clean up stale items" or "run gc" and Claude handles it.
+---
+
+## Agents
+
+### Gitto -- Memory oracle
+
+Gitto is a read-only subagent that answers questions about past decisions, preferences, requirements, and pending work. Claude delegates to Gitto automatically when you ask about the project's memory.
+
+**Key properties:**
+- **Read-only.** No commits, no file writes, no edits.
+- **Deep search.** Queries full git history, not just recent commits.
+- **Contradiction detection.** If two decisions in the same scope contradict, shows both with the most recent marked as active.
+- **Result limits.** Maximum 10 results per query, with a count of older results.
+
+### Scope Scout -- Project structure analyzer
+
+Scope Scout inspects your codebase and generates a hierarchical scope map at `.claude/git-memory-scopes.json`. It detects frameworks, monorepo patterns, and existing scopes from git history.
+
+Claude launches Scope Scout automatically on first install. Scout also generates a project profile and creates an inaugural commit -- the "point zero" of git-memory in your project.
+
+### Alexandria -- Documentation agent
+
+Alexandria is a **project-level agent** that lives in your project's `.claude/agents/alexandria.md`. She maintains CLAUDE.md files, detects documentation staleness, and manages the CHANGELOG in Keep a Changelog format.
+
+### Roadmap
+
+**VS Code Extension** (`claude-git-memory-vscode`) -- Real-time timeline of git-memory activity in the VS Code sidebar. Research and design complete, implementation not started.
+
+---
+
+## Context awareness
+
+The plugin monitors Claude's context window usage and warns before auto-compaction hits.
+
+A **statusline wrapper** (`context-writer.py`) intercepts Claude Code's session data and writes context stats to `<project>/.claude/.context-status.json`. The UserPromptSubmit hook reads this file and warns Claude in real-time:
+
+| Context used | Warning |
+|-------------|---------|
+| < 60% | No warning |
+| 60-75% | `[context-warning]` -- "Consider creating a context() commit" |
+| 75%+ | `[CONTEXT CRITICAL]` -- "Auto-compact imminent. Create context() commit NOW" |
+
+The statusline wrapper is configured automatically on first session start.
+
+---
+
+## Runtime modes
+
+The plugin adapts to your project's constraints automatically:
+
+| Mode | When | What happens |
+|------|------|-------------|
+| **Normal** | Standard git repo | Full system: hooks + trailers + wrappers |
+| **Compatible** | CI or commitlint rejects trailers | Uses git notes instead of commit trailers |
+| **Read-only** | No write permissions | Reads existing memory, doesn't create commits |
 
 ---
 
 ## Trailer reference
-
-Full list of trailers the system understands:
 
 | Trailer | Format | Used in |
 |---------|--------|---------|
@@ -465,7 +357,7 @@ Full list of trailers the system understands:
 | `Touched:` | `path1, path2` or `glob/*` | Code commits |
 | `Decision:` | Free text | `decision()` commits |
 | `Memo:` | `category - description` | `memo()` commits |
-| `Remember:` | `category - description` | `remember()` commits (user/claude personality notes) |
+| `Remember:` | `category - description` | `remember()` commits |
 | `Next:` | Free text | Pending work items |
 | `Blocker:` | Free text | What blocks progress |
 | `Issue:` | `CU-xxx` or `#xxx` | Auto-extracted from branch name |
@@ -476,369 +368,14 @@ Full list of trailers the system understands:
 | `Resolved-Next:` | (GC tombstone) | Marks a Next: as done |
 | `Stale-Blocker:` | (GC tombstone) | Marks a Blocker: as stale |
 
-**Rules:** case-sensitive keys, single-line values, contiguous block at the end of the commit body.
-
----
-
-## Runtime modes
-
-The plugin adapts to your project's constraints automatically:
-
-| Mode | When | What happens |
-|------|------|-------------|
-| **Normal** | Standard git repo | Full system: hooks + trailers + CLI |
-| **Compatible** | CI or commitlint rejects trailers | Uses git notes instead of commit trailers |
-| **Read-only** | No write permissions | Reads existing memory, doesn't create commits |
-
-If Claude detects a commitlint config or strict CI pipeline, it switches to compatible mode automatically. No action needed from you.
-
----
-
-## Self-healing
-
-Claude doesn't just install the system — it maintains it:
-
-| Situation | What Claude does |
-|-----------|-----------------|
-| CLAUDE.md block missing | Recreates the managed block on next session |
-| Manifest missing/corrupt | Regenerates from install script |
-| Old-style install files at root | Cleans up on next install |
-| After force push / history rewrite | Detects amnesia, rebuilds conservatively from current state, warns about gaps |
-
-All of this happens automatically. Claude tells you what it fixed, but you don't need to do anything.
-
----
-
-## Authority hierarchy
-
-When there's a conflict between memory sources, Claude follows this priority:
-
-1. **What you say in the conversation** (highest — always wins)
-2. **Confirmed memory** (decisions and memos in commits)
-3. **CLAUDE.md** of the project
-4. **Code inferences** (lowest)
-
-If Claude finds a contradiction (e.g., a new decision conflicts with an old memo), it warns you before creating the new commit.
-
----
-
-## Branch and release workflow
-
-- **Base branch:** `dev`. Work happens in `feat/*`, `fix/*`, `chore/*`.
-- **One issue = one branch.** Branch names like `feat/CU-042-filters` auto-extract the issue reference.
-- **Default merge** (not rebase). Rebase only with explicit user request.
-- **PR mandatory** for `dev → staging` and `staging → main`.
-- **No `Next:` on main.** Main branch must be clean.
-- **Force push to main: forbidden.** Always.
-- **Hotfix flow:** branch from main → fix → PR to main → back-merge to dev.
-
----
-
-## Undo safety
-
-| Operation | Risk | Claude asks first? |
-|-----------|------|--------------------|
-| `reset --soft HEAD~1` | Low | No |
-| `stash push/pop` | Low | No |
-| `revert <sha>` | Low | No (creates new commit) |
-| `amend` (before push) | Low | No |
-| `amend` (after push) | **High** | Yes |
-| `reset --hard` | **High** | Yes — shows what will be lost |
-| `push --force-with-lease` | **High** | Yes — feature branches only |
-| `push --force` main/staging | **Forbidden** | N/A |
-
----
-
-## Memory policy
-
-> "Write little, read often, confirm when it hurts to be wrong."
-
-Claude captures memory **without asking** when it detects:
-- Decisions: "let's go with X", "decided", "the approach is Y"
-- Preferences: "always X", "never Y", "from now on"
-- Requirements: "the client wants X", "it must", "mandatory"
-- Anti-patterns: "don't ever do X again", "that broke because"
-- Personality notes: "remember that I X", "recuerda que yo X" → `remember(user)`
-
-Claude commits immediately and informs you in one line. No "ok?" prompts — friction kills capture.
-
-Claude does **not** save:
-- Provisional observations or brainstorming
-- Weak inferences
-- Session-only context that won't matter tomorrow
-
-Before asking you something, Claude searches existing memory first:
-1. Search decisions and memos in git log
-2. Check CLAUDE.md
-3. Only if no match: ask you
-
----
-
-## CLI reference
-
-The memory system has a full CLI. **Claude runs all of these automatically — you never need to type them.** They're documented here so you know what's happening under the hood.
-
-### What you say → what Claude runs
-
-| You say | Claude runs | What happens |
-|---------|------------|--------------|
-| *(start a session)* | `git memory boot` | Shows memory summary: branch, pending items, decisions, memos |
-| "what did we decide about auth?" | `git memory search "auth"` | Searches all decisions, memos, and pending items |
-| "show me all decisions" | `git memory decisions` | Lists every architecture decision in the project |
-| "any pending work?" | `git memory pending` | Shows all unfinished Next: items |
-| "what memos do we have?" | `git memory memos` | Lists all preferences, requirements, and antipatterns |
-| "anything blocking us?" | `git memory blockers` | Shows all active blockers |
-| "is the memory system healthy?" | `git memory doctor` | Full diagnostic: plugin cache, CLAUDE.md, manifest, GC status, version |
-| "something's broken" | `git memory repair` | Checks CLAUDE.md and manifest, fixes what's broken |
-| "clean up old stuff" | `git memory gc` | Garbage collects stale Next/Blocker items with tombstones |
-| "scan this project" | `git memory bootstrap` | Scouts stack, frameworks, monorepo patterns, CI config |
-| "install memory system" | `git memory install` | Writes CLAUDE.md block + manifest (plugin runs from cache, nothing copied to root) |
-| "upgrade memory system" | `git memory upgrade` | Safe version migration with backup |
-| "remove memory system" | `git memory uninstall` | Removes CLAUDE.md block + manifest, keeps git history intact |
-
-All commands support `--json` for machine-readable output and `--auto` for non-interactive mode.
-
----
-
-## Project scout (bootstrap)
-
-On first contact with a repo, Claude can scan its structure without writing anything. It detects:
-
-- **Languages:** JavaScript/TypeScript, Python, Rust, Go, Java, Ruby, PHP, Elixir, .NET
-- **Frameworks:** Next.js, React, Vue, Svelte, Angular, Flask, Django, Rails, Laravel, and 40+ others
-- **Monorepo tools:** Turborepo, Nx, Lerna, pnpm workspaces, Rush, Moon
-- **Infrastructure:** Docker, CI pipelines, commitlint configs
-- **Existing memory:** prior installations, trailers in history
-
-Findings are classified as **facts** (high confidence) or **hypotheses** (needs confirmation). Claude shows results and asks before saving anything.
-
-For monorepos, the scout builds a **scope map** — mapping directories like `apps/web` or `packages/ui` to scopes like `web` and `ui`. This helps Claude choose the right scope for commits automatically.
-
----
-
-## Project structure
-
-Everything below lives in the plugin cache (`~/.claude/plugins/cache/`), **not** in your project. The only files written to your project are `CLAUDE.md` and `.claude/git-memory-manifest.json`.
-
-```
-claude-git-memory/
-├── .claude-plugin/
-│   ├── plugin.json                         # Plugin manifest (name, version, entry points)
-│   └── marketplace.json                    # Marketplace metadata (version MUST match plugin.json)
-├── agents/
-│   ├── gitto.md                            # Memory oracle subagent (read-only)
-│   └── scout.md                      # Project structure analyzer → generates scope map
-├── hooks/
-│   ├── hooks.json                          # Hook registration (Claude Code reads this)
-│   ├── pre-validate-commit-trailers.py     # Belt — blocks bad commits
-│   ├── post-validate-commit-trailers.py    # Suspenders — safety net
-│   ├── session-start-boot.py              # Boot — auto-boot + memory summary
-│   ├── user-prompt-memory-check.py        # Radar — memory signal reminder
-│   ├── precompact-snapshot.py              # Hippocampus — memory before compression
-│   └── stop-dod-check.py                  # DoD — silent wip + checkpoint suggestions
-├── skills/
-│   ├── git-memory/                         # Core: boot, search, trailers, workflow, protocol, safety
-│   ├── git-memory-lifecycle/               # Doctor, repair, install, uninstall
-│   └── git-memory-issues/                  # GitHub issues + milestones as shared memory
-├── bin/
-│   ├── git-memory                          # CLI router (bash)
-│   ├── context-writer.py                   # Statusline wrapper — context window tracking
-│   ├── git-memory-install.py               # Transactional installer
-│   ├── git-memory-doctor.py                # Health check
-│   ├── git-memory-repair.py                # Runtime repair
-│   ├── git-memory-uninstall.py             # Clean removal
-│   ├── git-memory-upgrade.py               # Safe version migration
-│   ├── git-memory-bootstrap.py             # Project scout
-│   ├── git-memory-gc.py                    # Garbage collector
-│   ├── git-memory-changelog.py            # Changelog generator from merge trailers (coming soon)
-│   ├── git-memory-commit.py               # Pretty commit wrapper (ANSI output, emoji, trailers)
-│   └── git-memory-log.py                  # Pretty log viewer (colored, filterable by type)
-├── archived/
-│   └── dashboard/                          # Dashboard generator (deactivated, preserved for future use)
-├── lib/
-│   ├── constants.py                        # Trailer keys, commit types, risk levels
-│   ├── git_helpers.py                      # Git subprocess wrappers
-│   ├── parsing.py                          # Commit parsing, trailer extraction
-│   └── colors.py                           # ANSI terminal colors
-└── tests/
-    ├── conftest.py                         # Shared fixtures and helpers
-    ├── test_bootstrap.py                   # Scout detection tests
-    ├── test_drift.py                       # 200-commit stress test
-    ├── test_integration.py                 # End-to-end scenarios
-    ├── test_lifecycle.py                   # Install/doctor/repair/uninstall cycle
-    └── test_upgrade.py                     # Version migration tests
-```
-
----
-
-## Testing
-
-49 tests across 5 suites:
-
-| Suite | What it covers |
-|-------|---------------|
-| `test_bootstrap` | Empty projects, Node.js/TS, Python, monorepo detection, commitlint, scope mapping |
-| `test_drift` | 200 commits over 6 months: search, dedup, snapshots, truncation, hooks, GC tombstones |
-| `test_integration` | Real-world scenarios: install, sessions, compaction, GC, branches, uninstall+reinstall |
-| `test_lifecycle` | Full cycle: install → doctor → break → repair → uninstall |
-| `test_upgrade` | Version checks, dry-run, real upgrade, manifest updates |
-
-```bash
-python3 -m pytest tests/ -v
-```
-
-Type checking with mypy strict mode:
-
-```bash
-python3 -m mypy bin/ hooks/
-```
-
----
-
-## Agents
-
-### Gitto — Memory oracle
-
-Gitto is a read-only subagent that answers questions about past decisions, preferences, requirements, and pending work. Claude delegates to Gitto automatically when you ask about the project's memory.
-
-| You ask | Gitto does |
-|---------|-----------|
-| "what did we decide about auth?" | Searches all `Decision:` trailers across the full git history |
-| "any pending tasks?" | Finds all unresolved `Next:` trailers |
-| "what preferences do we have?" | Lists all `Memo:` trailers by scope |
-| "what's blocking us?" | Shows all active `Blocker:` trailers |
-
-Gitto uses `git log --all --grep` to search the entire history, not just the last 30 commits. Results are formatted as structured markdown, grouped by scope, sorted newest first.
-
-**Key properties:**
-- **Read-only.** No commits, no file writes, no edits.
-- **Deep search.** Queries full git history, not just recent commits.
-- **Contradiction detection.** If two decisions in the same scope contradict, shows both with the most recent marked as active.
-- **Result limits.** Maximum 10 results per query, with a count of older results.
-- **Fallback.** If the `git memory` CLI is not available, falls back to raw `git log --grep`.
-
-Gitto is auto-discovered by Claude Code from the plugin's `agents/` directory. No configuration needed.
-
-### Scope Scout — Project structure analyzer
-
-Scope Scout inspects your codebase and generates a hierarchical scope map at `.claude/git-memory-scopes.json`. It detects frameworks, monorepo patterns, and existing scopes from git history.
-
-Claude launches Scope Scout automatically on first install, or when you say "scan scopes" / "update scopes". It runs in the background and writes only the scope map file — it never modifies your code.
-
-**On first install**, Scout also generates a **project profile** (tech stack, architecture, commands, conventions) and creates an **inaugural commit** — the "point zero" of git-memory in your project. Any future Claude can find it with `git log --grep="onboarding"`.
-
-### Alexandria — Documentation agent (coming soon)
-
-Alexandria is a **project-level agent** — she lives in your project's `.claude/agents/alexandria.md`, not in the plugin. The plugin provides the infrastructure (hook trigger + changelog script), and Alexandria does the work.
-
-She activates automatically after merges to `dev`:
-
-1. **PostToolUse hook** (from the plugin) detects the merge and runs `git-memory-changelog.py`
-2. The script reads commits from the merged branch, filters noise (wip, context, memo, decision, remember, agent infrastructure), and groups by type using `Why:` trailers as descriptions
-3. The hook outputs an `[alexandria-trigger]` with the changelog data + affected folders
-4. Claude launches Alexandria in background
-5. Alexandria updates `CHANGELOG.md` under `[Unreleased]` (Keep a Changelog format) and checks `CLAUDE.md` freshness for affected folders
-6. Alexandria commits: `docs(changelog): update from merge feat/xxx → dev`
-
-**Key properties:**
-- **Only merges to `dev`** — staging and main don't trigger changelog generation
-- **Idempotent** — checks commit SHAs before inserting, no duplicates on session restart
-- **Silent fallback** — if no actionable commits after filtering, no trigger fires
-- **Autonomous** — Alexandria commits the changelog herself with the wrapper script
-- **Noise-free** — agent infrastructure scopes (`agents`, `agent-memory`) are filtered out
-
-Alexandria also has autonomous responsibilities on every launch: CLAUDE.md staleness detection, CHANGELOG freshness checks, and contradiction detection between root and folder docs.
-
-**All agents run in background** (`run_in_background: true`), so they never block your conversation.
-
----
-
-## Context awareness
-
-The plugin monitors Claude's context window usage and warns before auto-compaction hits. This prevents losing session state when context fills up (~80% threshold).
-
-### How it works
-
-Claude Code sends JSON session data (including `context_window.used_percentage`) to the statusline command after every message. A **statusline wrapper** (`context-writer.py` in `bin/`) intercepts this data:
-
-1. Writes context stats to `<project>/.claude/.context-status.json`
-2. Passes the JSON through to your original statusline (so it still works normally)
-
-The **UserPromptSubmit hook** reads this file on every user message and warns Claude in real-time:
-
-| Context used | Warning |
-|-------------|---------|
-| < 60% | No warning |
-| 60-75% | `[context-warning]` — "Consider creating a context() commit" |
-| 75%+ | `[CONTEXT CRITICAL]` — "Auto-compact imminent. Create context() commit NOW" |
-
-The statusline wrapper is configured automatically on first session start (no manual install needed). If you had an existing statusline, it's backed up and receives passthrough data.
-
----
-
-## Silent wip strategy
-
-The stop hook never blocks the session. Instead, it uses a silent wip strategy:
-
-1. **Uncommitted changes?** Claude creates a `wip:` commit automatically, without asking.
-2. **3+ consecutive wips?** Claude evaluates if it's a good time to suggest squashing them into a proper commit with trailers.
-3. **Natural milestones** (feature complete, bug fixed, refactor done) trigger the suggestion. Trivial wips accumulate silently.
-4. **Mandatory `context()` on session end.** Before finishing, Claude must create a context commit summarizing what was accomplished and what's next. This ensures the next session can resume immediately.
-
-This means you never get interrupted by "choose an option" dialogs, and your work is always saved.
-
----
-
-## Roadmap
-
-### Next — Alexandria changelog automation
-
-> **Status: Designed.** Design doc at `docs/plans/2026-03-12-alexandria-changelog-design.md`. Implementation pending.
-
-Automatic CHANGELOG.md generation from git-memory trailers on every merge to dev. Alexandria agent handles the update autonomously — detects merge via PostToolUse hook, generates changelog entries from `Why:` trailers, updates CHANGELOG.md in Keep a Changelog format, and commits the result.
-
-### v5.0 — VS Code Extension (`claude-git-memory-vscode`)
-
-> **Status: Parked.** Research and design complete. Implementation not started.
-
-A VS Code extension that shows a real-time timeline of git-memory activity in the sidebar: wips, decisions, memos, context commits, code commits — all visible as Claude works.
-
-**What's been decided:**
-
-| Decision | Detail |
-|----------|--------|
-| Repo | Separate: `claude-git-memory-vscode` |
-| Visual style | Style E (Glassmorphic) — dual gradients + glow + dark inner details |
-| Icon reference | Flow Icons (thang-nm.flow-icons) — rounded-square pastel backgrounds, simple centered symbols |
-| Icons | Custom SVG, not emojis. 12 types: feat, fix, refactor, docs, test, chore, perf, ci, wip, context, decision, memo |
-| Panel | WebviewView in Activity Bar (not TreeView — too limited for rich cards) |
-| Data source | Git native API (`onDidCommit` + trailer parsing). No custom bridge needed |
-| Tech stack | TypeScript + esbuild |
-| Ask Claude | Copies formatted reference to clipboard (`@git-memory decision <sha> — <text>`) |
-| Distribution | Local `.vsix` first, marketplace after validation |
-
-**MVP scope (v0.1):**
-- Sidebar panel with custom Activity Bar icon
-- Vertical timeline with colored SVG icons per commit type
-- Expandable items showing full trailers
-- Real-time commit detection via `onDidCommit`
-- Text search (local filter, no AI)
-- "Ask Claude" button (copies reference to clipboard)
-
-**Future (v0.2+):**
-- Gitto-powered semantic search
-- AST / RAG search over git history
-- Squash group visualization
-- Session info (time, counters)
-
-**Research artifacts:** `extension/IDEAS.md`, `extension/mockups/` (5 visual style comparisons, D vs E timeline mockups)
+Rules: case-sensitive keys, single-line values, contiguous block at the end of the commit body.
 
 ---
 
 ## FAQ
 
 **Q: Does this work with GitHub/GitLab/Bitbucket?**
-A: Yes. Trailers are standard git metadata — they work with any git host.
+A: Yes. Trailers are standard git metadata -- they work with any git host.
 
 **Q: Does this work with commitlint or strict CI?**
 A: Yes. The plugin detects commitlint and switches to compatible mode (git notes instead of trailers).
@@ -847,22 +384,31 @@ A: Yes. The plugin detects commitlint and switches to compatible mode (git notes
 A: No. The system only adds trailers to new commits. Existing history is never modified.
 
 **Q: Does it put files in my project?**
-A: Only `CLAUDE.md` (with a managed block) and `.claude/git-memory-manifest.json`. The plugin itself runs entirely from the plugin cache. No `bin/`, `hooks/`, `skills/`, or `lib/` directories are created in your project.
+A: Only `CLAUDE.md` (with a managed block) and `.claude/git-memory-manifest.json`. The plugin itself runs entirely from the plugin cache.
 
 **Q: Can I uninstall it?**
-A: Yes. Run `/plugin uninstall claude-git-memory` in Claude Code. The CLAUDE.md block and manifest are removed. Commits with trailers stay intact forever — they're just normal git metadata.
+A: Yes. Run `/plugin uninstall claude-git-memory` in Claude Code. The CLAUDE.md block and manifest are removed. Commits with trailers stay intact forever.
 
 **Q: Does it work with monorepos?**
 A: Yes. The scout detects Turborepo, Nx, Lerna, pnpm workspaces, Rush, and Moon. It builds a scope map so Claude knows which package a commit belongs to.
 
 **Q: What if Claude's context gets compressed?**
-A: The Hippocampus hook extracts critical memory before compression and re-injects it. Decisions, memos, and pending items survive.
+A: The Hippocampus hook extracts critical memory before compression and re-injects it.
 
 **Q: What if I rebase or force-push?**
-A: Claude detects the amnesia on next session start, rebuilds memory from current state, and warns about any gaps.
+A: Claude detects the amnesia on next session start, rebuilds from current state, and warns about gaps.
 
 **Q: `/plugin update` doesn't work?**
-A: Use the interactive menu instead: `/plugin` > marketplace > update. The `/plugin update` CLI command is unreliable.
+A: Use the interactive menu instead: `/plugin` > marketplace > update.
+
+---
+
+## Updating
+
+To update, run `/plugin` in Claude Code, go to **marketplace**, and select **update**. Your next session uses the new version automatically.
+
+If something breaks after updating, delete `~/.claude/plugins/cache/unmassk-claude-git-memory/` and reinstall.
+
 
 ---
 
