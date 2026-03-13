@@ -13,3 +13,4 @@ __pycache__/
 .claude/.message-counter
 .claude/.session-booted
 .claude/git-memory-manifest.json
+.claude/.glossary-cache.json
