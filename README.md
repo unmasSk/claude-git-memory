@@ -390,7 +390,7 @@ A: Only `CLAUDE.md` (with a managed block) and `.claude/git-memory-manifest.json
 A: Yes. Run `/plugin uninstall claude-git-memory` in Claude Code. The CLAUDE.md block and manifest are removed. Commits with trailers stay intact forever.
 
 **Q: Does it work with monorepos?**
-A: Yes. The scout detects Turborepo, Nx, Lerna, pnpm workspaces, Rush, and Moon. It builds a scope map so Claude knows which package a commit belongs to.
+A: Yes. On install, the project structure is analyzed to detect Turborepo, Nx, Lerna, pnpm workspaces, Rush, and Moon. A scope map is built so Claude knows which package a commit belongs to.
 
 **Q: What if Claude's context gets compressed?**
 A: The Hippocampus hook extracts critical memory before compression and re-injects it.

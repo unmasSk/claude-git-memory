@@ -69,7 +69,7 @@ Examples:
 - `decision(frontend/ux): usar glassmorphic style`
 - `memo(backend/auth): preference - JWT over sessions`
 
-**Scope map:** read `.claude/git-memory-scopes.json` if it exists. Launch `scout` agent on first install or "scan scopes". You can use unlisted scopes — the map is a guide, not a constraint.
+**Scope map:** read `.claude/git-memory-scopes.json` if it exists. To generate or update scopes, use an Explore agent to analyze the project structure and write the JSON. You can use unlisted scopes — the map is a guide, not a constraint.
 
 ## Commit Types
 

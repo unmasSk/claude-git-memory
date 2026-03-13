@@ -8,7 +8,7 @@
       "children": {
         "hooks": "Claude Code hooks (SessionStart, PreToolUse, Stop, UserPrompt)",
         "skills": "Skill definitions (git-memory, git-memory-issues, git-memory-lifecycle)",
-        "agents": "Agent definitions (scout, gitto/alexandria)",
+        "agents": "Agent definitions (gitto, alexandria)",
         "boot": "Session startup and boot briefing logic",
         "config": "Plugin config files (plugin.json, marketplace.json, gitignore)"
       }
@@ -52,7 +52,6 @@
     "plugin/issues",
     "plugin/distribution",
     "plugin/claude-md",
-    "plugin/scout",
     "hooks",
     "boot",
     "install",

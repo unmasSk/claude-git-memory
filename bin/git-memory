@@ -77,7 +77,7 @@ case "${1:-all}" in
     shift
     python3 "$SCRIPT_DIR/git-memory-uninstall.py" "$@"
     ;;
-  bootstrap|scout)
+  bootstrap)
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
     shift
     python3 "$SCRIPT_DIR/git-memory-bootstrap.py" "$@"
