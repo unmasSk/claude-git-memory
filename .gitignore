@@ -10,6 +10,6 @@ __pycache__/
 .pytest_cache/
 
 # Generated
-.claude/dashboard.html
-.claude/plans/
-.claude/
+.claude/.message-counter
+.claude/.session-booted
+.claude/git-memory-manifest.json

@@ -1,0 +1,89 @@
+{
+  "head_sha": "9178abb5555080912954bfdb052356e23efee611",
+  "generated_at": "2026-03-13T14:00:57.119803+00:00",
+  "decisions": [
+    [
+      "(plugin/boot)",
+      "boot v2 implementado con output estructurado, 3 tool calls a 1, Next-to-Issue automatico"
+    ],
+    [
+      "(plugin/architecture)",
+      "varios plugins en el mismo repositorio/marketplace, cada uno independiente pero dise\u00f1ados para complementarse. Se documentan las sinergias entre ellos"
+    ],
+    [
+      "(plugin/skills)",
+      "no mergear skills \u2014 core (264 lineas) carga siempre, lifecycle+issues bajo demanda. Core a\u00f1ade bridge Next-Issues de 5-8 lineas"
+    ],
+    [
+      "(plugin/issues)",
+      "git-memory-commit.py detecta Next= sin #issue y crea issue con gh CLI, degradacion silenciosa si no hay gh"
+    ],
+    [
+      "(plugin)",
+      "Alexandria is project-level agent, not plugin agent"
+    ],
+    [
+      "(plugin/alexandria)",
+      "commits de agentes (scope agents/agent-memory) se filtran del changelog; idempotencia por SHA check; si no hay cambios accionables el hook no triggerea Alexandria"
+    ],
+    [
+      "(plugin-v3.2)",
+      "no reinstalar plugin entre puntos \u2014 solo al final"
+    ],
+    [
+      "(plugin-improvements)",
+      "output bonito = script wrapper que Claude ejecuta, no hook post-commit"
+    ],
+    [
+      "(extension)",
+      "VS Code extension aparcada \u2014 prioridad baja, retomar como v5.0 cuando sea el momento"
+    ],
+    [
+      "(vscode-extension)",
+      "estilo de iconos = E (Glassmorphic) \u2014 gradientes + glow"
+    ]
+  ],
+  "memos": [
+    [
+      "(plugin/distribution)",
+      "antipattern - /plugin update NUNCA ha funcionado. El proceso real es: /plugin (menu interactivo) > ir al marketplace > seleccionar la opcion de updatear. Nunca decirle al usuario que use /plugin update ni el proceso de 5 pasos del README (esta mal)"
+    ],
+    [
+      "(plugin)",
+      "antipattern - si hay una pregunta pendiente al usuario, NUNCA lanzar ejecucion hasta que responda. Esperar siempre. El usuario corrigio esto explicitamente."
+    ],
+    [
+      "(capture)",
+      "preference - no pedir confirmaci\u00f3n para memos/decisiones. Detectar, commitear, informar. Sin \"ok?\"."
+    ],
+    [
+      "(feedback)",
+      "feedback - usuario prefiere /clear sobre compactar porque git-memory retoma perfecto. Indicador clave de confianza en el sistema."
+    ],
+    [
+      "(extension)",
+      "preference - iconos inspirados en Flow Icons (thang-nm.flow-icons): fondo rounded-square pastel, s\u00edmbolo centrado simple, sin bordes duros, paleta suave. Fusionar con glassmorphic E: gradientes + glow pero con la simplicidad y esquinas redondeadas de Flow Icons."
+    ],
+    [
+      "(v3-audit)",
+      "antipattern - never delete plugin cache while a session is running \u2014 causes deadlock (hooks block all Bash)"
+    ],
+    [
+      "(antipattern)",
+      "antipattern - never claim a fix works without verifying from the USER's perspective (running session, not just tests)"
+    ],
+    [
+      "(install-safety)",
+      "preference - user wants superpowers:writing-plans for planning, not native EnterPlanMode"
+    ],
+    [
+      "(api)",
+      "antipattern - sync fs operations block event loop and cause timeouts in prod"
+    ],
+    [
+      "(ui)",
+      "requirement - client requested Notion-like filter UX for all data views"
+    ]
+  ],
+  "remembers": []
+}

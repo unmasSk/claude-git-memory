@@ -15,6 +15,6 @@ This project uses **claude-git-memory**. Git is the memory.
 **On session end**, the Stop hook fires. Follow its instructions (wip commits, etc).
 
 All rules, commit types, trailers, capture behavior, and protocol are in the **git-memory skill**.
-If the user says "install/repair/uninstall/doctor/status" → use skill `git-memory-lifecycle`.
-Never ask the user to run commands — run them yourself.
+If the user says "install/repair/uninstall/doctor/status" -> use skill `git-memory-lifecycle`.
+Never ask the user to run commands -- run them yourself.
 <!-- END claude-git-memory -->
