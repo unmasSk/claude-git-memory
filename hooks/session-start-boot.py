@@ -600,7 +600,8 @@ def main() -> None:
 
     # ── SCOPES ──────────────────────────────────────────────────────
     scopes_file = os.path.join(project_root, ".claude", "git-memory-scopes.json") if project_root else None
-    if scopes_file and os.path.isfile(scopes_file):
+    scopes_exist = scopes_file and os.path.isfile(scopes_file)
+    if scopes_exist:
         try:
             with open(scopes_file) as f:
                 scopes_data = json.load(f)
@@ -618,6 +619,16 @@ def main() -> None:
                 lines.append("")
         except (json.JSONDecodeError, OSError):
             pass  # Silently skip if file is corrupt
+    elif project_root:
+        lines.append("SCOPES: not generated yet")
+        lines.append(
+            "  ACTION: Launch an Explore agent (subagent_type=Explore) to analyze the project "
+            "structure and generate .claude/git-memory-scopes.json. "
+            "The agent should: scan directories, detect frameworks, extract existing scopes "
+            "from git log, and write a JSON with version, project_type, scopes (2 levels max), "
+            "existing_scopes, and notes. Run it in background."
+        )
+        lines.append("")
 
     # ── RESUME ──────────────────────────────────────────────────────
     memory = extract_memory()
