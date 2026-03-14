@@ -64,7 +64,7 @@ def diagnose(target: str) -> list[tuple[str, str, str]]:
     if os.path.isfile(claude_md):
         with open(claude_md) as f:
             content = f.read()
-        if "BEGIN claude-git-memory" not in content:
+        if "BEGIN unmassk-gitmemory" not in content:
             issues.append(("missing_block", "CLAUDE.md", "Managed block missing in CLAUDE.md"))
     else:
         issues.append(("missing_claude_md", "CLAUDE.md", "CLAUDE.md not found"))
@@ -227,7 +227,7 @@ def main() -> None:
     print(f"\nRepair complete: {fixed} fixed, {failed} failed.")
 
     if failed > 0:
-        print("Some issues could not be fixed. Try: /plugin install claude-git-memory@unmassk-claude-git-memory")
+        print("Some issues could not be fixed. Try: /plugin install unmassk-gitmemory@unmassk-claude-toolkit")
         sys.exit(1)
 
     # Run doctor to confirm

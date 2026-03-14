@@ -1,1 +1,1 @@
-"""Shared library for git-memory hooks and CLI scripts."""
+"""Shared library for unmassk-gitmemory hooks and CLI scripts."""

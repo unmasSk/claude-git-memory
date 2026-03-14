@@ -1,4 +1,4 @@
-# Test Guide — claude-git-memory v2.1.0
+# Test Guide — unmassk-gitmemory v2.1.0
 
 Manual testing checklist for all features added in this release.
 

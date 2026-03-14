@@ -1,7 +1,7 @@
 {
   "name": "unmassk-flow",
   "version": "1.0.0",
-  "description": "8-step creative pipeline for building features, fixes, and refactors — from idea to shipped code. Requires unmassk-crew and claude-git-memory plugins.",
+  "description": "8-step creative pipeline for building features, fixes, and refactors — from idea to shipped code. Requires unmassk-crew and unmassk-gitmemory plugins.",
   "author": {
     "name": "unmasSk",
     "url": "https://github.com/unmasSk"

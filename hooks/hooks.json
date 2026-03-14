@@ -1,5 +1,5 @@
 {
-  "description": "git-memory hooks — commit validation, session management, and continuous memory capture",
+  "description": "unmassk-gitmemory hooks — commit validation, session management, and continuous memory capture",
   "hooks": {
     "PreToolUse": [
       {

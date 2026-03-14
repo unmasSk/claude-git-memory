@@ -63,7 +63,7 @@ Run silently by the SessionStart hook on every boot. STATUS section in boot outp
 | **full-local** | Above + generated files | Git history |
 
 Git history (commits with trailers) is **never deleted automatically**.
-To remove the plugin itself: `/plugin uninstall claude-git-memory`
+To remove the plugin itself: `/plugin uninstall unmassk-gitmemory`
 
 ## Manifest (.claude/git-memory-manifest.json)
 
@@ -73,7 +73,7 @@ To remove the plugin itself: `/plugin uninstall claude-git-memory`
   "installed_at": "ISO8601",
   "runtime_mode": "normal|compatible|read-only",
   "managed_blocks": [
-    { "file": "CLAUDE.md", "begin": "BEGIN claude-git-memory", "end": "END claude-git-memory" }
+    { "file": "CLAUDE.md", "begin": "BEGIN unmassk-gitmemory", "end": "END unmassk-gitmemory" }
   ],
   "hook_registrations": ["PreToolUse", "PostToolUse", "Stop", "PreCompact", "SessionStart", "UserPromptSubmit"],
   "last_healthcheck_at": "ISO8601"

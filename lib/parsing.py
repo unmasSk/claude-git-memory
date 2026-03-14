@@ -1,5 +1,5 @@
 """
-Parsing functions for git-memory.
+Parsing functions for unmassk-gitmemory.
 
 Commit type extraction, trailer parsing, scope detection, and text
 normalization. Used by validation hooks and CLI scripts.

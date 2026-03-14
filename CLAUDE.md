@@ -1,9 +1,9 @@
-# CLAUDE.md — claude-git-memory
+# CLAUDE.md — unmassk-gitmemory
 
-<!-- BEGIN claude-git-memory (managed block — do not edit) -->
+<!-- BEGIN unmassk-gitmemory (managed block — do not edit) -->
 ## Git Memory Active
 
-This project uses **claude-git-memory**. Git is the memory.
+This project uses **unmassk-gitmemory**. Git is the memory.
 
 **On every session start**, you MUST:
 1. Use the Skill tool with `skill="unmassk-gitmemory"` (TOOL CALL, not bash)
@@ -17,4 +17,4 @@ This project uses **claude-git-memory**. Git is the memory.
 All rules, commit types, trailers, capture behavior, and protocol are in the **git-memory skill**.
 If the user says "install/repair/uninstall/doctor/status" -> use skill `unmassk-gitmemory-lifecycle`.
 Never ask the user to run commands -- run them yourself.
-<!-- END claude-git-memory -->
+<!-- END unmassk-gitmemory -->

@@ -9,7 +9,7 @@ description: Use when the user asks to "build a feature", "create something new"
 
 ## Dependencies
 
-- **claude-git-memory plugin** — required for decision/memo/context commits
+- **unmassk-gitmemory plugin** — required for decision/memo/context commits
 - **Claude Code subagents** — bundled agents: Bilbo, Ultron, Dante, Cerberus, Argus, Moriarty, Yoda, House, Alexandria (use `subagent_type` by name)
 - **TodoWrite tool** — native Claude Code tool for task tracking visible to the user
 

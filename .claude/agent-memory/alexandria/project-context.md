@@ -1,10 +1,10 @@
 ---
 name: project-context
-description: Core identity of the claude-git-memory project — what it is, how it works, key conventions
+description: Core identity of the unmassk-gitmemory project — what it is, how it works, key conventions
 type: project
 ---
 
-claude-git-memory is a Claude Code plugin that provides persistent memory via git commit trailers. Git is the memory — every commit is resumable across machines and sessions.
+unmassk-gitmemory is a Claude Code plugin that provides persistent memory via git commit trailers. Git is the memory — every commit is resumable across machines and sessions.
 
 - Author: unmasSk
 - License: MIT

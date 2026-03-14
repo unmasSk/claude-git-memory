@@ -1,5 +1,5 @@
 """
-Git command helpers for git-memory.
+Git command helpers for unmassk-gitmemory.
 
 Thin wrappers around subprocess calls to git. Used by hooks,
 CLI scripts to run git commands safely.
@@ -40,9 +40,9 @@ def ensure_gitignore(project_root: str, entry: str | None = None) -> None:
         block = "\n".join(missing)
         separator = "" if existing.endswith("\n") or not existing else "\n"
         with open(gitignore_path, "a") as f:
-            f.write(f"{separator}\n# git-memory generated (do not track)\n{block}\n")
+            f.write(f"{separator}\n# unmassk-gitmemory generated (do not track)\n{block}\n")
     except OSError as e:
-        print(f"[git-memory] WARNING: could not update .gitignore at {gitignore_path}: {e}", file=sys.stderr)
+        print(f"[unmassk-gitmemory] WARNING: could not update .gitignore at {gitignore_path}: {e}", file=sys.stderr)
 
 
 def run_git(args: list[str], timeout: int = 10) -> tuple[int, str]:

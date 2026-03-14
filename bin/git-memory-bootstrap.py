@@ -570,7 +570,7 @@ def check_existing_memory(root: str) -> dict[str, Any]:
             with open(claude_md) as f:
                 content = f.read()
             signals["claude_md_exists"] = True
-            signals["has_memory_block"] = "BEGIN claude-git-memory" in content
+            signals["has_memory_block"] = "BEGIN unmassk-gitmemory" in content
         except OSError:
             signals["claude_md_exists"] = False
     else:

@@ -97,7 +97,7 @@ def check_upgrade_needed(source: str, target: str, manifest: dict[str, Any]) -> 
     if os.path.isfile(claude_md):
         with open(claude_md) as f:
             content = f.read()
-        if "BEGIN claude-git-memory" not in content:
+        if "BEGIN unmassk-gitmemory" not in content:
             result["needs_update"] = True
             result["reasons"].append("CLAUDE.md managed block missing")
         else:
@@ -195,8 +195,8 @@ def apply_upgrade(source: str, target: str, manifest: dict[str, Any], check_resu
             "managed_blocks": [
                 {
                     "file": "CLAUDE.md",
-                    "begin": "BEGIN claude-git-memory",
-                    "end": "END claude-git-memory",
+                    "begin": "BEGIN unmassk-gitmemory",
+                    "end": "END unmassk-gitmemory",
                 }
             ],
             "hook_registrations": [

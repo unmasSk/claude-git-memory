@@ -77,7 +77,7 @@ def test_install(lifecycle_repo):
 
     # CLAUDE.md
     with open(os.path.join(lifecycle_repo, "CLAUDE.md")) as f:
-        assert "BEGIN claude-git-memory" in f.read()
+        assert "BEGIN unmassk-gitmemory" in f.read()
 
     # Manifest
     with open(os.path.join(lifecycle_repo, ".claude", "git-memory-manifest.json")) as f:
@@ -126,8 +126,8 @@ def test_repair_missing_claude_md_block(lifecycle_repo):
     # Break: remove the managed block
     with open(claude_md) as f:
         content = f.read()
-    begin = "<!-- BEGIN claude-git-memory"
-    end = "<!-- END claude-git-memory -->"
+    begin = "<!-- BEGIN unmassk-gitmemory"
+    end = "<!-- END unmassk-gitmemory -->"
     begin_idx = content.find(begin)
     end_idx = content.find(end)
     if begin_idx != -1 and end_idx != -1:
@@ -144,7 +144,7 @@ def test_repair_missing_claude_md_block(lifecycle_repo):
     rc, _, _ = run_repair(lifecycle_repo)
     assert rc == 0
     with open(claude_md) as f:
-        assert "BEGIN claude-git-memory" in f.read()
+        assert "BEGIN unmassk-gitmemory" in f.read()
 
 
 def test_uninstall(lifecycle_repo):
@@ -158,7 +158,7 @@ def test_uninstall(lifecycle_repo):
     claude_md = os.path.join(lifecycle_repo, "CLAUDE.md")
     if os.path.isfile(claude_md):
         with open(claude_md) as f:
-            assert "BEGIN claude-git-memory" not in f.read()
+            assert "BEGIN unmassk-gitmemory" not in f.read()
 
     # Manifest gone
     assert not os.path.exists(os.path.join(lifecycle_repo, ".claude", "git-memory-manifest.json"))

@@ -161,7 +161,7 @@ def check_claude_md(project_root: str) -> tuple[bool, str]:
     try:
         with open(claude_md) as f:
             content = f.read()
-        if "BEGIN claude-git-memory" in content and "END claude-git-memory" in content:
+        if "BEGIN unmassk-gitmemory" in content and "END unmassk-gitmemory" in content:
             return True, "managed block present"
         return False, "managed block missing"
     except OSError:

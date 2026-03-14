@@ -36,12 +36,12 @@ from version import VERSION
 
 # ── Config ────────────────────────────────────────────────────────────────
 
-MANAGED_BLOCK_BEGIN = "<!-- BEGIN claude-git-memory (managed block — do not edit) -->"
-MANAGED_BLOCK_END = "<!-- END claude-git-memory -->"
+MANAGED_BLOCK_BEGIN = "<!-- BEGIN unmassk-gitmemory (managed block — do not edit) -->"
+MANAGED_BLOCK_END = "<!-- END unmassk-gitmemory -->"
 
 MANAGED_BLOCK_CONTENT = """## Git Memory Active
 
-This project uses **claude-git-memory**. Git is the memory.
+This project uses **unmassk-gitmemory**. Git is the memory.
 
 **On every session start**, you MUST:
 1. Use the Skill tool with `skill="unmassk-gitmemory"` (TOOL CALL, not bash)
@@ -140,7 +140,7 @@ def inspect(target: str) -> dict[str, Any]:
     if os.path.isfile(claude_md):
         report["has_claude_md"] = True
         with open(claude_md) as f:
-            report["has_managed_block"] = "BEGIN claude-git-memory" in f.read()
+            report["has_managed_block"] = "BEGIN unmassk-gitmemory" in f.read()
 
     # Manifest
     manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
@@ -155,7 +155,7 @@ def inspect(target: str) -> dict[str, Any]:
         try:
             with open(plugin_json_path) as f:
                 pj = json.load(f)
-            if pj.get("name") == "claude-git-memory":
+            if pj.get("name") == "unmassk-gitmemory":
                 is_plugin_source = True
         except (json.JSONDecodeError, OSError):
             pass
@@ -427,8 +427,8 @@ def _create_manifest(target: str, mode: str) -> None:
         "managed_blocks": [
             {
                 "file": "CLAUDE.md",
-                "begin": "BEGIN claude-git-memory",
-                "end": "END claude-git-memory",
+                "begin": "BEGIN unmassk-gitmemory",
+                "end": "END unmassk-gitmemory",
             }
         ],
         "hook_registrations": [

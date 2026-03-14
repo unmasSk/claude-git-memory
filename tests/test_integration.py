@@ -71,7 +71,7 @@ def test_install_over_existing(tmp_path):
     with open(os.path.join(repo, "CLAUDE.md")) as f:
         claude_md = f.read()
     assert "Instrucciones personalizadas" in claude_md
-    assert "BEGIN claude-git-memory" in claude_md
+    assert "BEGIN unmassk-gitmemory" in claude_md
 
 
 def test_install_only_creates_claude_md_and_manifest(tmp_path):
@@ -80,7 +80,7 @@ def test_install_only_creates_claude_md_and_manifest(tmp_path):
 
     # CLAUDE.md exists
     with open(os.path.join(repo, "CLAUDE.md")) as f:
-        assert "BEGIN claude-git-memory" in f.read()
+        assert "BEGIN unmassk-gitmemory" in f.read()
 
     # Manifest exists
     with open(os.path.join(repo, ".claude", "git-memory-manifest.json")) as f:
@@ -258,7 +258,7 @@ def test_uninstall_reinstall_data_intact(tmp_path):
     claude_md = os.path.join(repo, "CLAUDE.md")
     if os.path.isfile(claude_md):
         with open(claude_md) as f:
-            assert "BEGIN claude-git-memory" not in f.read()
+            assert "BEGIN unmassk-gitmemory" not in f.read()
     assert not os.path.isfile(os.path.join(repo, ".claude", "git-memory-manifest.json"))
 
     _, log_after, _ = git_cmd(["log", "--oneline"], repo)
@@ -271,7 +271,7 @@ def test_uninstall_reinstall_data_intact(tmp_path):
     # Reinstall
     run_script(INSTALL, repo, ["--auto"])
     with open(os.path.join(repo, "CLAUDE.md")) as f:
-        assert "BEGIN claude-git-memory" in f.read()
+        assert "BEGIN unmassk-gitmemory" in f.read()
 
     _, log_final, _ = git_cmd(["log", "--oneline"], repo)
     assert len(log_final.strip().split("\n")) == commits_before

@@ -37,7 +37,7 @@ def needs_install(root: str) -> bool:
     if not os.path.isfile(claude_md):
         return True
     with open(claude_md) as f:
-        return "BEGIN claude-git-memory" not in f.read()
+        return "BEGIN unmassk-gitmemory" not in f.read()
 
 
 def needs_upgrade(root: str) -> bool:
@@ -51,11 +51,11 @@ def needs_upgrade(root: str) -> bool:
         return False  # needs_install handles this
     with open(claude_md) as f:
         content = f.read()
-    if "BEGIN claude-git-memory" not in content:
+    if "BEGIN unmassk-gitmemory" not in content:
         return False  # needs_install handles this
     # Old-style markers: hardcoded bin/ paths in the managed block
-    begin = content.find("BEGIN claude-git-memory")
-    end = content.find("END claude-git-memory")
+    begin = content.find("BEGIN unmassk-gitmemory")
+    end = content.find("END unmassk-gitmemory")
     if begin == -1 or end == -1:
         return False
     block = content[begin:end]

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="logo.png" alt="claude-git-memory" width="180">
+  <img src="logo.png" alt="unmassk-gitmemory" width="180">
 </p>
 
-<h1 align="center">claude-git-memory</h1>
+<h1 align="center">unmassk-gitmemory</h1>
 
 <p align="center">
   <strong>Persistent memory for Claude Code, stored in git.</strong><br>
@@ -32,7 +32,7 @@ Every time Claude starts a new session, it forgets everything:
 
 You end up repeating yourself, re-explaining decisions, and watching Claude reinvent wheels.
 
-**claude-git-memory fixes this.** After installing it, Claude remembers everything -- across sessions, machines, and context resets. You don't need to do anything special. Just talk to Claude like you always do.
+**unmassk-gitmemory fixes this.** After installing it, Claude remembers everything -- across sessions, machines, and context resets. You don't need to do anything special. Just talk to Claude like you always do.
 
 ---
 
@@ -57,7 +57,7 @@ Next: wire validation into the API layer
 ### What Claude sees when it starts a new session
 
 ```
-[git-memory-boot] v3.7.0 | ~/.claude/plugins/cache/.../claude-git-memory
+[git-memory-boot] v3.7.0 | ~/.claude/plugins/cache/.../unmassk-gitmemory
 
 STATUS: ok
 
@@ -106,7 +106,7 @@ No questions. It knows where you left off, what scopes exist, and what matters. 
 **Step 1:** Add the repository as a marketplace source:
 
 ```
-/plugin marketplace add https://github.com/unmasSk/claude-git-memory
+/plugin marketplace add https://github.com/unmasSk/claude-toolkit
 ```
 
 **Step 2:** Install the plugin (use the interactive menu, NOT the URL):
@@ -115,7 +115,7 @@ No questions. It knows where you left off, what scopes exist, and what matters. 
 /plugin
 ```
 
-Then select `claude-git-memory` from the list. Choose your scope:
+Then select `unmassk-gitmemory` from the list. Choose your scope:
 - **User** (default): for yourself across all projects
 - **Project**: for all collaborators on this repository (saved in `.claude/settings.json`)
 - **Local**: for yourself in this repo only
@@ -315,7 +315,7 @@ Alexandria is a **project-level agent** that lives in your project's `.claude/ag
 
 ### Roadmap
 
-**VS Code Extension** (`claude-git-memory-vscode`) -- Real-time timeline of git-memory activity in the VS Code sidebar. Research and design complete, implementation not started.
+**VS Code Extension** (`unmassk-gitmemory-vscode`) -- Real-time timeline of git-memory activity in the VS Code sidebar. Research and design complete, implementation not started.
 
 ---
 
@@ -386,7 +386,7 @@ A: No. The system only adds trailers to new commits. Existing history is never m
 A: Only `CLAUDE.md` (with a managed block) and `.claude/git-memory-manifest.json`. The plugin itself runs entirely from the plugin cache.
 
 **Q: Can I uninstall it?**
-A: Yes. Run `/plugin uninstall claude-git-memory` in Claude Code. The CLAUDE.md block and manifest are removed. Commits with trailers stay intact forever.
+A: Yes. Run `/plugin uninstall unmassk-gitmemory` in Claude Code. The CLAUDE.md block and manifest are removed. Commits with trailers stay intact forever.
 
 **Q: Does it work with monorepos?**
 A: Yes. On install, the project structure is analyzed to detect Turborepo, Nx, Lerna, pnpm workspaces, Rush, and Moon. A scope map is built so Claude knows which package a commit belongs to.
@@ -406,7 +406,7 @@ A: Use the interactive menu instead: `/plugin` > marketplace > update.
 
 To update, run `/plugin` in Claude Code, go to **marketplace**, and select **update**. Your next session uses the new version automatically.
 
-If something breaks after updating, delete `~/.claude/plugins/cache/unmassk-claude-git-memory/` and reinstall.
+If something breaks after updating, delete `~/.claude/plugins/cache/unmassk-claude-toolkit/` and reinstall.
 
 
 ---

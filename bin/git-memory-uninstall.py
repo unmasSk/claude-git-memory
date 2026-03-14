@@ -115,8 +115,8 @@ def remove_claude_md_block(target: str) -> bool:
     with open(claude_md) as f:
         content = f.read()
 
-    begin = "<!-- BEGIN claude-git-memory (managed block — do not edit) -->"
-    end = "<!-- END claude-git-memory -->"
+    begin = "<!-- BEGIN unmassk-gitmemory (managed block — do not edit) -->"
+    end = "<!-- END unmassk-gitmemory -->"
 
     begin_idx = content.find(begin)
     end_idx = content.find(end)
@@ -291,7 +291,7 @@ def main() -> None:
     if full_local:
         plan.append("Remove generated files (dashboard, snapshots)")
     plan.append("Git history (commits with trailers) is preserved")
-    plan.append("To remove the plugin itself: /plugin uninstall claude-git-memory")
+    plan.append("To remove the plugin itself: /plugin uninstall unmassk-gitmemory")
 
     print("Removal plan:")
     print("─" * 40)
@@ -342,7 +342,7 @@ def main() -> None:
 
     print("\nUninstall complete.")
     print("Git history (commits with trailers) was preserved.")
-    print("To remove the plugin: /plugin uninstall claude-git-memory")
+    print("To remove the plugin: /plugin uninstall unmassk-gitmemory")
 
     sys.exit(0)
 
