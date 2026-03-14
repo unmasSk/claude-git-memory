@@ -57,6 +57,12 @@
       "version": "0.1.0",
       "description": "Compliance — accessibility (WCAG), i18n, GDPR, E2E testing, API docs",
       "source": "./unmassk-compliance/"
+    },
+    {
+      "name": "unmassk-media",
+      "version": "0.1.0",
+      "description": "Media generation — video (Remotion/ffmpeg), images (AI gen/optimization), SVG, thumbnails, OG images",
+      "source": "./unmassk-media/"
     }
   ]
 }
