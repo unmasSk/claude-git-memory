@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "unmassk-gitmemory",
-      "version": "3.7.0",
+      "version": "3.7.1",
       "description": "Persistent memory for Claude Code via git commit trailers",
       "source": "./unmassk-gitmemory/"
     },
