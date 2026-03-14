@@ -273,6 +273,15 @@ def main() -> None:
     color = TYPE_COLORS.get(type_, RESET)
     print(f"  {emoji} {color}{BOLD}{type_}{RESET}{DIM}({args.scope}){RESET}: {args.message} {DIM}[{sha}]{RESET}")
 
+    # Notify about created issues so Claude fills in the details
+    for t in processed_trailers:
+        key, _, value = t.partition("=")
+        if key == "Next":
+            match = re.search(r"#(\d+)", value)
+            if match:
+                print(f"  📎 Issue {match.group(0)} created — fill in the body with: "
+                      f"gh issue edit {match.group(1)} --body \"<description, context, acceptance criteria>\"")
+
     # Push if requested
     if args.push:
         try:
