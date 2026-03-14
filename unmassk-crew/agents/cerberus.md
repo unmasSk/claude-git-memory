@@ -4,7 +4,7 @@ description: Use this agent for comprehensive code review after code changes and
 tools: Read, Grep, Glob, Bash
 model: sonnet
 permissionMode: default
-skills: audit
+skills: unmassk-audit
 color: yellow
 background: true
 memory: project

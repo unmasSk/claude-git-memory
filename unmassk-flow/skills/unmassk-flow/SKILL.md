@@ -1,5 +1,5 @@
 ---
-name: flow
+name: unmassk-flow
 description: Use when the user asks to "build a feature", "create something new", "implement", "add functionality", "fix a non-trivial bug", "refactor", or any task that is not trivial. Also use when the user says "brainstorm", "discuss", "plan", or mentions Flow. This is the creative pipeline — from idea to shipped code.
 ---
 
@@ -20,7 +20,7 @@ description: Use when the user asks to "build a feature", "create something new"
 - Refactors that touch 3+ files
 - Any task where "just do it" could go wrong
 
-Do NOT use for: trivial 1-file fixes, documentation-only changes, config tweaks, or enterprise audits (use `audit` skill instead).
+Do NOT use for: trivial 1-file fixes, documentation-only changes, config tweaks, or enterprise audits (use `unmassk-audit` skill instead).
 
 ## Step 0 — Triage (ORCHESTRATOR)
 

@@ -77,7 +77,7 @@ def main() -> None:
             "[git-memory-bootstrap] Git-memory plugin is active but NOT configured. "
             "BEFORE doing anything else:\n"
             f'1. Run: python3 "{PLUGIN_ROOT}/bin/git-memory-install.py" --auto\n'
-            '2. Use the Skill tool with skill="git-memory" to load the memory rules\n'
+            '2. Use the Skill tool with skill="unmassk-gitmemory" to load the memory rules\n'
             "3. Show the user a boot summary from the SessionStart output above.\n"
             "Do NOT greet the user first. Install and boot FIRST.\n"
             "CRITICAL: Step 2 means calling the Skill tool — "
@@ -104,7 +104,7 @@ def main() -> None:
         lines.append(
             f"[git-memory-boot] Plugin root: {PLUGIN_ROOT}\n"
             "Do these steps NOW before responding to the user:\n"
-            '  Step 1: Use the Skill tool with skill="git-memory" '
+            '  Step 1: Use the Skill tool with skill="unmassk-gitmemory" '
             "(this is a TOOL CALL, not a bash command)\n"
             "  Step 2: Show the user a boot summary from the SessionStart output above\n"
             f'After booting, run: touch "{booted_flag}"'

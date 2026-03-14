@@ -1,5 +1,5 @@
 ---
-name: git-memory-lifecycle
+name: unmassk-gitmemory-lifecycle
 description: Use when user says install, setup, configure, doctor, health, status, repair, fix, uninstall, remove memory system, recovery, modes, compatible mode, CI compatibility, or when checking system integrity. Also used for self-healing after rebase/force-push.
 ---
 

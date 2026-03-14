@@ -1,5 +1,5 @@
 ---
-name: git-memory-issues
+name: unmassk-gitmemory-issues
 description: Use when user explicitly asks to create a GitHub issue, manage milestones, or says "note this for later" / "create an issue" / "add to backlog". Also when Claude detects a bug or improvement while working on something else and needs to park it as an issue. Do not trigger on general mentions of bugs, features, or tasks in conversation.
 ---
 

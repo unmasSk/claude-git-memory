@@ -1,5 +1,5 @@
 ---
-name: git-memory
+name: unmassk-gitmemory
 description: Use this skill when user mentions memory, resume, context, decision, memo, remember, or when starting a new session in a git repository. Also when user says "what did we decide", "what's pending", or discusses preferences/requirements worth saving.
 ---
 
@@ -130,7 +130,7 @@ Next: trailers auto-create GitHub issues via git-memory-commit.py.
 Format: `Next: description #issue-number`
 The commit script handles issue creation — Claude doesn't need to call gh manually.
 Resolved-Next: trailers auto-close the referenced issue.
-For advanced issue management (milestones, templates, checklists) -> skill `git-memory-issues`.
+For advanced issue management (milestones, templates, checklists) -> skill `unmassk-gitmemory-issues`.
 
 ## Wip Strategy
 
@@ -278,4 +278,4 @@ Type "I understand the risk, proceed" to continue.
 
 ## Routing
 
-- Install, doctor, repair, uninstall, recovery, modes of operation → `git-memory-lifecycle` skill
+- Install, doctor, repair, uninstall, recovery, modes of operation → `unmassk-gitmemory-lifecycle` skill

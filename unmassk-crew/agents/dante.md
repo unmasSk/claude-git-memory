@@ -6,7 +6,7 @@ model: inherit
 color: cyan
 background: true
 memory: project
-skills: audit
+skills: unmassk-audit
 ---
 
 # Test Engineering Agent Instructions
