@@ -327,11 +327,11 @@ def _cleanup_old_install(target: str, source: str) -> None:
             os.unlink(path)
             removed.append(d)
 
-    # Remove .claude-plugin/ directory (entirely ours)
-    plugin_dir = os.path.join(target, ".claude-plugin")
-    if os.path.isdir(plugin_dir):
-        shutil.rmtree(plugin_dir)
-        removed.append(".claude-plugin/")
+    # Remove old-style plugin.json at repo root (NOT .claude-plugin/ which may contain marketplace.json)
+    old_plugin_json = os.path.join(target, "plugin.json")
+    if os.path.isfile(old_plugin_json):
+        os.remove(old_plugin_json)
+        removed.append("plugin.json")
 
     # Remove old .claude/hooks and .claude/skills symlink directories
     for subdir in ["hooks", "skills"]:

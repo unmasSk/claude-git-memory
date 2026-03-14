@@ -1,0 +1,68 @@
+{
+  "name": "unmassk-claude-toolkit",
+  "owner": {
+    "name": "unmasSk"
+  },
+  "plugins": [
+    {
+      "name": "unmassk-gitmemory",
+      "version": "3.7.1",
+      "description": "Persistent memory for Claude Code via git commit trailers",
+      "source": "./unmassk-gitmemory/"
+    },
+    {
+      "name": "unmassk-crew",
+      "version": "1.0.0",
+      "description": "10 specialized agents for software engineering",
+      "source": "./unmassk-crew/"
+    },
+    {
+      "name": "unmassk-flow",
+      "version": "1.0.0",
+      "description": "8-step creative pipeline — from idea to shipped code",
+      "source": "./unmassk-flow/"
+    },
+    {
+      "name": "unmassk-audit",
+      "version": "1.0.0",
+      "description": "14-step enterprise audit for backend modules",
+      "source": "./unmassk-audit/"
+    },
+    {
+      "name": "unmassk-seo",
+      "version": "1.0.0",
+      "description": "Technical SEO — crawling, schema, Core Web Vitals, GEO/AEO, site audits",
+      "source": "./unmassk-seo/"
+    },
+    {
+      "name": "unmassk-marketing",
+      "version": "1.0.0",
+      "description": "Strategic marketing — CRO, copywriting, email, ads, pricing, growth",
+      "source": "./unmassk-marketing/"
+    },
+    {
+      "name": "unmassk-design",
+      "version": "1.0.0",
+      "description": "Frontend design — design systems, typography, color, motion, accessibility, BM25 search engine",
+      "source": "./unmassk-design/"
+    },
+    {
+      "name": "unmassk-ops",
+      "version": "0.1.0",
+      "description": "DevOps — CI/CD, database migrations, performance, observability",
+      "source": "./unmassk-ops/"
+    },
+    {
+      "name": "unmassk-compliance",
+      "version": "0.1.0",
+      "description": "Compliance — accessibility (WCAG), i18n, GDPR, E2E testing, API docs",
+      "source": "./unmassk-compliance/"
+    },
+    {
+      "name": "unmassk-media",
+      "version": "0.1.0",
+      "description": "Media generation — video (Remotion/ffmpeg), images, SVG, thumbnails, OG images",
+      "source": "./unmassk-media/"
+    }
+  ]
+}
