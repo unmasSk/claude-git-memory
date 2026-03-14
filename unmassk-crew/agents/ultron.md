@@ -6,7 +6,7 @@ model: inherit
 color: blue
 background: true
 memory: project
-skills: enterprise-audit
+skills: audit
 ---
 
 # Coder

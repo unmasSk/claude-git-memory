@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash, BashOutput
 model: inherit
 color: red
 background: true
-skills: enterprise-audit
+skills: audit
 ---
 
 ## Shared Discipline

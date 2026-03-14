@@ -5,7 +5,7 @@ tools: Read, Glob, Grep, Bash
 model: sonnet
 color: cyan
 permissionMode: default
-skills: enterprise-audit
+skills: audit
 background: true
 memory: project
 ---

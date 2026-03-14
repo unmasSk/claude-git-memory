@@ -6,7 +6,7 @@ model: inherit
 color: red
 background: true
 memory: project
-skills: enterprise-audit
+skills: audit
 ---
 
 # House — Diagnostic Agent

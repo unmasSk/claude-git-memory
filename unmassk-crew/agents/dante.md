@@ -6,7 +6,7 @@ model: inherit
 color: cyan
 background: true
 memory: project
-skills: enterprise-audit
+skills: audit
 ---
 
 # Test Engineering Agent Instructions

@@ -1,5 +1,5 @@
 ---
-name: enterprise-audit
+name: audit
 description: Use when the user asks to "audit a module", "enterprise review", "auditar modulo", "revisar contra estandares", "launch audit", or mentions auditing a backend module against enterprise standards. Also use when resuming an audit in progress.
 ---
 

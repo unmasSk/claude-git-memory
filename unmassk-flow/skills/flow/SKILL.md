@@ -1,9 +1,9 @@
 ---
-name: heroclaude
-description: Use when the user asks to "build a feature", "create something new", "implement", "add functionality", "fix a non-trivial bug", "refactor", or any task that is not trivial. Also use when the user says "brainstorm", "discuss", "plan", or mentions HeroClaude. This is the creative pipeline — from idea to shipped code.
+name: flow
+description: Use when the user asks to "build a feature", "create something new", "implement", "add functionality", "fix a non-trivial bug", "refactor", or any task that is not trivial. Also use when the user says "brainstorm", "discuss", "plan", or mentions Flow. This is the creative pipeline — from idea to shipped code.
 ---
 
-# HeroClaude — Creative Pipeline
+# Flow — Creative Pipeline
 
 8-step workflow for building features, fixes, and refactors from idea to shipped code. Combines gray-area brainstorming, TDD bite-sized planning, and evidence-first agent execution. All decisions persist in git-memory. The plan file is the single source of truth.
 
@@ -20,7 +20,7 @@ description: Use when the user asks to "build a feature", "create something new"
 - Refactors that touch 3+ files
 - Any task where "just do it" could go wrong
 
-Do NOT use for: trivial 1-file fixes, documentation-only changes, config tweaks, or enterprise audits (use `enterprise-audit` skill instead).
+Do NOT use for: trivial 1-file fixes, documentation-only changes, config tweaks, or enterprise audits (use `audit` skill instead).
 
 ## Step 0 — Triage (ORCHESTRATOR)
 

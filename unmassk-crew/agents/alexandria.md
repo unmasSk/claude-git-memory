@@ -6,7 +6,7 @@ model: inherit
 color: purple
 background: true
 memory: project
-skills: enterprise-audit
+skills: audit
 ---
 
 # Alexandria — Documentation Agent

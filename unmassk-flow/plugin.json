@@ -1,0 +1,14 @@
+{
+  "name": "unmassk-flow",
+  "version": "1.0.0",
+  "description": "8-step creative pipeline for building features, fixes, and refactors — from idea to shipped code. Requires unmassk-crew and claude-git-memory plugins.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": ["pipeline", "features", "workflow", "tdd"],
+  "skills": "./skills/"
+}

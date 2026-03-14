@@ -1,0 +1,14 @@
+{
+  "name": "unmassk-audit",
+  "version": "1.0.0",
+  "description": "14-step enterprise audit workflow for backend modules — structured quality assessment with weighted scoring. Requires unmassk-crew plugin.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": ["audit", "enterprise", "quality", "standards"],
+  "skills": "./skills/"
+}

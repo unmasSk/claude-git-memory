@@ -5,7 +5,7 @@ tools: Bash, Read, Edit, Write, Glob, Grep, WebFetch, TodoWrite, WebSearch, Bash
 model: inherit
 color: orange
 background: true
-skills: enterprise-audit
+skills: audit
 ---
 
 # Security Analyst Agent Instructions
