@@ -356,6 +356,19 @@ Structure deliverables consistently based on task type.
 [What could go wrong and how to handle it]
 ```
 
+## Validation (Evals)
+
+159 test cases at `${CLAUDE_PLUGIN_ROOT}/skills/unmassk-marketing/evals/evals.json` validate reference quality. Each eval has a prompt, expected output, and assertions.
+
+Search evals with:
+```
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-marketing/evals/search-evals.py --reference <ref>.md
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-marketing/evals/search-evals.py --keyword <term>
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-marketing/evals/search-evals.py --random
+```
+
+Use evals to verify output quality after completing a marketing task. Compare agent output against the expected output and assertions for the relevant reference.
+
 ## Attribution
 
 Based on marketingskills by coreyhaines31 (MIT License).

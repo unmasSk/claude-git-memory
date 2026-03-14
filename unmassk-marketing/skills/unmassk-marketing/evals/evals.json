@@ -1,0 +1,2602 @@
+{
+  "plugin": "unmassk-marketing",
+  "version": "1.0.0",
+  "total_evals": 159,
+  "sources": [
+    {
+      "original_skill": "ab-test-setup",
+      "reference": "analytics.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "I want to A/B test our homepage headline. We currently say 'The All-in-One Project Management Tool' and want to test something benefit-focused. We get about 15,000 visitors/month and our current signup rate is 3.2%.",
+          "expected_output": "Should check for product-marketing-context.md first. Should build a proper hypothesis using the framework: 'Because [observation], we believe [change] will cause [outcome], which we'll measure by [metric].' Should identify this as an A/B test (two variants). Should calculate or reference sample size needs based on 15,000 monthly visitors and 3.2% baseline. Should define primary metric (signup rate), secondary metrics, and guardrail metrics. Should warn about the peeking problem and recommend a fixed test duration. Should provide the test plan in the structured output format.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Uses the hypothesis framework with observation, belief, outcome, and metric",
+            "Identifies as A/B test type",
+            "Addresses sample size calculation based on traffic and baseline rate",
+            "Defines primary metric (signup rate)",
+            "Defines secondary and guardrail metrics",
+            "Warns about the peeking problem",
+            "Provides structured test plan output"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 2,
+          "prompt": "we want to test like 4 different CTA button colors on our pricing page. is that a good idea?",
+          "expected_output": "Should trigger on casual phrasing. Should identify this as an A/B/n test (multiple variants). Should caution that testing 4 variants requires significantly more traffic than a simple A/B test. Should reference the sample size quick reference showing traffic multipliers for multiple variants. Should question whether button color alone is likely to produce meaningful lift vs testing CTA copy, placement, or surrounding context. Should recommend either reducing to 2 variants or ensuring sufficient traffic. Should still provide hypothesis framework and test setup if proceeding.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Identifies as A/B/n test (multiple variants)",
+            "Cautions about increased traffic needs for 4 variants",
+            "References sample size requirements",
+            "Questions whether button color alone is high-impact",
+            "Suggests alternative higher-impact elements to test",
+            "Provides hypothesis framework"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 3,
+          "prompt": "Our test has been running for 3 days and Variant B is winning with 95% confidence. Should we call it?",
+          "expected_output": "Should immediately address the peeking problem. Should explain that checking results early inflates false positive rates. Should recommend running for the full pre-calculated duration regardless of early results. Should explain why early significance can be misleading (regression to the mean, day-of-week effects, audience mix shifts). Should provide guidance on when it IS appropriate to stop early (sequential testing methods). Should recommend the pre-test commitment to duration.",
+          "assertions": [
+            "Addresses the peeking problem directly",
+            "Explains why early significance is misleading",
+            "Recommends running for full pre-calculated duration",
+            "Mentions day-of-week effects or audience mix shifts",
+            "Explains false positive rate inflation from peeking",
+            "Mentions sequential testing as alternative approach"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Help me set up a multivariate test on our landing page. I want to test the headline, hero image, and CTA button simultaneously.",
+          "expected_output": "Should identify this as a Multivariate Test (MVT). Should explain that MVT tests combinations of elements and requires much more traffic than A/B tests. Should calculate or reference traffic needs (combinations multiply: e.g., 2 headlines × 2 images × 2 CTAs = 8 combinations). Should recommend MVT only if traffic supports it, otherwise suggest sequential A/B tests. Should build hypotheses for each element being tested. Should define interaction effects to watch for. Should provide structured test plan.",
+          "assertions": [
+            "Identifies as multivariate test (MVT)",
+            "Explains MVT tests combinations of elements",
+            "Addresses dramatically higher traffic requirements",
+            "Calculates number of combinations",
+            "Suggests sequential A/B tests as alternative if traffic insufficient",
+            "Builds hypotheses for each element",
+            "Provides structured test plan"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What metrics should I track for an A/B test on our trial signup page? We're testing a longer form (adds company size and role fields) against the current short form.",
+          "expected_output": "Should apply the metrics selection framework with three tiers: primary, secondary, and guardrail metrics. Primary: form completion rate (the direct conversion metric). Secondary: lead quality metrics (SQL conversion rate, activation rate post-signup). Guardrail: overall signup volume (ensure longer form doesn't tank total signups below acceptable threshold). Should explain the tradeoff between conversion quantity and lead quality. Should note that this test needs longer observation window to measure downstream metrics.",
+          "assertions": [
+            "Applies three-tier metric framework (primary, secondary, guardrail)",
+            "Identifies form completion rate as primary metric",
+            "Identifies lead quality as secondary metric",
+            "Defines guardrail metrics to protect against negative outcomes",
+            "Explains quantity vs quality tradeoff",
+            "Notes need for longer observation window for downstream metrics"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you help me write copy for our new landing page? We want to test it against the current version.",
+          "expected_output": "Should recognize this is primarily a copywriting task, not a test setup task. Should defer to or cross-reference the copywriting skill for writing the actual copy. May help frame the test hypothesis and setup, but should make clear that copywriting is the right skill for creating the page copy itself.",
+          "assertions": [
+            "Recognizes this as primarily a copywriting task",
+            "References or defers to copywriting skill",
+            "Does not attempt to write full page copy using test setup patterns",
+            "May offer to help with test hypothesis and setup"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 7,
+          "prompt": "We ran an A/B test on our pricing page for 4 weeks. Control: 2.1% conversion. Variant: 2.4% conversion. 12,000 visitors per variant. Is this statistically significant? Should we ship it?",
+          "expected_output": "Should evaluate the results against statistical significance criteria. Should calculate or estimate whether the sample size is sufficient to detect a 0.3 percentage point lift from a 2.1% baseline (this is a ~14% relative lift). Should reference the 95% confidence threshold. Should discuss practical significance vs statistical significance. Should recommend whether to ship, continue testing, or iterate. Should consider segment analysis if results are borderline.",
+          "assertions": [
+            "Evaluates against statistical significance criteria",
+            "Addresses whether sample size is sufficient for this effect size",
+            "References 95% confidence threshold",
+            "Distinguishes statistical significance from practical significance",
+            "Provides clear recommendation on shipping",
+            "Suggests segment analysis or follow-up if borderline"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "ad-creative",
+      "reference": "ads.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Generate ad creative for our Meta (Facebook/Instagram) campaign. We sell an AI writing assistant for content marketers. Main value prop: write blog posts 5x faster. Target audience: content marketing managers at B2B SaaS companies. Budget: $5k/month.",
+          "expected_output": "Should check for product-marketing-context.md first. Should generate creative following the angle-based approach: identify 3-5 angles (speed, quality, ROI, pain of blank page, competitive edge). For each angle, should generate primary text (≤125 chars), headline (≤40 chars), and description (≤30 chars) respecting Meta character limits. Should provide multiple variations per angle. Should suggest image/visual direction for each. Should organize output with angle name, hook, body, CTA for each variation. Should recommend which angles to test first.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Uses angle-based generation approach",
+            "Identifies multiple angles (3-5)",
+            "Respects Meta character limits (125/40/30)",
+            "Generates multiple variations per angle",
+            "Suggests image or visual direction",
+            "Includes hook, body, and CTA for each",
+            "Recommends which angles to test first"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 2,
+          "prompt": "I need Google Ads copy for our CRM product. We're targeting the keyword 'best CRM for small business'. Need responsive search ads.",
+          "expected_output": "Should generate Google RSA creative respecting character limits: headlines (≤30 chars each, need 10-15 variations) and descriptions (≤90 chars each, need 4+ variations). Should note that pinning should be used sparingly as it reduces optimization. Should include the target keyword in headlines. Should provide multiple angle-based variations. Should suggest ad extensions (sitelinks, callouts, structured snippets). Should follow Google Ads best practices for RSA.",
+          "assertions": [
+            "Respects Google RSA character limits (30 char headlines, 90 char descriptions)",
+            "Generates 10-15 headline variations",
+            "Generates 4+ description variations",
+            "Includes target keyword in headlines",
+            "Notes pinning should be used sparingly per skill guidance",
+            "Suggests ad extensions",
+            "Uses angle-based variation approach"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 3,
+          "prompt": "Here's our ad performance data: Ad A (pain point angle) - CTR 2.1%, CPC $3.20, Conv rate 4.5%. Ad B (social proof angle) - CTR 1.4%, CPC $4.10, Conv rate 6.2%. Ad C (feature angle) - CTR 0.8%, CPC $5.50, Conv rate 2.1%. Help me iterate on these.",
+          "expected_output": "Should activate the iteration-from-performance mode (not generate-from-scratch). Should analyze the data: Ad A has best CTR, Ad B has best conversion rate (highest efficiency despite lower CTR), Ad C is underperforming on all metrics. Should recommend doubling down on the pain point angle (high CTR) and social proof angle (high conversion), while pausing or reworking the feature angle. Should generate new variations that combine winning elements (pain point hook + social proof). Should suggest specific iterations on Ad A and Ad B.",
+          "assertions": [
+            "Activates iteration mode based on performance data",
+            "Analyzes CTR, CPC, and conversion rate for each ad",
+            "Identifies winning angles from the data",
+            "Recommends pausing or reworking underperforming creative",
+            "Generates new variations combining winning elements",
+            "Provides specific iterations on top performers"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 4,
+          "prompt": "we need linkedin ads for our enterprise security product. audience is CISOs and IT directors.",
+          "expected_output": "Should trigger on casual phrasing. Should generate LinkedIn ad creative respecting character limits: introductory text (≤150 chars), headline (≤70 chars), description (≤100 chars). Should adapt tone and messaging for enterprise security audience (CISOs, IT directors) — more formal, compliance-focused, risk-reduction language. Should provide multiple angles relevant to security buyers (risk reduction, compliance, incident response time, cost of breaches). Should suggest ad format recommendations for LinkedIn (sponsored content, message ads, etc.).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Respects LinkedIn character limits (150/70/100)",
+            "Adapts tone for enterprise security audience",
+            "Uses risk-reduction and compliance language",
+            "Provides multiple angles relevant to security buyers",
+            "Suggests LinkedIn ad format recommendations"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 5,
+          "prompt": "I need to generate a big batch of ad variations for a multi-platform campaign launching next week. We're a meal delivery service targeting busy professionals. Need ads for Google, Meta, and TikTok.",
+          "expected_output": "Should activate the batch generation workflow. Should generate creative for all three platforms respecting each platform's character limits: Google RSA (30/90), Meta (125/40/30), TikTok (80 chars recommended, 100 max). Should identify 3-5 angles that work across platforms (convenience, health, time savings, variety, cost vs eating out). Should generate variations per angle per platform. Should note platform-specific creative considerations (TikTok needs video concepts, not just text). Should organize output clearly by platform.",
+          "assertions": [
+            "Activates batch generation workflow",
+            "Generates for all three platforms",
+            "Respects each platform's character limits",
+            "Identifies angles that work across platforms",
+            "Notes TikTok needs video concepts",
+            "Organizes output by platform",
+            "Generates multiple variations per angle per platform"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Help me plan our overall paid advertising strategy. We have a $20k monthly budget and want to figure out which platforms to use and how to allocate spend.",
+          "expected_output": "Should recognize this is a paid advertising strategy task, not ad creative generation. Should defer to or cross-reference the paid-ads skill, which handles campaign strategy, platform selection, and budget allocation. May briefly mention creative considerations but should make clear that paid-ads is the right skill for strategy.",
+          "assertions": [
+            "Recognizes this as paid ads strategy, not creative generation",
+            "References or defers to paid-ads skill",
+            "Does not attempt full campaign strategy using creative generation patterns"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "analytics-tracking",
+      "reference": "analytics.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me set up analytics tracking for our B2B SaaS product. We use GA4 and GTM. We need to track signups, feature usage, and upgrade events.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the 'track for decisions' principle — ask what decisions the tracking will inform. Should use the event naming convention (object_action, lowercase with underscores). Should define essential events for SaaS: signup_completed, trial_started, feature_used, plan_upgraded, etc. Should provide GA4 implementation details with proper event parameters. Should include GTM data layer push examples. Should organize output as a tracking plan with event name, trigger, parameters, and purpose for each event.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies 'track for decisions' principle",
+            "Uses object_action naming convention",
+            "Defines essential SaaS events (signup, feature usage, upgrade)",
+            "Provides GA4 implementation details",
+            "Includes GTM data layer examples",
+            "Output follows tracking plan format"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 2,
+          "prompt": "What UTM parameters should we use? We run ads on Google, Meta, and LinkedIn, plus send a weekly newsletter and post on LinkedIn organically.",
+          "expected_output": "Should apply the UTM parameter strategy framework. Should define consistent UTM conventions: source (google, meta, linkedin, newsletter), medium (cpc, paid-social, email, organic-social), campaign (naming convention with date or identifier). Should provide specific UTM examples for each channel mentioned. Should warn about common UTM mistakes (inconsistent casing, redundant parameters, missing medium). Should recommend a UTM tracking spreadsheet or naming convention document.",
+          "assertions": [
+            "Applies UTM parameter strategy",
+            "Defines source, medium, and campaign conventions",
+            "Provides specific UTM examples for each channel",
+            "Uses consistent naming conventions (lowercase)",
+            "Warns about common UTM mistakes",
+            "Recommends tracking documentation"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our tracking seems broken — we're seeing duplicate events and our conversion numbers in GA4 don't match what our database shows. help?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the debugging and validation framework. Should systematically check for common issues: duplicate GTM tags firing, missing event deduplication, incorrect trigger conditions, cross-domain tracking issues, consent mode filtering. Should provide specific debugging steps: use GA4 DebugView, GTM Preview mode, browser developer tools. Should address the GA4 vs database discrepancy (common causes: consent mode, ad blockers, client-side vs server-side tracking, session timeout differences).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies debugging and validation framework",
+            "Checks for duplicate tag firing",
+            "Provides specific debugging tools (GA4 DebugView, GTM Preview)",
+            "Addresses GA4 vs database discrepancy",
+            "Lists common causes of data mismatches",
+            "Provides systematic troubleshooting steps"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We're launching an e-commerce store and need to set up tracking from scratch. What events do we absolutely need?",
+          "expected_output": "Should reference the essential events by site type, specifically e-commerce. Should define the e-commerce event taxonomy: product_viewed, product_added_to_cart, cart_viewed, checkout_started, checkout_step_completed, purchase_completed, product_removed_from_cart. Should include enhanced e-commerce parameters (item_id, item_name, price, quantity, etc.). Should follow object_action naming convention. Should organize as a tracking plan with priorities (must-have vs nice-to-have).",
+          "assertions": [
+            "References essential events for e-commerce site type",
+            "Defines full e-commerce event taxonomy",
+            "Includes enhanced e-commerce parameters",
+            "Follows object_action naming convention",
+            "Organizes by priority (must-have vs nice-to-have)",
+            "Provides tracking plan format output"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 5,
+          "prompt": "We need to make sure our tracking is GDPR compliant. We have European users and we're using GA4, Hotjar, and Facebook Pixel.",
+          "expected_output": "Should apply the privacy and compliance framework. Should address GDPR requirements for each tool: consent before tracking, consent management platform (CMP) setup, GA4 consent mode configuration, conditional loading of Hotjar and Facebook Pixel. Should recommend a consent hierarchy (necessary, analytics, marketing). Should provide GTM implementation for consent-based tag firing. Should mention data retention settings in GA4. Should address cookie banner requirements.",
+          "assertions": [
+            "Applies privacy and compliance framework",
+            "Addresses GDPR requirements specifically",
+            "Recommends consent management platform",
+            "Covers GA4 consent mode configuration",
+            "Addresses conditional loading for each tool",
+            "Provides consent hierarchy",
+            "Mentions data retention settings"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Help me set up tracking for our A/B test. We want to measure which version of our pricing page converts better.",
+          "expected_output": "Should recognize this overlaps with A/B test setup, not just analytics tracking. Should defer to or cross-reference the ab-test-setup skill for the experiment design, hypothesis, and statistical analysis. May help with the tracking implementation (events to fire, parameters to include) but should make clear that ab-test-setup is the right skill for the experiment framework.",
+          "assertions": [
+            "Recognizes overlap with A/B test setup",
+            "References or defers to ab-test-setup skill",
+            "May help with tracking implementation specifics",
+            "Does not attempt to design the full experiment"
+          ],
+          "files": [],
+          "reference": "analytics.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "churn-prevention",
+      "reference": "retention.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Our SaaS product has a 7% monthly churn rate and we need to bring it down. We're a $49/month project management tool with about 2,000 paying customers. Can you help us design a churn prevention strategy?",
+          "expected_output": "Should check for product-marketing-context.md first. Should address both voluntary and involuntary churn. Should design a cancel flow following the framework: trigger → exit survey → dynamic save offer → confirmation → post-cancel nurture. Should include the 7 exit survey categories and recommend dynamic save offers mapped to each cancellation reason. Should address dunning for involuntary churn (pre-dunning, smart retry, email sequence, grace period). Should recommend a health score model. Should provide prioritized implementation plan.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Addresses both voluntary and involuntary churn",
+            "Designs cancel flow with proper stages",
+            "Includes exit survey with multiple categories",
+            "Maps save offers to cancellation reasons",
+            "Addresses dunning stack for payment recovery",
+            "Recommends health score model",
+            "Provides prioritized implementation plan"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We keep losing customers because their credit cards expire. About 15% of our churn is from failed payments. How do we fix this?",
+          "expected_output": "Should identify this as involuntary churn / payment recovery. Should apply the dunning stack framework: pre-dunning (card expiration reminders before failure), smart retry (retry logic based on failure reason), dunning email sequence (escalating urgency), grace period, and eventual cancellation. Should provide specific timing for each stage. Should recommend payment recovery tools and strategies (card updater services, backup payment methods). Should include recovery rate benchmarks.",
+          "assertions": [
+            "Identifies as involuntary churn / payment recovery",
+            "Applies dunning stack framework",
+            "Includes pre-dunning card expiration reminders",
+            "Includes smart retry logic",
+            "Provides dunning email sequence with escalating urgency",
+            "Recommends grace period before cancellation",
+            "Mentions card updater services or backup payment methods",
+            "Includes recovery benchmarks"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 3,
+          "prompt": "what should we show users when they click the cancel button? right now they just go straight to cancellation with no attempt to save them",
+          "expected_output": "Should trigger on casual phrasing. Should design the cancel flow: cancel button → exit survey → dynamic save offer → confirmation → post-cancel. Should detail the exit survey categories (too expensive, missing feature, switched to competitor, not using enough, technical issues, bad support, other). Should provide dynamic save offers matched to each reason (e.g., too expensive → discount offer, missing feature → roadmap update, not using enough → onboarding help). Should include copy recommendations for each screen. Should warn against dark patterns (making it impossible to cancel).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Designs multi-step cancel flow",
+            "Includes exit survey with 7 categories",
+            "Provides dynamic save offers mapped to reasons",
+            "Includes copy recommendations",
+            "Warns against dark patterns",
+            "Includes confirmation and post-cancel steps"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 4,
+          "prompt": "How do we identify which customers are at risk of churning before they actually cancel? We want to be proactive.",
+          "expected_output": "Should apply the health score model framework. Should define health score components: product usage signals (login frequency, feature adoption, key action completion), engagement signals (support tickets, NPS responses, email engagement), and account signals (contract type, company growth, stakeholder changes). Should recommend scoring methodology (0-100 scale). Should define risk tiers and recommended interventions for each tier. Should suggest data sources and implementation approach.",
+          "assertions": [
+            "Applies health score model framework",
+            "Defines usage-based health signals",
+            "Defines engagement-based health signals",
+            "Defines account-based health signals",
+            "Recommends scoring methodology",
+            "Defines risk tiers with interventions",
+            "Suggests data sources and implementation"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Our exit survey shows that 40% of cancellations say 'too expensive' as the reason. What save offers should we try?",
+          "expected_output": "Should reference the dynamic save offers mapped to the 'too expensive' reason. Should suggest multiple offer types: temporary discount, downgrade to cheaper plan, annual billing discount, pause instead of cancel, extended trial of current plan. Should recommend testing different offers to find what works best. Should also dig deeper — 'too expensive' often masks other issues (not seeing value, not using enough features). Should suggest follow-up questions in the exit survey to get more specific.",
+          "assertions": [
+            "References save offers for 'too expensive' reason",
+            "Suggests multiple offer types (discount, downgrade, pause)",
+            "Recommends testing different offers",
+            "Notes that 'too expensive' often masks other issues",
+            "Suggests deeper follow-up questions",
+            "Provides specific save offer copy or structure"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 6,
+          "prompt": "We want to set up a win-back email sequence for customers who already cancelled. Can you help write those emails?",
+          "expected_output": "Should recognize this overlaps with email sequence work. Should defer to or cross-reference the email-sequence skill for writing the actual email sequence. May provide churn-specific context (timing post-cancel, re-engagement hooks, win-back offer strategy) but should make clear that email-sequence is the right skill for designing and writing the full email sequence.",
+          "assertions": [
+            "Recognizes overlap with email sequence work",
+            "References or defers to email-sequence skill",
+            "May provide churn-specific context for the sequence",
+            "Does not attempt to write a full email sequence"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "cold-email",
+      "reference": "email.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Write a cold email to VP of Marketing at mid-size B2B SaaS companies. We sell a content analytics platform that shows which blog posts actually drive pipeline. Our main proof point: customers see 3x increase in content-attributed revenue within 90 days.",
+          "expected_output": "Should check for product-marketing-context.md first. Should write like a peer, not a vendor. Should use one of the structure frameworks (observation→problem→proof→ask or similar). Subject line should be 2-4 words, lowercase, internal-looking. Every sentence should earn its place. Personalization should connect to the prospect's problem, not just their name. Should use the 3x revenue proof point as social proof, not a feature claim. CTA should be low-friction (not 'book a demo'). Should provide 2-3 variations. Should include a quality check against the guidelines.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Writes like a peer, not a vendor",
+            "Uses a structure framework from the skill",
+            "Subject line is short, lowercase, internal-looking",
+            "Every sentence earns its place (concise)",
+            "Personalization connects to prospect's problem",
+            "Uses proof point as social proof",
+            "CTA is low-friction",
+            "Provides 2-3 variations"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Help me write a cold email to CTOs at enterprise companies. I sell cybersecurity training. My current email has a 2% open rate and 0% reply rate.",
+          "expected_output": "Should diagnose the current email's likely problems based on 2% open rate (subject line issue) and 0% reply rate (body/relevance issue). Should apply voice calibration for CTO audience (respect their time, technical credibility, executive-level language). Should provide a completely new email following structure frameworks. Subject line should be 2-4 words, look internal. Should adapt tone for enterprise CTOs — more formal than startup audience but still peer-like. Should provide the email plus analysis of why each element works.",
+          "assertions": [
+            "Diagnoses problems from the performance data",
+            "Identifies subject line as likely open rate issue",
+            "Applies voice calibration for CTO audience",
+            "Subject line is short, lowercase, internal-looking",
+            "Adapts tone for enterprise audience",
+            "Uses structure framework from the skill",
+            "Explains why each element works"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 3,
+          "prompt": "write me a follow-up sequence. prospect didn't reply to my first email about our HR software. how many should I send and how far apart?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the follow-up sequence guidance: 3-5 follow-ups recommended. Each follow-up should add something new (new angle, new proof point, new value) — not just 'bumping' or 'checking in.' Should provide timing recommendations between emails. Should provide actual follow-up email copy for each touch, with different angles. Should include a breakup email at the end. Should note that each follow-up should be shorter than the previous.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Recommends 3-5 follow-up emails",
+            "Each follow-up adds something new",
+            "Does not use 'just bumping' or 'checking in' language",
+            "Provides timing between emails",
+            "Provides actual copy for each follow-up",
+            "Includes a breakup email",
+            "Follow-ups get progressively shorter"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Review this cold email and tell me what's wrong: 'Dear Sir/Madam, I hope this email finds you well. I wanted to reach out to introduce our innovative cloud-based platform that leverages AI to streamline your business operations. We have helped over 500 companies transform their workflows. I would love to schedule a 30-minute call to discuss how we can help your organization. Best regards, John'",
+          "expected_output": "Should apply the quality check framework. Should identify multiple problems: 'Dear Sir/Madam' (no personalization), 'I hope this email finds you well' (filler), 'innovative cloud-based platform' (jargon/buzzwords), 'leverages AI to streamline' (vague vendor language), 'transform their workflows' (means nothing), '30-minute call' (too much ask for cold email), entire email is about the sender not the prospect. Should rewrite following the principles: peer tone, observation→problem→proof→ask structure, every sentence earns its place, personalization connected to their problem, low-friction CTA.",
+          "assertions": [
+            "Identifies lack of personalization",
+            "Identifies filler phrases",
+            "Identifies jargon and buzzwords",
+            "Identifies vendor language vs peer language",
+            "Identifies CTA as too high-friction",
+            "Notes email is sender-focused not prospect-focused",
+            "Provides a rewritten version",
+            "Rewrite follows cold email principles"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What are the best subject lines for cold emails? I want to maximize open rates.",
+          "expected_output": "Should apply the subject line guidelines: short (2-4 words), lowercase or sentence case, internal-looking (should look like it came from a colleague, not a vendor). Should provide examples following these principles. Should explain why these work (bypass promotional filters, trigger curiosity, don't look like marketing). Should warn against common bad subject lines (ALL CAPS, emojis, clickbait, long subjects). Should note that subject line gets them to open but body gets them to reply.",
+          "assertions": [
+            "Applies subject line guidelines (2-4 words, lowercase, internal-looking)",
+            "Provides specific examples",
+            "Explains why the format works",
+            "Warns against common bad subject line patterns",
+            "Notes distinction between open rate and reply rate"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you help me set up an automated email drip campaign for leads who download our whitepaper?",
+          "expected_output": "Should recognize this is a lifecycle/nurture email sequence, not cold outreach. Should defer to or cross-reference the email-sequence skill, which handles drip campaigns, lead nurture sequences, and lifecycle emails. Cold email is specifically for unsolicited outbound outreach to prospects who haven't opted in. Should make this distinction clear.",
+          "assertions": [
+            "Recognizes this as lifecycle/nurture email, not cold outreach",
+            "References or defers to email-sequence skill",
+            "Explains the distinction between cold email and lifecycle email",
+            "Does not attempt to design a nurture sequence using cold email patterns"
+          ],
+          "files": [],
+          "reference": "email.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "content-strategy",
+      "reference": "copy.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me build a content strategy for our B2B SaaS product. We sell expense management software to finance teams at companies with 50-500 employees. We currently have no blog and want to start from scratch.",
+          "expected_output": "Should check for product-marketing-context.md first. Should establish content pillars (3-5 core topic areas). Should map content types by buyer stage (awareness → consideration → decision → implementation). Should identify keyword research opportunities by buyer stage. Should recommend a mix of searchable (SEO-driven) and shareable (thought leadership, data) content. Should use the prioritization scoring framework (customer impact 40%, content-market fit 30%, search potential 20%, resources 10%). Should provide an initial content calendar or publishing cadence. Should recommend content types appropriate for starting from scratch.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Establishes 3-5 content pillars",
+            "Maps content by buyer stage (awareness through implementation)",
+            "Includes keyword research by buyer stage",
+            "Recommends mix of searchable and shareable content",
+            "Uses prioritization scoring framework",
+            "Provides publishing cadence or calendar",
+            "Recommends appropriate starting content types"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We have 200+ blog posts but traffic has been flat for a year. Our content feels random — no clear strategy. How do we fix this?",
+          "expected_output": "Should diagnose the 'random content' problem. Should recommend a content audit process to evaluate existing posts. Should introduce content pillars and topical clustering to organize the existing library. Should identify hub-and-spoke opportunities from existing content. Should recommend which posts to update, consolidate, or retire. Should use the prioritization framework to plan next steps. Should address topical authority building through clusters.",
+          "assertions": [
+            "Diagnoses the 'random content' problem",
+            "Recommends content audit for existing posts",
+            "Introduces content pillars and topical clustering",
+            "Identifies hub-and-spoke opportunities",
+            "Recommends update, consolidate, or retire decisions",
+            "Uses prioritization framework",
+            "Addresses topical authority building"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 3,
+          "prompt": "what kind of content should we be creating? we're a developer tool (API testing platform) and our audience is backend developers and QA engineers",
+          "expected_output": "Should trigger on casual phrasing. Should recommend content types appropriate for a developer audience: technical tutorials, documentation-style guides, use-case content, template/example libraries, data-driven benchmarks. Should note that developer audiences prefer depth, accuracy, and practical value over marketing fluff. Should suggest content pillars aligned with developer interests. Should use the ideation sources framework (keyword data, community forums like Stack Overflow/Reddit, competitor gaps).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Recommends content types for developer audience",
+            "Emphasizes technical depth and practical value",
+            "Notes developers prefer substance over marketing",
+            "Suggests content pillars for developer tool",
+            "Uses ideation sources framework",
+            "Mentions developer community channels"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 4,
+          "prompt": "How should we prioritize which content to create first? We have a list of 50 blog post ideas but limited resources — one content marketer writing 2 posts per week.",
+          "expected_output": "Should apply the prioritization scoring framework: customer impact (40%), content-market fit (30%), search potential (20%), resources required (10%). Should help score or rank the content ideas using this framework. Should recommend focusing on high-impact, lower-effort content first. Should consider the buyer stage distribution (don't write only top-of-funnel). Should provide a practical workflow for the single content marketer to use going forward.",
+          "assertions": [
+            "Applies prioritization scoring framework with weights",
+            "Explains each scoring dimension",
+            "Recommends focusing on high-impact, lower-effort first",
+            "Considers buyer stage distribution",
+            "Provides practical workflow for limited resources"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 5,
+          "prompt": "We want to build topical authority in 'employee engagement.' What does a content cluster look like for this topic?",
+          "expected_output": "Should apply the hub-and-spoke content cluster model. Should design a pillar page for 'employee engagement' (comprehensive, 3000+ word guide). Should identify 8-15 supporting spoke articles targeting long-tail keywords related to employee engagement. Should map the internal linking structure between hub and spokes. Should address keyword research for the cluster. Should recommend content types for each piece (guide, how-to, template, data-driven, etc.).",
+          "assertions": [
+            "Applies hub-and-spoke content cluster model",
+            "Designs a pillar page for the core topic",
+            "Identifies 8-15 supporting spoke articles",
+            "Maps internal linking between hub and spokes",
+            "Addresses keyword research for the cluster",
+            "Recommends content types for each piece"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you write a blog post about remote work best practices for our HR software blog?",
+          "expected_output": "Should recognize this is a copywriting/content creation task, not a content strategy task. Should defer to or cross-reference the copywriting skill for writing individual pieces of content. May provide strategic context (where this fits in the content strategy, keyword targeting, audience) but should make clear that copywriting is the right skill for writing the actual content.",
+          "assertions": [
+            "Recognizes this as content creation, not strategy",
+            "References or defers to copywriting skill",
+            "Does not attempt to write the full blog post",
+            "May provide strategic context for the piece"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "copy-editing",
+      "reference": "copy.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Edit this homepage copy for us: 'Welcome to CloudSync! We are very excited to offer you an innovative, cutting-edge platform that seamlessly integrates with your existing tools. Our powerful solution helps businesses of all sizes optimize their workflows and drive meaningful results. Get started today and experience the difference!'",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the Seven Sweeps Framework systematically. Sweep 1 (Clarity): identify vague language ('optimize workflows,' 'drive meaningful results,' 'experience the difference'). Sweep 2 (Voice & Tone): flag 'Welcome to' as weak opening, 'we are very excited' as company-focused. Sweep 3 (So What): question what specific value is being offered. Sweep 4 (Prove It): note no proof points, stats, or evidence. Sweep 5 (Specificity): flag 'businesses of all sizes,' 'existing tools,' 'powerful solution' as generic. Sweep 6 (Heightened Emotion): assess emotional impact. Sweep 7 (Zero Risk): check for trust signals. Should provide a rewritten version addressing all issues.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies Seven Sweeps Framework",
+            "Identifies vague language (Clarity sweep)",
+            "Flags weak opening and company-focused language (Voice & Tone sweep)",
+            "Questions missing value proposition (So What sweep)",
+            "Notes missing proof points (Prove It sweep)",
+            "Flags generic terms (Specificity sweep)",
+            "Provides a rewritten version"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Quick edit on this CTA section: 'Ready to take your business to the next level? Our team of dedicated professionals is standing by to help you achieve your goals. Click here to learn more about how we can help you succeed.'",
+          "expected_output": "Should apply the quick-pass editing checks. Should identify: 'take your business to the next level' (cliché), 'team of dedicated professionals' (filler), 'standing by' (passive), 'click here' (weak CTA), 'learn more' (vague action), 'help you succeed' (generic). Should apply word-level, sentence-level, and paragraph-level checks. Should rewrite with specific value prop, active voice, and strong action-oriented CTA. Should be concise since this was requested as a 'quick edit.'",
+          "assertions": [
+            "Identifies clichés and filler phrases",
+            "Flags 'click here' and 'learn more' as weak",
+            "Applies word-level and sentence-level checks",
+            "Rewrites with specific value and strong CTA",
+            "Uses active voice in rewrite",
+            "Keeps response concise for a quick edit"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 3,
+          "prompt": "edit this product description, it feels too long and wordy: 'Our comprehensive project management solution provides teams with a robust set of tools that enable them to efficiently plan, execute, and monitor their projects from start to finish. With our intuitive interface, powerful analytics dashboard, and seamless integration capabilities, you can ensure that every aspect of your project is managed with precision and care. Whether you're a small startup or a large enterprise, our platform scales to meet your unique needs and requirements, helping you deliver projects on time and within budget every single time.'",
+          "expected_output": "Should trigger on casual phrasing. Should apply the Clarity and Specificity sweeps primarily. Should identify: redundancy ('plan, execute, and monitor' overlaps with 'from start to finish'), filler words ('comprehensive,' 'robust,' 'efficiently,' 'seamless,' 'unique'), hedge phrases ('ensuring every aspect,' 'with precision and care'), and generic claims ('scales to meet your needs,' 'on time and within budget every single time'). Should cut the copy significantly (probably by 50%+). Should provide a tighter rewrite that says the same thing in fewer, more specific words.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Identifies redundancy in the copy",
+            "Identifies filler words and hedge phrases",
+            "Identifies generic claims",
+            "Cuts copy significantly (50%+ reduction)",
+            "Provides tighter rewrite with specific language"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Review this testimonial section and improve it: 'CloudSync is great! It really helped our company. The team was very responsive and the product works well. We would recommend it to anyone looking for a solution. - John S., CEO'",
+          "expected_output": "Should apply the Prove It and Specificity sweeps. Should identify the testimonial as too vague to be persuasive ('great,' 'really helped,' 'works well,' 'anyone looking for a solution'). Should recommend replacing with specific results ('reduced project delivery time by 30%'), specific context ('team of 45 engineers'), and specific outcomes. Should suggest questions to ask the customer for a better testimonial. Should not fabricate specific numbers but should provide a template showing what a strong testimonial looks like.",
+          "assertions": [
+            "Applies Prove It and Specificity sweeps",
+            "Identifies testimonial as too vague",
+            "Recommends specific results and context",
+            "Suggests questions to get better testimonial",
+            "Does not fabricate specific numbers",
+            "Provides template for strong testimonial"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 5,
+          "prompt": "I need you to apply the 'So What' and 'Zero Risk' sweeps to this pricing page copy: 'Our Pro plan includes unlimited projects, advanced reporting, priority support, and custom integrations. Starting at $99/month.'",
+          "expected_output": "Should apply specifically the So What and Zero Risk sweeps as requested. So What: for each feature, ask 'so what does this mean for the customer?' — unlimited projects (what does that enable?), advanced reporting (what decisions can they make?), priority support (what does that mean in practice? response time?), custom integrations (which ones? what workflow does it enable?). Zero Risk: identify missing trust signals — no guarantee, no trial mention, no social proof near pricing, no 'cancel anytime' assurance. Should provide rewritten copy addressing both sweeps.",
+          "assertions": [
+            "Applies So What sweep to each feature",
+            "Translates features to customer benefits",
+            "Applies Zero Risk sweep",
+            "Identifies missing trust signals",
+            "Suggests guarantee, trial, or cancel-anytime language",
+            "Provides rewritten copy addressing both sweeps"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Write fresh homepage copy for our new product. We're launching a CRM for real estate agents.",
+          "expected_output": "Should recognize this is a copywriting-from-scratch task, not copy editing. Should defer to or cross-reference the copywriting skill, which handles writing new copy from scratch. Copy-editing is specifically for improving existing copy. Should make this distinction clear.",
+          "assertions": [
+            "Recognizes this as writing new copy, not editing existing copy",
+            "References or defers to copywriting skill",
+            "Explains that copy-editing is for improving existing copy",
+            "Does not attempt to write full page copy from scratch"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "copywriting",
+      "reference": "copy.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Write homepage copy for a SaaS tool that automates employee onboarding. Target audience is HR directors at mid-size companies (200-2000 employees). Main differentiator is that it integrates with all major HRIS systems and cuts onboarding time from 2 weeks to 2 days.",
+          "expected_output": "Should check for product-marketing-context.md first. Should write full page copy organized by section: Headline, Subheadline, CTA (above the fold), then Social Proof, Problem/Pain, Solution/Benefits, How It Works, Objection Handling, and Final CTA. Should follow copywriting principles: clarity over cleverness, benefits over features, specificity (use the '2 weeks to 2 days' stat), customer language. Headline should communicate core value proposition. CTAs should be action-oriented ('Start Free Trial' not 'Submit'). Should provide 2-3 headline alternatives with rationale. Should include annotations explaining key copy choices. Should include meta content (SEO page title and meta description).",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Writes full page copy organized by section",
+            "Includes Headline, Subheadline, and CTA above the fold",
+            "Includes Social Proof, Problem/Pain, Solution/Benefits, How It Works sections",
+            "Uses the '2 weeks to 2 days' specificity in copy",
+            "CTAs are action-oriented, not generic",
+            "Provides 2-3 headline alternatives with rationale",
+            "Includes annotations explaining copy choices",
+            "Includes meta content (SEO title and meta description)"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Rewrite this headline: 'An Innovative AI-Powered Platform for Streamlined Business Operations' — it's for a B2B SaaS tool that helps small businesses manage invoicing and payments.",
+          "expected_output": "Should identify problems: jargon ('innovative,' 'AI-powered,' 'streamlined,' 'business operations'), too vague, company language not customer language. Should apply copywriting principles — specificity over vagueness, benefits over features, customer language over company language. Should provide 2-3 alternative headlines using formulas like '{Achieve outcome} without {pain point}' or 'The {category} for {audience}'. Each alternative should include rationale. Should also suggest a subheadline that adds specificity.",
+          "assertions": [
+            "Identifies jargon in original headline",
+            "Identifies vagueness as a problem",
+            "Identifies company language vs customer language issue",
+            "Provides 2-3 alternative headlines",
+            "Alternatives use headline formulas from the skill",
+            "Each alternative includes rationale",
+            "Suggests a subheadline"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 3,
+          "prompt": "i need copy for my pricing page. we have three plans: starter ($29/mo), pro ($79/mo), business ($199/mo). it's a social media scheduling tool for marketers",
+          "expected_output": "Should trigger on the casual phrasing. Should ask or infer audience context. Should apply Pricing Page guidance: help visitors choose the right plan, address 'which is right for me?' anxiety, make recommended plan obvious. Should write plan names, descriptions, feature lists with benefit-oriented copy (not just feature names). Should include a page headline that addresses the pricing decision. CTAs should be specific per plan. Should handle objection handling (FAQ copy). Should provide alternatives for key elements.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies Pricing Page guidance",
+            "Addresses 'which plan is right for me' anxiety",
+            "Makes recommended plan obvious",
+            "Writes benefit-oriented feature copy, not just feature names",
+            "Includes page headline",
+            "CTAs are specific per plan",
+            "Includes FAQ or objection handling copy",
+            "Provides alternatives for key elements"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Write copy for our About page. We're a 3-person startup that built a developer tool for database migrations. Founded because we kept losing data during migrations at our last jobs. Tone should be professional but human.",
+          "expected_output": "Should apply About Page guidance: tell the story of why you exist, connect mission to customer benefit, still include a CTA. Should adapt voice and tone to 'professional but human' as specified. Should tell the founder origin story authentically. Should connect the personal pain to the customer's pain. Should include a CTA even on the About page. Copy should follow style rules: active voice, confident, specific. Should NOT be overly corporate or generic.",
+          "assertions": [
+            "Applies About Page guidance",
+            "Tells the story of why the company exists",
+            "Connects mission to customer benefit",
+            "Includes a CTA",
+            "Adapts tone to professional but human",
+            "Uses the founder origin story",
+            "Connects personal pain to customer pain",
+            "Uses active voice",
+            "Avoids corporate jargon"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Can you improve this CTA? We currently have 'Learn More' on our feature page for our analytics dashboard product.",
+          "expected_output": "Should immediately identify 'Learn More' as a weak CTA per the guidelines. Should apply the CTA formula: [Action Verb] + [What They Get] + [Qualifier]. Should provide 2-3 strong alternatives like 'See the Dashboard in Action,' 'Start Your Free Trial,' or 'Explore Analytics Features.' Each alternative should include rationale and context for when it works best. Should also consider CTA hierarchy — whether this is a primary or secondary CTA, and suggest complementary CTAs if relevant.",
+          "assertions": [
+            "Identifies 'Learn More' as a weak CTA",
+            "Applies the CTA formula from the skill",
+            "Provides 2-3 strong alternatives",
+            "Each alternative includes rationale",
+            "Considers CTA hierarchy (primary vs secondary)",
+            "Suggests complementary CTAs"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Write me a 5-email welcome sequence for new trial users of our project management tool.",
+          "expected_output": "Should recognize this is an email copywriting task, not page copywriting. Should defer to or cross-reference the email-sequence skill, which specifically handles email sequences, drip campaigns, and lifecycle emails. May provide brief general guidance but should make clear that email-sequence is the right skill for this task.",
+          "assertions": [
+            "Recognizes this as email sequence work",
+            "References or defers to email-sequence skill",
+            "Does not attempt to write a full email sequence using page copywriting patterns"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 7,
+          "prompt": "Review this copy and tell me what's wrong: 'We are extremely excited to announce our revolutionary, cutting-edge platform that will totally transform how businesses optimize their workflows! Sign up now!!'",
+          "expected_output": "Should apply the Quick Quality Check. Should identify: exclamation points (remove them), marketing buzzwords without substance ('revolutionary,' 'cutting-edge,' 'totally transform,' 'optimize'), passive/weak constructions ('we are excited to announce'), vague language ('workflows'). Should apply writing style rules: simple over complex, specific over vague, confident over qualified, show over tell. Should rewrite the copy following these principles. Should provide 2-3 alternatives.",
+          "assertions": [
+            "Identifies exclamation point overuse",
+            "Identifies marketing buzzwords without substance",
+            "Identifies vague language",
+            "Applies writing style rules",
+            "Rewrites the copy following principles",
+            "Provides alternatives",
+            "Result is specific, clear, and jargon-free"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "email-sequence",
+      "reference": "email.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Create a welcome email sequence for new users who sign up for our project management tool's free trial. The trial is 14 days. We want to get them to their aha moment (creating their first project and inviting a team member).",
+          "expected_output": "Should check for product-marketing-context.md first. Should create a welcome sequence (5-7 emails) following the core principles: one email one job, value before ask. Should map each email to a specific goal in the 14-day trial journey. Should include timing/delays between emails. Each email should follow the email copy structure: hook → context → value → CTA → sign-off. Should include subject lines following the subject line strategy. Should align sequence with the aha moment (first project + team invite). Output should follow the structured format with sequence overview and per-email specs.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Creates 5-7 email welcome sequence",
+            "Follows one email one job principle",
+            "Maps emails to trial timeline (14 days)",
+            "Includes timing between emails",
+            "Each email has hook, context, value, CTA",
+            "Includes subject lines for each email",
+            "Aligns with stated aha moment",
+            "Output follows structured per-email format"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We need a lead nurture sequence for people who download our 'State of DevOps 2024' report. Goal is to get them to book a demo of our CI/CD platform.",
+          "expected_output": "Should create a lead nurture sequence (6-8 emails). Should follow value before ask — first emails should provide related value, not immediately push for demo. Should map the sequence from awareness (report download) through consideration (related content, case studies) to decision (demo request). Should include timing between emails. Each email should have clear subject line, hook, single CTA. Should gradually increase commitment asks across the sequence.",
+          "assertions": [
+            "Creates 6-8 email lead nurture sequence",
+            "Follows value before ask principle",
+            "Maps from awareness through consideration to decision",
+            "Includes timing between emails",
+            "Each email has clear subject line and single CTA",
+            "Gradually increases commitment asks",
+            "Connects to original download topic"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our email open rates have tanked. used to be 35% now we're at 18%. what's going on and how do we fix our subject lines?",
+          "expected_output": "Should trigger on casual phrasing. Should diagnose potential causes of declining open rates: sender reputation, list hygiene, subject line quality, sending frequency, deliverability issues. Should apply the subject line strategy from the skill: test curiosity vs benefit vs urgency patterns, personalization, optimal length. Should recommend a re-engagement campaign to clean the list. Should provide specific subject line formulas and examples. Should suggest testing framework for subject lines.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Diagnoses potential causes beyond just subject lines",
+            "Addresses sender reputation and deliverability",
+            "Recommends list hygiene or re-engagement",
+            "Applies subject line strategy with specific patterns",
+            "Provides subject line formulas and examples",
+            "Suggests testing framework"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Build a re-engagement sequence for subscribers who haven't opened any emails in 90 days. We have about 5,000 inactive subscribers.",
+          "expected_output": "Should create a re-engagement sequence (3-4 emails). Should follow the re-engagement pattern: first email acknowledges absence and offers value, middle emails escalate with compelling reasons to re-engage, final email is a clear 'last chance' before removal. Should recommend aggressive subject lines to break through. Should include a sunset policy (remove non-responders after sequence completes). Should address the impact on deliverability of keeping inactive subscribers.",
+          "assertions": [
+            "Creates 3-4 email re-engagement sequence",
+            "Acknowledges absence in first email",
+            "Escalates through the sequence",
+            "Includes 'last chance' final email",
+            "Recommends sunset policy for non-responders",
+            "Addresses deliverability impact of inactive subscribers",
+            "Uses compelling subject lines"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What's the ideal timing for our onboarding email sequence? We send the first email immediately after signup, but we're not sure about the rest.",
+          "expected_output": "Should provide timing guidance for onboarding sequences. Should reference the timing and delays framework: immediate first email (welcome/confirmation), then suggest data-driven timing based on user behavior triggers vs fixed time delays. Should recommend behavior-triggered emails when possible (user completed action → next email) with time-based fallbacks. Should provide typical timing patterns for SaaS onboarding (day 0, day 1, day 3, day 5, day 7, etc.). Should note that optimal timing depends on product complexity and trial length.",
+          "assertions": [
+            "Provides timing guidance for onboarding sequences",
+            "Recommends immediate first email",
+            "Discusses behavior-triggered vs time-based timing",
+            "Provides typical timing patterns",
+            "Notes timing depends on product and trial length",
+            "Recommends behavior triggers with time-based fallbacks"
+          ],
+          "files": [],
+          "reference": "email.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Help me optimize our post-signup onboarding experience. Users sign up but 60% never complete setup.",
+          "expected_output": "Should recognize this is an in-app onboarding optimization task, not an email sequence task. Should defer to or cross-reference the onboarding-cro skill, which handles in-app onboarding flows, checklists, and activation optimization. May offer to help with the email component of onboarding but should make clear that onboarding-cro is the primary skill for this task.",
+          "assertions": [
+            "Recognizes this as in-app onboarding optimization",
+            "References or defers to onboarding-cro skill",
+            "Does not attempt full onboarding redesign using email patterns",
+            "May offer email component support"
+          ],
+          "files": [],
+          "reference": "email.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "form-cro",
+      "reference": "cro.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Audit our demo request form. It currently has these fields: First Name, Last Name, Work Email, Phone Number, Company Name, Company Size, Job Title, Industry, Current Solution, Budget Range, and a 'Tell us about your needs' textarea. Our conversion rate is 3.1% and we want to improve it.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the 'every field has a cost' principle — 11 fields is excessive for a demo form. Should reference the field cost data (3 fields baseline, 7+ fields = 25-50% conversion reduction). Should evaluate each field: which are essential for demo prep, which can be collected later or inferred. Should recommend cutting to essential fields (likely Work Email, Company Name, and maybe one qualifier). Should provide audit findings in the structured format (Issue, Impact, Fix, Priority). Should recommend Quick Wins, High-Impact Changes, and Test Ideas.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies 'every field has a cost' principle",
+            "References field count impact data",
+            "Evaluates each field for necessity",
+            "Recommends cutting to essential fields",
+            "Provides findings in structured format (Issue, Impact, Fix, Priority)",
+            "Includes Quick Wins, High-Impact Changes, Test Ideas"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Our contact form just has Name, Email, and Message fields but we're getting a lot of spam submissions and low-quality leads. How do we fix this without adding too much friction?",
+          "expected_output": "Should apply the contact form type guidance. Should address spam with non-friction solutions first: honeypot fields, reCAPTCHA, server-side validation. Should then address lead quality: suggest adding one qualifying field (company name or budget range) to filter without excessive friction. Should apply the error handling guidance for validation. Should recommend form layout and submit button optimization. Should balance quality vs quantity in recommendations.",
+          "assertions": [
+            "Applies contact form type guidance",
+            "Recommends anti-spam solutions (honeypot, reCAPTCHA)",
+            "Suggests minimal qualifying fields for lead quality",
+            "Balances quality vs quantity",
+            "Addresses error handling and validation",
+            "Recommends non-friction solutions first"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 3,
+          "prompt": "should we use a single-step or multi-step form for our quote request? we need company info, project details, timeline, and budget.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the multi-step form guidance — with this many required data types, multi-step is likely better. Should reference the threshold: multi-step recommended when more than 5-6 fields. Should recommend grouping by type (contact info → project details → budget/timeline). Should include progress indicator recommendation. Should apply best practices: easy questions first, save progress, allow back navigation. Should note that multi-step often increases completion for longer forms.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Recommends multi-step based on field count",
+            "References the 5-6 field threshold for multi-step",
+            "Suggests logical field grouping",
+            "Recommends progress indicator",
+            "Applies multi-step best practices",
+            "Notes multi-step increases completion for longer forms"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 4,
+          "prompt": "How should we handle form errors? Users keep getting frustrated and abandoning our lead capture form when they hit validation errors.",
+          "expected_output": "Should apply the error handling guidance. Should recommend inline validation (not just on submit). Should provide specific error message examples (helpful, not generic). Should recommend: don't clear the form on error, focus on the problem field, show requirements upfront not after failure. Should address common validation UX issues: email format, phone format, required field indicators. Should provide examples of good vs bad error messages.",
+          "assertions": [
+            "Applies error handling guidance",
+            "Recommends inline validation",
+            "Provides specific error message examples",
+            "Recommends not clearing form on error",
+            "Recommends showing requirements upfront",
+            "Provides good vs bad error message examples",
+            "Addresses common validation UX issues"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 5,
+          "prompt": "We need to optimize our form for mobile. Over 60% of our traffic is mobile but our form conversion rate on mobile is half of desktop.",
+          "expected_output": "Should apply the mobile optimization guidance. Should recommend: larger touch targets (44px+ height), appropriate keyboard types (email, tel), autofill support, single column layout, sticky CTA button, reduce typing (use dropdowns, toggles). Should address mobile-specific form issues: viewport, font size, button placement, scroll behavior. Should recommend testing with actual devices.",
+          "assertions": [
+            "Applies mobile optimization guidance",
+            "Recommends larger touch targets (44px+)",
+            "Recommends appropriate keyboard types",
+            "Recommends autofill support",
+            "Recommends single column layout",
+            "Addresses mobile-specific issues",
+            "Recommends testing with actual devices"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Our signup form has too many fields and people keep abandoning it halfway through. Can you help optimize it?",
+          "expected_output": "Should recognize this is about signup/registration form optimization, not general form CRO. Should defer to or cross-reference the signup-flow-cro skill, which specifically handles signup, registration, and account creation flows. May provide general form friction advice but should make clear that signup-flow-cro is the right skill for signup forms.",
+          "assertions": [
+            "Recognizes this as signup flow optimization",
+            "References or defers to signup-flow-cro skill",
+            "Does not attempt full signup form optimization using general form CRO patterns"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "free-tool-strategy",
+      "reference": "growth.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "We want to build a free tool to drive leads for our SEO software. We're thinking about an SEO audit tool or a keyword research tool. Which would be better and how should we approach it?",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the evaluation scorecard to compare both tool ideas across dimensions (audience alignment, lead quality, build effort, SEO value, maintenance burden, competitive differentiation). Should reference the tool types from the skill (analyzers, testers). Should recommend the stronger option with rationale. Should discuss lead capture gating strategy (what's free vs what requires email). Should address MVP scope — what's the minimum valuable version. Should provide implementation recommendations.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies evaluation scorecard to compare options",
+            "References tool types from the skill",
+            "Recommends one option with clear rationale",
+            "Discusses lead capture gating strategy",
+            "Addresses MVP scope",
+            "Provides implementation recommendations"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 2,
+          "prompt": "I want to build a free ROI calculator for our HR software. Users input their company size and current processes, and it shows how much time and money they'd save.",
+          "expected_output": "Should identify this as a calculator tool type. Should apply the ideation framework to validate the concept. Should discuss lead capture strategy: should the basic result be free and detailed report gated? Should address the build vs buy decision. Should recommend MVP scope (what inputs, what outputs, what formula). Should discuss SEO considerations for the tool page. Should reference the evaluation scorecard to score the idea.",
+          "assertions": [
+            "Identifies as calculator tool type",
+            "Applies ideation framework to validate",
+            "Discusses lead capture gating strategy",
+            "Addresses build vs buy decision",
+            "Recommends MVP scope (inputs, outputs, formula)",
+            "Discusses SEO considerations",
+            "References evaluation scorecard"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 3,
+          "prompt": "give me some ideas for free tools we could build. we sell email marketing software for e-commerce brands.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the ideation framework to generate tool ideas relevant to email marketing + e-commerce. Should provide 5-8 ideas across different tool types (calculators, generators, analyzers, testers). Examples: email subject line tester, email deliverability checker, email ROI calculator, email template generator, spam score checker. Should briefly score each against the evaluation dimensions. Should recommend top 2-3 to pursue.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies ideation framework",
+            "Generates ideas across multiple tool types",
+            "Ideas are relevant to email marketing + e-commerce",
+            "Provides 5-8 ideas",
+            "Briefly evaluates each idea",
+            "Recommends top 2-3 to pursue"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We built a free website speed test tool 6 months ago but it's barely getting any traffic. What went wrong and how do we fix it?",
+          "expected_output": "Should diagnose why the tool isn't getting traffic. Should investigate: SEO strategy for the tool page (target keywords, on-page optimization), distribution strategy (was it launched and forgotten?), competitive landscape (are there dominant free tools already?), tool quality and UX (does it provide unique value?). Should apply the engineering as marketing principles. Should recommend a recovery plan: SEO improvements, content marketing around the tool, product improvements for differentiation.",
+          "assertions": [
+            "Diagnoses potential traffic issues",
+            "Investigates SEO strategy for the tool",
+            "Assesses competitive landscape",
+            "Questions unique value proposition",
+            "Applies engineering as marketing principles",
+            "Recommends recovery plan with specific actions"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Should we gate our free tool behind an email capture or make it completely free? We want leads but don't want to kill usage.",
+          "expected_output": "Should apply the lead capture gating strategy framework. Should present the spectrum: fully ungated → partial gating (basic results free, detailed report gated) → fully gated. Should recommend partial gating as the typical best approach — give enough value to demonstrate the tool's worth, gate the detailed/actionable output. Should discuss tradeoffs: ungated = more SEO value and usage, gated = more leads but fewer users. Should provide specific gating recommendations based on tool type.",
+          "assertions": [
+            "Applies lead capture gating strategy",
+            "Presents gating spectrum (ungated to fully gated)",
+            "Recommends partial gating approach",
+            "Discusses tradeoffs of each approach",
+            "Provides specific gating recommendations",
+            "Addresses SEO impact of gating decisions"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 6,
+          "prompt": "How do I optimize the landing page for our free tool to get more signups? The tool itself is great but nobody finds it.",
+          "expected_output": "Should recognize this is a landing page conversion optimization task, not a free tool strategy task. Should defer to or cross-reference the page-cro skill for optimizing the tool's landing page conversion rate. May provide free-tool-specific context (gating strategy, value demonstration) but should make clear that page-cro is the right skill for page conversion optimization.",
+          "assertions": [
+            "Recognizes this as page CRO, not free tool strategy",
+            "References or defers to page-cro skill",
+            "May provide free-tool-specific context",
+            "Does not attempt full page CRO using free tool strategy patterns"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "launch-strategy",
+      "reference": "growth.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "We're launching a new B2B SaaS product for design teams in 6 weeks. It's a design review tool. We have a small audience (500 email subscribers, 2k Twitter followers). Help us plan the launch.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the ORB Framework (Owned, Rented, Borrowed channels) with the user's specific resources. Owned: email list (500 subscribers), website. Rented: Twitter (2k followers). Borrowed: partnerships, communities, Product Hunt. Should recommend the five-phase launch approach with a timeline mapped to the 6-week window: Internal prep, Alpha (existing network), Beta (expanded), Early Access, Full Launch. Should provide specific tactics for each phase. Should recommend building up the audience before launch day. Should include a launch day checklist.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies ORB Framework (Owned, Rented, Borrowed)",
+            "Maps to user's specific channels and audience sizes",
+            "Recommends five-phase launch approach",
+            "Provides timeline mapped to 6-week window",
+            "Provides specific tactics for each phase",
+            "Recommends audience building before launch",
+            "Includes launch day checklist"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We want to launch on Product Hunt. Any tips? We've never done it before.",
+          "expected_output": "Should apply the Product Hunt strategy section. Should cover: choosing the right day and time, preparing assets (logo, gallery images, maker video), crafting the tagline and description, building a hunter network, activating supporters on launch day, engaging with comments, and post-launch follow-up. Should recommend preparation timeline (start 2-4 weeks before). Should mention common mistakes to avoid. Should set realistic expectations about outcomes.",
+          "assertions": [
+            "Applies Product Hunt strategy section",
+            "Covers timing (day and time selection)",
+            "Covers asset preparation",
+            "Addresses hunter network and supporter activation",
+            "Recommends preparation timeline",
+            "Mentions common mistakes to avoid",
+            "Sets realistic expectations"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 3,
+          "prompt": "we just shipped a major feature update. how should we announce it? it's not a full product launch, just a big new feature.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the ongoing launch strategy section, specifically the major/medium/minor update matrix. Should identify this as a major feature update. Should recommend appropriate channels and tactics for a feature launch (less than a full product launch but more than a changelog entry). Should include: announcement email, blog post, social media push, in-app notification, and possibly a mini Product Hunt launch. Should provide a feature announcement framework.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies ongoing launch strategy / update matrix",
+            "Identifies as major feature update",
+            "Scales tactics appropriately (not full launch)",
+            "Recommends announcement channels",
+            "Includes email, blog, social, and in-app notification",
+            "Provides feature announcement framework"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Our launch flopped. We launched 3 weeks ago and only got 50 signups. We expected at least 500. What went wrong and what can we do now?",
+          "expected_output": "Should apply the post-launch product marketing section. Should diagnose potential failure causes: insufficient audience building pre-launch, wrong channels, weak value proposition messaging, poor launch execution, targeting the wrong audience. Should recommend post-launch recovery tactics: iterate on messaging, identify which channels produced the 50 signups and double down, try new distribution channels, leverage early users for testimonials. Should provide a specific 30-day recovery plan.",
+          "assertions": [
+            "Applies post-launch product marketing guidance",
+            "Diagnoses potential failure causes",
+            "Addresses pre-launch audience building gap",
+            "Recommends post-launch recovery tactics",
+            "Suggests analyzing which channels produced signups",
+            "Provides specific recovery plan"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 5,
+          "prompt": "How do we leverage partnerships and borrowed audiences for our launch? We don't have a big audience of our own.",
+          "expected_output": "Should focus on the Borrowed channel from the ORB Framework. Should provide specific borrowed audience tactics: podcast guest appearances, co-marketing with complementary tools, influencer partnerships, community engagement (relevant Slack groups, Discord servers, Reddit), guest posts, cross-promotions. Should recommend how to identify and approach potential partners. Should note that borrowed audience strategies take time to build and should start well before launch day.",
+          "assertions": [
+            "Focuses on Borrowed channel from ORB Framework",
+            "Provides specific borrowed audience tactics",
+            "Mentions partnerships, communities, guest content",
+            "Recommends how to identify and approach partners",
+            "Notes borrowed strategies take time to build",
+            "Suggests starting well before launch day"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Give me some creative marketing ideas to promote our product. We're bootstrapped and don't have a big budget.",
+          "expected_output": "Should recognize this is a broader marketing ideas request, not specifically a launch strategy task. Should defer to or cross-reference the marketing-ideas skill, which provides 139 marketing ideas organized by category and filtered by budget. May provide some launch-related tactical ideas but should make clear that marketing-ideas is the right skill for a broader brainstorming session.",
+          "assertions": [
+            "Recognizes this as broader marketing ideas request",
+            "References or defers to marketing-ideas skill",
+            "Does not attempt full marketing brainstorm using launch strategy patterns",
+            "May provide some launch-related tactical ideas"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "marketing-ideas",
+      "reference": "foundations.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "I need marketing ideas for my SaaS product. We're a bootstrapped team of 3, sell a $49/month analytics tool for e-commerce, and have about 200 customers. Budget is tight — maybe $500/month for marketing.",
+          "expected_output": "Should check for product-marketing-context.md first. Should filter ideas by low budget and early-stage constraints. Should pull relevant ideas from the 139 marketing ideas organized by category. Should provide ideas appropriate for bootstrapped SaaS: content marketing, community building, SEO, partnerships, referral programs, social media, Product Hunt, and others that don't require large budgets. Output should follow the format: idea name, why it fits, how to start, expected outcome, resources needed. Should prioritize by likely impact given their stage.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Filters ideas by low budget constraint",
+            "Provides ideas from the 139 marketing ideas catalog",
+            "Ideas are appropriate for bootstrapped SaaS stage",
+            "Output follows structured format per idea",
+            "Includes why it fits, how to start, expected outcome",
+            "Prioritizes by likely impact",
+            "Includes resources needed per idea"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 2,
+          "prompt": "What's the fastest way to get more leads? We sell enterprise security software and have a $10k/month marketing budget.",
+          "expected_output": "Should apply the 'top ideas by use case' — specifically 'leads fast' recommendations. Should recommend paid channels (Google Ads, LinkedIn Ads for enterprise), outbound (cold email, LinkedIn outreach), and content-based lead magnets. Should filter for enterprise-appropriate tactics. Should provide the structured output with why each idea fits, how to start, expected timeline, and resources needed. Should note that 'fast leads' typically means paid or outbound channels.",
+          "assertions": [
+            "Applies 'leads fast' use case filter",
+            "Recommends paid channels appropriate for enterprise",
+            "Recommends outbound tactics",
+            "Filters for enterprise-appropriate tactics",
+            "Provides structured output per idea",
+            "Notes that fast leads means paid or outbound",
+            "Includes timeline expectations"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 3,
+          "prompt": "how do we grow without spending money on ads? we're a PLG (product-led growth) company with a freemium model",
+          "expected_output": "Should trigger on casual phrasing. Should apply the 'PLG' use case filter from top ideas. Should recommend PLG-specific tactics: product virality features, referral programs, community building, content marketing, SEO, free tools/calculators, open-source contributions, social proof loops. Should avoid ad-dependent ideas given the constraint. Should provide structured output with implementation guidance.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies PLG use case filter",
+            "Recommends PLG-specific tactics",
+            "Avoids ad-dependent ideas",
+            "Includes virality and referral tactics",
+            "Provides structured output with implementation guidance"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We want to build authority and thought leadership in the HR tech space. We're a newer company and nobody knows who we are yet.",
+          "expected_output": "Should apply the 'authority building' use case filter. Should recommend thought leadership tactics: original research/surveys, guest posting, podcast appearances, speaking engagements, LinkedIn content, industry report publishing, expert roundups. Should note that authority building is a longer-term play. Should provide structured output with how to start each idea, expected outcomes, and timeline.",
+          "assertions": [
+            "Applies 'authority building' use case filter",
+            "Recommends thought leadership tactics",
+            "Includes original research and content",
+            "Includes community and media appearances",
+            "Notes authority building is longer-term",
+            "Provides structured output with timelines"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Give me 20 marketing ideas. We sell project management software.",
+          "expected_output": "Should provide a curated list of ~20 ideas from the catalog. Should organize them by category or by effort/impact. Should provide brief implementation context for each. Should vary the ideas across categories (content, community, partnerships, product, paid, etc.) for a well-rounded set. Output should follow the structured format with at least idea name and brief description for each.",
+          "assertions": [
+            "Provides approximately 20 ideas",
+            "Ideas span multiple categories",
+            "Organizes by category or effort/impact",
+            "Provides brief implementation context per idea",
+            "Output follows structured format",
+            "Ideas are relevant to project management software"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 6,
+          "prompt": "We want to set up a referral program. How should we structure it?",
+          "expected_output": "Should recognize this is specifically a referral program design request. Should defer to or cross-reference the referral-program skill, which provides detailed guidance on referral loop design, incentive structures, implementation, and optimization. May briefly mention referral programs as a marketing idea but should make clear that referral-program is the right skill for detailed program design.",
+          "assertions": [
+            "Recognizes this as a referral program design request",
+            "References or defers to referral-program skill",
+            "Does not attempt detailed referral program design",
+            "May briefly mention as a marketing idea"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "marketing-psychology",
+      "reference": "foundations.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "How can I use psychology to increase conversions on our pricing page? We sell a B2B SaaS tool with three tiers ($29, $79, $199/month).",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply relevant pricing psychology models: anchoring (show the highest plan first or use a decoy), charm pricing (consider $29 vs $30), Rule of 100 (percentage vs dollar discounts), Good-Better-Best framing, loss aversion (show what they miss on lower tiers). Should also apply broader persuasion models: social proof near pricing, scarcity for limited-time offers, default effect (pre-select recommended plan). Should provide specific, actionable recommendations tied to their price points.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies pricing psychology models (anchoring, charm pricing, Rule of 100)",
+            "Applies Good-Better-Best framing",
+            "Applies loss aversion to tier differentiation",
+            "Applies social proof near pricing",
+            "Provides specific recommendations for their price points",
+            "References specific mental models by name"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Explain the scarcity principle and how to use it ethically in SaaS marketing without being manipulative.",
+          "expected_output": "Should explain scarcity as a mental model (limited availability increases perceived value). Should provide legitimate SaaS applications: limited beta spots, early-bird pricing with real deadlines, limited-time feature access, cohort-based launches. Should distinguish ethical scarcity (real constraints) from manufactured urgency (fake countdown timers, artificial limits). Should provide specific examples and implementation guidance. Should reference related models (urgency, FOMO, loss aversion).",
+          "assertions": [
+            "Explains scarcity principle clearly",
+            "Provides legitimate SaaS applications",
+            "Distinguishes ethical from manipulative use",
+            "Provides specific examples",
+            "References related mental models",
+            "Addresses ethical considerations directly"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 3,
+          "prompt": "what psychological principles should I use to write better marketing copy?",
+          "expected_output": "Should trigger on casual phrasing. Should recommend copy-relevant mental models from the skill's taxonomy: social proof, reciprocity, loss aversion, anchoring, scarcity, IKEA Effect, Endowment Effect, Commitment & Consistency. For each principle, should explain what it is and provide a specific copywriting application. Should reference the quick reference table by challenge. Should organize by where in the copy each principle applies (headlines, body, CTAs, testimonials).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Recommends copy-relevant mental models",
+            "Explains each principle briefly",
+            "Provides specific copywriting application per principle",
+            "Organizes by where each applies in copy",
+            "References multiple model categories"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 4,
+          "prompt": "I'm designing an onboarding flow and want to use behavioral psychology to increase activation. What models should I apply?",
+          "expected_output": "Should apply design and behavioral models from the skill's taxonomy: Goal-Gradient Effect (motivation increases near goal), Hick's Law (reduce choices), IKEA Effect (let users build something), Endowment Effect (let them experience ownership), Zeigarnik Effect (incomplete tasks drive completion), Commitment & Consistency (small asks first). Should explain how each applies to onboarding specifically. Should provide actionable recommendations for each model.",
+          "assertions": [
+            "Applies Goal-Gradient Effect",
+            "Applies Hick's Law",
+            "Applies IKEA Effect or Endowment Effect",
+            "Applies Zeigarnik Effect or commitment principles",
+            "Explains how each applies to onboarding",
+            "Provides actionable recommendations per model"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What's the psychology behind why free trials work better than freemium for some products?",
+          "expected_output": "Should apply relevant mental models: loss aversion (trial users fear losing access), endowment effect (they feel ownership after using), sunk cost (time invested during trial), Zero-Price Effect (free removes psychological barrier to start), status quo bias (inertia to keep what they have). Should explain how these models interact in trial vs freemium contexts. Should note when each model works best (trial for products with high activation effort, freemium for products with network effects).",
+          "assertions": [
+            "Applies loss aversion to trial context",
+            "Applies endowment effect",
+            "Applies Zero-Price Effect",
+            "Explains how models interact in trial vs freemium",
+            "Notes when each approach works best",
+            "Provides clear, educational explanation"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Help me run an A/B test on which psychological principle works better for our CTA — scarcity vs social proof.",
+          "expected_output": "Should recognize this is an A/B test setup task, not a psychology task. Should defer to or cross-reference the ab-test-setup skill for the experiment design. May provide psychological context on both principles to inform the hypothesis, but should make clear that ab-test-setup is the right skill for designing and running the experiment.",
+          "assertions": [
+            "Recognizes this as an A/B test setup task",
+            "References or defers to ab-test-setup skill",
+            "May provide psychological context for hypothesis",
+            "Does not attempt full test design using psychology patterns"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "onboarding-cro",
+      "reference": "retention.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me optimize our onboarding flow. We have a project management tool and only 30% of trial users create their first project within the first week. We need to get them to value faster.",
+          "expected_output": "Should check for product-marketing-context.md first. Should start by defining the activation/aha moment — in this case, creating a first project. Should evaluate the current time-to-value and identify friction points. Should recommend an onboarding flow approach (product-first, guided setup, or value-first). Should apply the checklist pattern (3-7 items for onboarding completion). Should address empty states as opportunities to guide users. Should provide experiment ideas for testing improvements. Should include measurement metrics.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Defines the activation/aha moment",
+            "Evaluates time-to-value",
+            "Recommends onboarding flow approach",
+            "Applies checklist pattern with 3-7 items",
+            "Addresses empty states as opportunities",
+            "Provides experiment ideas",
+            "Includes measurement metrics"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 2,
+          "prompt": "What should our onboarding checklist include? We're a design collaboration tool. Users need to upload a design, invite a team member, and leave a comment to get full value.",
+          "expected_output": "Should apply the checklist pattern. Should include the 3 stated activation actions (upload design, invite team, leave comment). Should recommend 3-7 total items ordered by increasing commitment. Should suggest starting with the quickest win to build momentum. Should recommend progress indicators and completion rewards. Should address what happens when users skip items. Should provide specific UX recommendations for the checklist implementation.",
+          "assertions": [
+            "Applies checklist pattern",
+            "Includes the 3 stated activation actions",
+            "Limits to 3-7 total items",
+            "Orders by increasing commitment",
+            "Starts with quickest win",
+            "Recommends progress indicators",
+            "Addresses skipped items",
+            "Provides UX recommendations"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our users sign up but then never come back. like 50% don't even log in a second time. what do we do?",
+          "expected_output": "Should trigger on casual phrasing. Should address this as a stalled users problem. Should apply the handling stalled users framework: identify drop-off points, re-engagement triggers, multi-channel outreach (email, in-app, push). Should investigate root causes: is the first-run experience too complex? Is value not immediately apparent? Is the setup too long? Should recommend immediate improvements to the first session experience. Should suggest multi-channel onboarding (email sequences to bring them back). Should cross-reference email-sequence for re-engagement emails.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies stalled users framework",
+            "Identifies potential root causes for drop-off",
+            "Recommends first-session experience improvements",
+            "Suggests multi-channel onboarding",
+            "Cross-references email-sequence for re-engagement",
+            "Provides specific re-engagement triggers"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 4,
+          "prompt": "How do we handle the empty state when a new user first logs in? Right now they just see a blank dashboard.",
+          "expected_output": "Should apply the empty states as opportunities guidance. Should recommend turning the blank dashboard into a guided experience: sample data to show what the product looks like populated, a clear first action CTA, contextual tips, or a quick-start wizard. Should provide specific recommendations for empty state design: what to show, what action to prompt, how to reduce the 'blank canvas paralysis.' Should reference patterns by product type if applicable.",
+          "assertions": [
+            "Applies empty states as opportunities guidance",
+            "Recommends alternatives to blank dashboard",
+            "Suggests sample data or templates",
+            "Provides clear first action CTA",
+            "Addresses blank canvas paralysis",
+            "Provides specific empty state design recommendations"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Should we use tooltips, a product tour, or a setup wizard for onboarding? What works best?",
+          "expected_output": "Should apply the tooltips/guided tours guidance. Should compare the approaches: tooltips (contextual, on-demand, less intrusive), product tours (guided walkthrough, can overwhelm), setup wizards (structured, ensures key setup steps). Should recommend based on product complexity and onboarding goals. Should note that the best approach often combines elements. Should provide best practices for each: tooltip fatigue avoidance, tour length limits, wizard step count. Should recommend testing different approaches.",
+          "assertions": [
+            "Compares tooltips, product tours, and setup wizards",
+            "Explains when each works best",
+            "Notes that combination approaches often work",
+            "Provides best practices for each",
+            "Addresses tooltip fatigue and tour length",
+            "Recommends testing different approaches"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Our signup form has 8 fields and people keep dropping off. Can you help us fix the signup flow?",
+          "expected_output": "Should recognize this is a signup flow optimization task, not post-signup onboarding. Should defer to or cross-reference the signup-flow-cro skill, which handles signup form optimization, field reduction, and registration flow design. Onboarding-cro covers what happens after signup. Should make this distinction clear.",
+          "assertions": [
+            "Recognizes this as signup flow optimization, not onboarding",
+            "References or defers to signup-flow-cro skill",
+            "Explains that onboarding-cro covers post-signup",
+            "Does not attempt signup form redesign using onboarding patterns"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "page-cro",
+      "reference": "cro.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Here's my SaaS landing page: https://example.com/product. We get about 5,000 visitors/month from Google Ads but only 1.2% convert to free trial signups. Can you help me figure out what's wrong?",
+          "expected_output": "Should check for product-marketing-context.md first. Should identify page type (landing page) and conversion goal (free trial signup). Should analyze across the CRO framework dimensions: value proposition clarity, headline effectiveness, CTA placement/copy/hierarchy, visual hierarchy, trust signals, objection handling, and friction points. Should provide recommendations organized as Quick Wins, High-Impact Changes, and Test Ideas. Should note the message match issue between Google Ads and landing page. Should provide 2-3 headline and CTA copy alternatives with rationale.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Identifies page type as landing page",
+            "Identifies conversion goal as free trial signup",
+            "Analyzes value proposition clarity",
+            "Analyzes CTA placement and copy",
+            "Notes message match between ads and landing page",
+            "Output has Quick Wins section",
+            "Output has High-Impact Changes section",
+            "Output has Test Ideas section",
+            "Provides 2-3 headline or CTA alternatives"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Our pricing page has three tiers but nobody picks the middle one. 60% choose the cheapest plan and 30% bounce entirely. What should we change?",
+          "expected_output": "Should apply the Pricing Page CRO framework. Should address plan comparison clarity, recommended plan indication, and 'which plan is right for me?' anxiety. Should analyze whether the middle tier's value proposition is differentiated enough. Should recommend trust signals and social proof near pricing. Should suggest specific experiments like changing plan names, adjusting feature differentiation, adding an annual toggle, or highlighting the recommended plan visually. Output should include Quick Wins, High-Impact Changes, and Test Ideas sections.",
+          "assertions": [
+            "Applies Pricing Page CRO framework",
+            "Addresses recommended plan indication",
+            "Addresses 'which plan is right for me' anxiety",
+            "Analyzes middle tier differentiation",
+            "Suggests specific experiments",
+            "Output has Quick Wins section",
+            "Output has High-Impact Changes section",
+            "Output has Test Ideas section"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 3,
+          "prompt": "this page isn't converting. can you take a look? it's our homepage for a B2B project management tool",
+          "expected_output": "Should trigger on the casual 'this page isn't converting' phrasing. Should identify this as a Homepage CRO analysis. Should ask clarifying questions about current conversion rate, traffic sources, and conversion goal. Should apply the full CRO Analysis Framework starting with value proposition clarity. Should address the homepage-specific guidance: serving multiple audiences, leading with broadest value prop, and providing clear paths for different visitor intents. Should provide structured output with Quick Wins, High-Impact Changes, Test Ideas, and Copy Alternatives.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Identifies as Homepage CRO",
+            "Asks about current conversion rate",
+            "Asks about traffic sources",
+            "Applies CRO Analysis Framework",
+            "Addresses serving multiple audiences",
+            "Addresses clear paths for different visitor intents",
+            "Output has structured sections"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We have a blog that gets 20k organic visits/month but almost nobody clicks through to our product. How do we get more conversions from blog readers?",
+          "expected_output": "Should apply the Blog Post CRO framework. Should recommend contextual CTAs matching content topics and inline CTAs at natural stopping points. Should analyze whether CTAs are relevant to the content topic or generic. Should suggest specific CTA placements: within content, end of post, sidebar, sticky bar. Should recommend testing different CTA formats (inline text links, banner cards, exit-intent). Should cross-reference copywriting skill for CTA copy improvement.",
+          "assertions": [
+            "Applies Blog Post CRO framework",
+            "Recommends contextual CTAs matching content",
+            "Recommends inline CTAs at natural stopping points",
+            "Suggests specific CTA placements",
+            "Suggests testing different CTA formats",
+            "Cross-references copywriting or related skill"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 5,
+          "prompt": "We redesigned our landing page and conversions dropped from 4.2% to 2.8%. Here's the new page. What went wrong?",
+          "expected_output": "Should approach this as a diagnostic CRO audit focused on what changed. Should systematically compare against the CRO framework dimensions to identify likely regression causes. Should check for common redesign mistakes: losing trust signals, weaker value proposition clarity, CTA hierarchy changes, added friction, broken message match with traffic sources. Should provide specific fixes organized by likely impact. Should recommend reverting high-risk changes while testing others.",
+          "assertions": [
+            "Approaches as diagnostic audit",
+            "Checks for lost trust signals",
+            "Checks for weakened value proposition",
+            "Checks for CTA hierarchy changes",
+            "Checks for added friction",
+            "Checks for broken message match with traffic sources",
+            "Provides fixes organized by impact",
+            "Recommends reverting high-risk changes"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Our signup form has too many fields and people keep abandoning it halfway through. Can you help optimize it?",
+          "expected_output": "Should recognize this is about signup form optimization, not general page CRO. Should defer to or cross-reference the signup-flow-cro skill, which specifically handles signup, registration, and account creation flows. May provide some general friction reduction advice but should make clear that signup-flow-cro is the right skill for this task.",
+          "assertions": [
+            "Recognizes this as signup flow optimization",
+            "References or defers to signup-flow-cro skill",
+            "Does not attempt full page-cro analysis on a form"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 7,
+          "prompt": "Review this feature page for our API monitoring tool. Most traffic comes from organic search for 'API monitoring tools'. We want them to start a free trial.",
+          "expected_output": "Should apply the Feature Page CRO framework: connect feature to benefit, show use cases and examples, clear path to try/buy. Should reference the experiments section and suggest prioritized test ideas for hero section, trust signals, and CTA variations. Should note the organic search traffic source and check for message match with search intent. Should cross-reference ab-test-setup skill for proper test implementation.",
+          "assertions": [
+            "Applies Feature Page CRO framework",
+            "Connects features to benefits",
+            "Suggests use cases and examples",
+            "Provides clear path to try/buy",
+            "Notes organic traffic source and search intent match",
+            "Suggests specific experiment hypotheses",
+            "Cross-references ab-test-setup skill"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "paid-ads",
+      "reference": "ads.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me plan a paid advertising strategy. We're a B2B SaaS tool for HR teams, selling at $99/month per seat. We have $15k/month to spend on ads and want to generate demo requests. Where should we advertise?",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the platform selection guide based on B2B, HR audience, $99/month price point. Should recommend LinkedIn (B2B targeting by job title/industry), Google Ads (search intent for HR software keywords), and potentially Meta (retargeting). Should recommend campaign structure with naming conventions. Should define audience targeting strategy for each platform. Should set budget allocation across platforms. Should define success metrics and attribution approach. Should recommend starting structure and scaling plan.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies platform selection guide",
+            "Recommends platforms appropriate for B2B HR audience",
+            "Recommends campaign structure with naming conventions",
+            "Defines audience targeting per platform",
+            "Sets budget allocation across platforms",
+            "Defines success metrics",
+            "Recommends starting structure and scaling plan"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Our Google Ads CPC is $12 and our cost per lead is $180. Is that good? We're getting about 80 leads/month from a $15k budget.",
+          "expected_output": "Should evaluate the metrics in context. Should assess: $12 CPC for B2B (reasonable depending on industry), $180 CPL (depends on LTV — need to compare against customer lifetime value), 80 leads/month from $15k (math checks out). Should apply the campaign optimization framework: check quality score, search term relevance, landing page conversion rate, negative keywords. Should recommend specific optimization levers to reduce CPC and CPL. Should frame performance against industry benchmarks if applicable. Should ask about downstream conversion rates (lead → demo → customer).",
+          "assertions": [
+            "Evaluates metrics in context",
+            "Compares CPL against LTV considerations",
+            "Applies campaign optimization framework",
+            "Recommends specific optimization levers",
+            "Asks about downstream conversion rates",
+            "Provides industry context for benchmarking"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 3,
+          "prompt": "we want to run retargeting ads for people who visited our site but didn't convert. how should we set this up?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the retargeting strategies section, specifically the funnel-based approach. Should recommend audience segments: all visitors (broad), pricing page visitors (high intent), blog readers (lower intent), and cart/signup abandoners (highest intent). Should recommend different messaging and offers for each segment. Should address frequency capping to avoid ad fatigue. Should recommend retargeting platforms (Meta, Google Display, LinkedIn). Should include duration windows for each audience.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies funnel-based retargeting approach",
+            "Recommends audience segments by intent level",
+            "Recommends different messaging per segment",
+            "Addresses frequency capping",
+            "Recommends retargeting platforms",
+            "Includes audience duration windows"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Should we advertise on TikTok? We sell accounting software to small businesses. Our current ads are on Google and Meta.",
+          "expected_output": "Should apply the platform selection guide for TikTok specifically. Should evaluate TikTok fit for accounting software + small business audience: likely a weaker fit than Google/Meta for this category (lower purchase intent, younger skewing audience, less B2B targeting). Should discuss when TikTok CAN work for B2B (brand awareness, creative content, younger business owners). Should provide an honest recommendation with caveats. Should suggest a small test budget approach if they want to try.",
+          "assertions": [
+            "Applies platform selection guide for TikTok",
+            "Evaluates fit for accounting + small business audience",
+            "Provides honest assessment of likely weaker fit",
+            "Discusses when TikTok can work for B2B",
+            "Suggests small test budget if proceeding",
+            "Compares to their existing Google/Meta performance"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 5,
+          "prompt": "How do we structure our Google Ads campaigns? We have 50+ keywords we want to target for our CRM product.",
+          "expected_output": "Should apply the campaign structure and naming conventions framework. Should recommend organizing campaigns by theme/intent (brand, competitor, product features, pain points). Should recommend ad group structure (tightly themed, 5-15 keywords per group). Should define naming conventions for campaigns and ad groups. Should recommend match types strategy. Should include negative keyword lists. Should provide a sample campaign structure.",
+          "assertions": [
+            "Applies campaign structure framework",
+            "Organizes campaigns by theme/intent",
+            "Recommends tight ad group structure",
+            "Defines naming conventions",
+            "Recommends match types strategy",
+            "Includes negative keyword lists",
+            "Provides sample campaign structure"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you write some ad copy for our Facebook ads? We need headlines and descriptions for 5 different angles.",
+          "expected_output": "Should recognize this is an ad creative generation task, not campaign strategy. Should defer to or cross-reference the ad-creative skill, which handles platform-specific ad copy generation with character limits, angle-based variation, and batch generation. May provide brief ad copy framework guidance but should make clear that ad-creative is the right skill for generating ad copy at scale.",
+          "assertions": [
+            "Recognizes this as ad creative generation",
+            "References or defers to ad-creative skill",
+            "Does not attempt bulk ad copy generation using campaign strategy patterns"
+          ],
+          "files": [],
+          "reference": "ads.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "paywall-upgrade-cro",
+      "reference": "retention.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me design the upgrade paywall for our project management tool. Free users can have 3 projects, and we want to show an upgrade screen when they try to create a 4th project.",
+          "expected_output": "Should check for product-marketing-context.md first. Should identify this as a usage limit trigger point. Should apply the paywall screen components: headline (communicate the value of upgrading, not just the limit), value demonstration (show what they get with paid plan), plan comparison (free vs paid), social proof, CTA (specific and action-oriented), and escape hatch (option to go back). Should provide specific copy recommendations. Should address the emotional state of the user at this moment (frustrated by the limit). Should warn against anti-patterns.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Identifies as usage limit trigger",
+            "Applies paywall screen components framework",
+            "Includes headline, value demo, comparison, social proof, CTA",
+            "Provides specific copy recommendations",
+            "Addresses user's emotional state at the limit",
+            "Includes escape hatch option",
+            "Warns against anti-patterns"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Our free trial expires in 14 days and users see a generic 'Your trial has expired' screen. Upgrade rate from this screen is only 2%. How do we improve it?",
+          "expected_output": "Should identify this as a trial expiration trigger. Should apply the trial expiration paywall type guidance. Should recommend: show what they've built/accomplished during the trial (endowment effect), highlight specific features they used, show the value they'd lose, provide clear plan options, include social proof from similar users who upgraded. Should diagnose why 2% is low: likely a weak value prop, no personalization, no urgency or loss framing. Should provide specific redesign recommendations.",
+          "assertions": [
+            "Identifies as trial expiration trigger",
+            "Applies trial expiration paywall guidance",
+            "Recommends showing user's accomplishments during trial",
+            "Uses loss framing (what they'd lose)",
+            "Provides clear plan options",
+            "Includes social proof",
+            "Diagnoses why current 2% rate is low",
+            "Provides specific redesign recommendations"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 3,
+          "prompt": "when should we show upgrade prompts? we don't want to be annoying but we also need to convert free users to paid.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the timing and frequency rules. Should recommend trigger points from the skill: feature gates (when they try a paid feature), usage limits (when they hit a threshold), value moments (when they've just experienced success), and natural transition points. Should address frequency capping to avoid being annoying. Should recommend the anti-patterns to avoid (blocking basic functionality, too frequent popups, dark patterns). Should provide a balanced approach that respects user experience while driving upgrades.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies timing and frequency rules",
+            "Recommends specific trigger points",
+            "Addresses frequency capping",
+            "Warns against anti-patterns",
+            "Balances user experience with conversion goals",
+            "Provides specific recommendations for each trigger type"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Design a feature gate paywall. When free users click on 'Advanced Analytics' in our dashboard, we want to show them an upgrade prompt.",
+          "expected_output": "Should identify this as a feature gate trigger. Should apply the feature lock paywall type guidance. Should recommend: show a preview or screenshot of the advanced analytics feature, explain the specific benefit (not just 'this is a paid feature'), include a plan comparison relevant to analytics, provide a clear CTA to upgrade, and include an escape hatch to go back to basic analytics. Should recommend showing what insights they're missing. Should provide copy recommendations for the paywall screen.",
+          "assertions": [
+            "Identifies as feature gate trigger",
+            "Applies feature lock paywall guidance",
+            "Recommends showing preview of the feature",
+            "Explains specific benefit of the feature",
+            "Includes relevant plan comparison",
+            "Provides clear CTA and escape hatch",
+            "Provides copy recommendations"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What are common mistakes to avoid with in-app paywalls? I don't want to be pushy or make users feel tricked.",
+          "expected_output": "Should apply the anti-patterns section. Should cover: dark patterns (making it hard to find the close button, confusing opt-out language), conversion killers (blocking basic functionality, showing paywalls too early before value is demonstrated, no escape hatch), frequency issues (too many prompts, showing the same paywall repeatedly). Should provide positive alternatives for each anti-pattern. Should emphasize that good paywalls feel helpful, not pushy.",
+          "assertions": [
+            "Applies anti-patterns section",
+            "Covers dark patterns to avoid",
+            "Covers conversion killers",
+            "Covers frequency issues",
+            "Provides positive alternatives for each",
+            "Emphasizes helpful over pushy approach"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you help me optimize our public pricing page? We want more visitors to choose the Pro plan over the Basic plan.",
+          "expected_output": "Should recognize this is a public pricing page optimization task, not an in-app paywall task. Should defer to or cross-reference the page-cro skill for pricing page CRO. Paywall-upgrade-cro specifically handles in-app upgrade prompts for existing users, not public-facing pricing pages.",
+          "assertions": [
+            "Recognizes this as public pricing page optimization",
+            "References or defers to page-cro skill",
+            "Explains that paywall-upgrade-cro is for in-app upgrade prompts",
+            "Does not attempt public pricing page optimization"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "popup-cro",
+      "reference": "cro.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me create an exit-intent popup for our SaaS landing page. We want to capture emails from visitors who are about to leave without signing up. Our product is a social media scheduling tool.",
+          "expected_output": "Should check for product-marketing-context.md first. Should identify the popup type as exit-intent email capture. Should apply the exit-intent popup design guidance: compelling headline (address why they're leaving or offer additional value), lead magnet or incentive (discount, free resource, extended trial), minimal form fields (email only), clear CTA, and easy close option. Should apply copy formulas from the skill. Should address trigger configuration (exit intent detection). Should recommend frequency rules (don't show again if dismissed). Should include benchmarks (exit intent popups typically 3-10% conversion).",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Identifies as exit-intent popup type",
+            "Includes compelling headline",
+            "Includes lead magnet or incentive",
+            "Minimal form fields (email only)",
+            "Applies copy formulas from the skill",
+            "Addresses trigger configuration",
+            "Recommends frequency rules",
+            "Includes conversion benchmarks"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We want to offer a 10% discount to first-time visitors via a popup. When should we show it and what should it say?",
+          "expected_output": "Should identify this as a discount/offer popup type. Should apply trigger strategy guidance: recommend against showing immediately on page load (too aggressive). Should suggest time-based delay (30-60 seconds), scroll-based trigger (50%+ page scroll), or exit intent as better alternatives. Should apply the copy formula for discount popups: headline that frames the value, clear offer terms, urgency element, email capture, and CTA. Should address compliance (GDPR cookie consent if applicable). Should recommend frequency capping.",
+          "assertions": [
+            "Identifies as discount popup type",
+            "Recommends against immediate page load trigger",
+            "Suggests better trigger alternatives (time, scroll, exit)",
+            "Applies copy formula for discount popups",
+            "Includes urgency element",
+            "Addresses frequency capping",
+            "Addresses compliance considerations"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our popups are annoying everyone. we keep getting complaints but we also get a lot of email signups from them. how do we balance this?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the frequency and rules guidance. Should address the balance: reduce annoyance while preserving conversions. Should recommend: frequency capping (once per session or once per X days), don't show to returning visitors who already dismissed, don't show to existing subscribers, respect 'close' action, consider less intrusive formats (slide-in instead of full modal, announcement bar instead of overlay). Should address compliance and accessibility requirements. Should suggest A/B testing different triggers and formats to find the best balance.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies frequency and rules guidance",
+            "Addresses balance between conversions and UX",
+            "Recommends frequency capping",
+            "Suggests excluding existing subscribers",
+            "Recommends less intrusive alternatives",
+            "Suggests A/B testing to optimize"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 4,
+          "prompt": "What types of popups should we use on our blog? We publish content about email marketing and want to grow our email list.",
+          "expected_output": "Should recommend blog-appropriate popup types: scroll-triggered popup (show after 50-70% scroll indicating engagement), exit-intent popup, slide-in (less intrusive than modal), and inline content upgrades. Should recommend lead magnets relevant to the blog topic (email marketing templates, checklist, swipe file). Should address different popup placements: mid-content, end of post, sidebar slide-in. Should recommend behavior-based triggers over time-based for blog content. Should apply copy formulas with blog-specific hooks.",
+          "assertions": [
+            "Recommends blog-appropriate popup types",
+            "Includes scroll-triggered and exit-intent",
+            "Suggests less intrusive formats (slide-in)",
+            "Recommends relevant lead magnets",
+            "Addresses popup placement on blog pages",
+            "Recommends behavior-based triggers for blog",
+            "Applies copy formulas"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Design an announcement banner for our new feature launch. We want it to show at the top of the site for 2 weeks.",
+          "expected_output": "Should identify this as an announcement banner popup type. Should apply banner design guidance: short, clear headline announcing the feature, brief description of benefit, CTA to learn more or try it, dismiss option. Should recommend banner positioning (top of page, sticky or static). Should address duration (2 weeks as stated). Should recommend targeting (show to existing users who'd benefit, not just everyone). Should provide copy recommendations.",
+          "assertions": [
+            "Identifies as announcement banner type",
+            "Provides short, clear headline",
+            "Includes brief benefit description and CTA",
+            "Includes dismiss option",
+            "Addresses banner positioning",
+            "Recommends audience targeting",
+            "Provides copy recommendations"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 6,
+          "prompt": "We need to optimize the lead capture form inside our popup. It currently asks for name, email, company, and phone number. Too many fields?",
+          "expected_output": "Should recognize this overlaps with form optimization. Should defer to or cross-reference the form-cro skill, which handles form field optimization, layout, and conversion. May provide popup-specific context (popups need minimal fields due to fleeting attention) but should make clear that form-cro is the right skill for detailed form optimization.",
+          "assertions": [
+            "Recognizes overlap with form optimization",
+            "References or defers to form-cro skill",
+            "Notes popups need minimal fields due to context",
+            "Does not attempt detailed form redesign"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "pricing-strategy",
+      "reference": "retention.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me figure out pricing for our new SaaS product. It's a customer support platform for e-commerce stores. We're not sure whether to charge per agent, per ticket, or flat rate. Currently thinking $49-199/month range.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the three pricing axes framework: packaging (what's included in each tier), pricing metric (per agent, per ticket, flat rate — evaluate each), price point ($49-199 range evaluation). Should discuss value metrics and which aligns best with value delivered (per agent is common in support, but per ticket aligns with usage). Should recommend a good-better-best tier structure. Should address pricing psychology. Should provide a specific pricing recommendation with rationale.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies three pricing axes framework",
+            "Evaluates multiple pricing metrics",
+            "Discusses which metric aligns with value delivered",
+            "Recommends good-better-best tier structure",
+            "Addresses pricing psychology",
+            "Provides specific pricing recommendation with rationale"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We want to raise our prices by 30%. We've been at $29/month for 2 years and we've added a lot of features. How do we do this without losing customers?",
+          "expected_output": "Should apply the 'when to raise prices' and price increase strategies sections. Should recommend a strategy: grandfather existing customers (or give them a grace period), tie the increase to new value, communicate the change clearly with advance notice, consider an annual billing discount as a softening measure. Should address different approaches (immediate for new customers, delayed for existing). Should recommend specific communication strategy. Should note that some churn is expected and acceptable.",
+          "assertions": [
+            "Applies price increase strategies",
+            "Recommends grandfathering or grace period approach",
+            "Recommends tying increase to new value",
+            "Provides communication strategy",
+            "Addresses new vs existing customer timing",
+            "Suggests annual billing as softening measure",
+            "Notes some churn is expected"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 3,
+          "prompt": "how do we figure out what people will actually pay? we're launching a new product and have no idea what to charge.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the pricing research methods: Van Westendorp price sensitivity analysis (too cheap, bargain, expensive, too expensive), MaxDiff for feature importance, competitive benchmarking. Should explain how to run each method. Should also recommend simpler approaches: talking to potential customers, analyzing competitor pricing, testing different price points. Should provide a practical pricing research plan they can execute.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies Van Westendorp price sensitivity method",
+            "Applies MaxDiff for feature importance",
+            "Recommends competitive benchmarking",
+            "Explains how to run each method",
+            "Suggests practical alternatives (customer interviews, competitive analysis)",
+            "Provides executable pricing research plan"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We have a Basic ($19), Pro ($49), and Enterprise (custom) plan. The Pro plan gets 70% of signups. Should we add a plan between Pro and Enterprise?",
+          "expected_output": "Should apply the good-better-best tier structure framework. Should analyze the current situation: Pro capturing 70% is actually healthy, but the gap to Enterprise suggests there may be mid-market customers underserved. Should evaluate whether a 4th tier makes sense: does it address a real gap, or will it create choice paralysis? Should apply pricing psychology (Hick's Law — more options can reduce decisions). Should recommend either a 4th tier with clear differentiation or adjusting the Pro plan to better bridge the gap.",
+          "assertions": [
+            "Applies good-better-best tier structure",
+            "Analyzes current tier performance",
+            "Evaluates whether 4th tier addresses real gap",
+            "Considers choice paralysis risk",
+            "Applies pricing psychology (Hick's Law)",
+            "Provides specific recommendation with rationale"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What pricing psychology tactics should we use on our pricing page? We want the $79 plan to be the most popular.",
+          "expected_output": "Should apply the pricing psychology section: anchoring (show the $79 plan next to a higher-priced plan), decoy effect (make the lower plan look less valuable), visual emphasis (highlight or 'recommend' the $79 plan), charm pricing ($79 vs $80), Rule of 100 (percentage discounts below $100, dollar discounts above), loss framing (show what lower plans miss). Should provide specific pricing page design recommendations. Should cross-reference page-cro for broader pricing page optimization.",
+          "assertions": [
+            "Applies pricing psychology tactics",
+            "Applies anchoring effect",
+            "Applies decoy effect or visual emphasis",
+            "Applies charm pricing or Rule of 100",
+            "Provides specific pricing page recommendations",
+            "Cross-references page-cro or marketing-psychology"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Our pricing page conversion rate is only 1.5%. Can you review the page and suggest improvements?",
+          "expected_output": "Should recognize this is a pricing page conversion optimization task, not a pricing strategy task. Should defer to or cross-reference the page-cro skill, which handles pricing page conversion rate optimization including plan comparison clarity, CTA optimization, and trust signals. Pricing-strategy focuses on the actual pricing decisions (what to charge, how to package), not the page design.",
+          "assertions": [
+            "Recognizes this as pricing page CRO, not pricing strategy",
+            "References or defers to page-cro skill",
+            "Explains that pricing-strategy is about pricing decisions",
+            "Does not attempt full page CRO audit"
+          ],
+          "files": [],
+          "reference": "retention.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "product-marketing-context",
+      "reference": "foundations.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "I want to set up my product marketing context. We're a B2B SaaS company that sells a customer feedback platform to product teams.",
+          "expected_output": "Should check if .agents/product-marketing-context.md already exists. If not, should offer two options: (1) Auto-draft from codebase (recommended) or (2) Start from scratch. If user chooses start from scratch, should walk through sections conversationally one at a time. Should cover all applicable sections: Product Overview, Target Audience, Personas, Problems You Solve, Competitive Landscape, Differentiation, Objections, Switching Dynamics, Customer Language, Brand Voice, Proof Points, and Goals. Should create the file at .agents/product-marketing-context.md when complete.",
+          "assertions": [
+            "Checks for existing product-marketing-context.md",
+            "Offers two options: auto-draft or start from scratch",
+            "Covers applicable sections",
+            "Walks through sections conversationally one at a time",
+            "Creates file at .agents/product-marketing-context.md"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Update our product marketing context. We just added a new enterprise tier and our target audience has expanded to include VP of Engineering, not just Product Managers.",
+          "expected_output": "Should check for existing .agents/product-marketing-context.md and read it. Should identify which sections need updating based on the changes: Target Audience (add VP of Engineering), Personas (add new persona), Product Overview (new enterprise tier, including pricing updates within that section), Objections (enterprise-specific), and Competitive Landscape (enterprise competitors). Should update only the relevant sections, preserving existing content that hasn't changed.",
+          "assertions": [
+            "Reads existing product-marketing-context.md",
+            "Identifies sections that need updating",
+            "Updates Target Audience with VP of Engineering",
+            "Adds new persona for the expanded audience",
+            "Updates Product Overview for enterprise tier",
+            "Preserves unchanged sections"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 3,
+          "prompt": "create a product context doc for my app. it's a mobile app that helps people find hiking trails. we're just getting started.",
+          "expected_output": "Should trigger on casual phrasing. Should check for existing context doc. Should offer auto-draft or start-from-scratch options. Should adapt questions for an early-stage B2C mobile app (outdoor/fitness niche). Should note that some sections may be sparse for an early-stage product and that's okay — they can be filled in as the business matures. Should skip non-applicable sections (e.g., Personas section is B2B-focused) rather than forcing all 12. Should accept lighter answers for sections like Proof Points or Competitive Landscape if the company is new.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Checks for existing context doc",
+            "Offers auto-draft or start-from-scratch options",
+            "Adapts questions for early-stage B2C mobile app",
+            "Notes some sections may be sparse early on",
+            "Skips non-applicable sections rather than forcing all 12",
+            "Creates file at .agents/product-marketing-context.md"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Can you auto-draft our product marketing context from our existing codebase and marketing materials?",
+          "expected_output": "Should activate the auto-draft workflow mode. Should scan the codebase for existing marketing context: README, landing page copy, pricing page, about page, meta descriptions, any existing documentation. Should draft the product-marketing-context.md from what it finds, filling in sections where information is available and flagging sections that need manual input. Should present the draft for review before saving.",
+          "assertions": [
+            "Activates auto-draft workflow mode",
+            "Scans codebase for existing marketing materials",
+            "Drafts context from found information",
+            "Flags sections needing manual input",
+            "Presents draft for review before saving"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Do we have a product marketing context set up? I want to make sure the other marketing skills have context about our product.",
+          "expected_output": "Should check for .agents/product-marketing-context.md (and the older .claude/product-marketing-context.md location). Should report whether it exists and summarize its contents if found. If it doesn't exist, should offer to create one and explain why it's valuable (other skills like copywriting, page-cro, seo-audit check for it first). Should explain how other skills use this context document.",
+          "assertions": [
+            "Checks both file locations",
+            "Reports whether context doc exists",
+            "Summarizes contents if found",
+            "Offers to create if missing",
+            "Explains how other skills use it"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Write homepage copy for our SaaS product.",
+          "expected_output": "Should recognize this is a copywriting task, not a product marketing context task. Should check for product-marketing-context.md (as other skills do), and if it doesn't exist, may suggest creating one first. But should defer to the copywriting skill for actually writing the homepage copy.",
+          "assertions": [
+            "Recognizes this as a copywriting task",
+            "May check for or suggest creating product-marketing-context.md",
+            "References or defers to copywriting skill for the actual copy",
+            "Does not attempt to write homepage copy using context creation patterns"
+          ],
+          "files": [],
+          "reference": "foundations.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "referral-program",
+      "reference": "growth.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me design a referral program for our SaaS product. We're a $49/month project management tool with about 1,000 customers. We want to encourage word-of-mouth growth.",
+          "expected_output": "Should check for product-marketing-context.md first. Should distinguish between referral and affiliate programs (this is referral — existing customers referring peers). Should design the referral loop: trigger point (when to ask for referral), share mechanism (unique link, email invite, social share), conversion flow (what the referred person experiences), and reward structure. Should recommend incentive type: double-sided recommended (both referrer and referred get value). Should suggest specific incentives appropriate for $49/month SaaS (e.g., free month for both). Should include the launch checklist. Should recommend tool integrations (Rewardful, Tolt, etc.).",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Distinguishes referral from affiliate",
+            "Designs the referral loop (trigger, share, convert, reward)",
+            "Recommends double-sided incentive structure",
+            "Suggests specific incentives for the price point",
+            "Includes launch checklist",
+            "Recommends tool integrations"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 2,
+          "prompt": "We have a referral program but only 5% of customers have ever referred someone. How do we increase participation?",
+          "expected_output": "Should apply the program optimization guidance. Should diagnose low participation: are customers aware of the program? Is the trigger point well-timed? Is the incentive compelling enough? Is sharing easy? Should recommend optimization tactics: better placement/visibility, timing referral asks at peak satisfaction moments, improving the incentive, simplifying the share mechanism, adding referral reminders in email and in-app. Should provide specific experiment ideas to test improvements.",
+          "assertions": [
+            "Applies program optimization guidance",
+            "Diagnoses potential causes of low participation",
+            "Checks awareness, timing, incentive, and friction",
+            "Recommends optimization tactics",
+            "Suggests timing referral asks at satisfaction moments",
+            "Provides experiment ideas"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 3,
+          "prompt": "should we do referral or affiliate? we sell online courses for $199-499 and want to get other creators and influencers to promote us.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the referral vs affiliate distinction clearly. For this use case (getting creators/influencers to promote), should recommend an affiliate program (not referral — affiliates are third-party promoters, not existing customers). Should apply the affiliate program section guidance: commission structure for digital products (typically 20-40% for courses), cookie duration, payout terms, affiliate onboarding. Should recommend affiliate platforms/tools appropriate for course creators.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Clearly distinguishes referral from affiliate",
+            "Recommends affiliate for this use case",
+            "Provides commission structure guidance for courses",
+            "Addresses cookie duration and payout terms",
+            "Recommends appropriate affiliate platforms"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 4,
+          "prompt": "What incentive structure works best? We've been offering $10 off for referrers but it's not working. Our product is $29/month.",
+          "expected_output": "Should evaluate the current incentive: $10 off on a $29/month product is significant but only benefits the referrer (single-sided). Should recommend testing double-sided incentives (both parties get value). Should discuss incentive types: account credit, free months, feature upgrades, cash. Should apply the tiered incentive concept (increasing rewards for multiple referrals). Should provide specific alternative incentive structures to test. Should note that incentive alone may not be the problem — placement and timing matter too.",
+          "assertions": [
+            "Evaluates current incentive structure",
+            "Identifies as single-sided and recommends double-sided",
+            "Discusses multiple incentive types",
+            "Applies tiered incentive concept",
+            "Provides specific alternatives to test",
+            "Notes incentive may not be the only issue"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 5,
+          "prompt": "How do we measure the success of our referral program? What metrics should we track?",
+          "expected_output": "Should apply the measuring success framework. Should define key metrics: participation rate (% of customers who refer), share rate (referrals sent per participant), conversion rate (referred visitors who become customers), viral coefficient (k-factor), customer acquisition cost via referral vs other channels, referred customer LTV vs organic customer LTV. Should recommend tracking tools and dashboards. Should provide benchmark ranges for each metric.",
+          "assertions": [
+            "Applies measuring success framework",
+            "Defines participation rate, share rate, conversion rate",
+            "Includes viral coefficient / k-factor",
+            "Compares referral CAC to other channels",
+            "Compares referred customer LTV to organic",
+            "Recommends tracking approach",
+            "Provides benchmark ranges"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you write the referral invitation emails? I need the email that goes out when someone shares their referral link.",
+          "expected_output": "Should recognize this overlaps with email writing. Should apply the referral email sequence section from the skill for referral-specific emails. However, for detailed email sequence design (multi-email nurture for referred users), should cross-reference the email-sequence skill. Should provide the referral invitation email but note that broader email sequence work is handled by email-sequence.",
+          "assertions": [
+            "Applies referral email section from the skill",
+            "Provides referral invitation email guidance",
+            "Cross-references email-sequence for broader email work",
+            "Provides specific referral email copy or template"
+          ],
+          "files": [],
+          "reference": "growth.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "revops",
+      "reference": "sales.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me set up our lead lifecycle stages. We're a B2B SaaS company selling to mid-market. We use HubSpot as our CRM and have marketing and sales teams that aren't aligned on lead definitions.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the lead lifecycle framework: Subscriber → Lead → MQL → SQL → Opportunity → Customer → Evangelist. Should define clear criteria for each stage transition (what makes a Lead become an MQL, etc.). Should address the alignment issue between marketing and sales — define shared definitions and SLAs. Should recommend CRM implementation steps for HubSpot. Should include lead scoring setup. Should provide a handoff process between marketing and sales.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies lead lifecycle framework with all stages",
+            "Defines criteria for each stage transition",
+            "Addresses marketing-sales alignment",
+            "Provides CRM implementation guidance for HubSpot",
+            "Includes lead scoring setup",
+            "Provides handoff process between teams"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Set up lead scoring for us. We want to prioritize which leads sales should call first. We sell enterprise software ($50k+ ACV).",
+          "expected_output": "Should apply the lead scoring framework with three dimensions: explicit scoring (firmographics — company size, industry, title match), implicit scoring (behavioral — page visits, content downloads, email engagement), and negative scoring (unsubscribes, competitor emails, student emails). Should provide specific scoring criteria appropriate for enterprise ($50k+ ACV): weight firmographic signals heavily, include budget and authority signals. Should define score thresholds for MQL and SQL. Should recommend lead routing based on scores.",
+          "assertions": [
+            "Applies lead scoring with explicit, implicit, and negative dimensions",
+            "Provides specific scoring criteria for enterprise",
+            "Weights firmographic signals appropriately",
+            "Includes behavioral scoring signals",
+            "Includes negative scoring signals",
+            "Defines MQL and SQL score thresholds",
+            "Recommends lead routing based on scores"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our pipeline is a mess. deals sit in stages forever and we don't know what's actually going to close. how do we fix this?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the pipeline stage management guidance. Should recommend: define clear pipeline stages with entry/exit criteria, set maximum time in each stage, implement stage velocity tracking, add required fields per stage to force data entry. Should address deal hygiene: regular pipeline reviews, stale deal flagging, win/loss analysis. Should recommend CRM automation to enforce stage rules. Should provide a practical cleanup plan for the current mess.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies pipeline stage management",
+            "Defines stages with entry/exit criteria",
+            "Recommends maximum time per stage",
+            "Addresses deal hygiene and pipeline reviews",
+            "Recommends CRM automation for enforcement",
+            "Provides practical cleanup plan"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 4,
+          "prompt": "What RevOps metrics should we be tracking? We want to build a dashboard for our leadership team.",
+          "expected_output": "Should apply the RevOps metrics dashboard framework. Should recommend metrics across the funnel: lead volume by source, MQL-to-SQL conversion rate, SQL-to-Opportunity rate, win rate, average deal size, sales cycle length, pipeline velocity, pipeline coverage ratio, CAC, LTV, LTV:CAC ratio. Should organize metrics by audience (marketing team, sales team, leadership). Should recommend dashboard structure and cadence for reviews.",
+          "assertions": [
+            "Applies RevOps metrics dashboard",
+            "Covers full-funnel metrics",
+            "Includes conversion rates between stages",
+            "Includes pipeline velocity and coverage",
+            "Includes CAC, LTV, LTV:CAC",
+            "Organizes by audience",
+            "Recommends dashboard structure and review cadence"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Our CRM data is a disaster. Duplicate records, missing fields, inconsistent naming. How do we clean it up and keep it clean?",
+          "expected_output": "Should apply the data hygiene guidance. Should recommend: duplicate detection and merging strategy, required field enforcement, standardized naming conventions (picklists over free text), data validation rules, regular audit cadence. Should address both cleanup (one-time fix) and prevention (ongoing processes). Should recommend CRM automation for data hygiene. Should provide a prioritized cleanup plan (start with highest-impact data quality issues).",
+          "assertions": [
+            "Applies data hygiene guidance",
+            "Recommends duplicate detection and merging",
+            "Recommends required field enforcement",
+            "Addresses standardized naming conventions",
+            "Covers both cleanup and prevention",
+            "Recommends CRM automation for hygiene",
+            "Provides prioritized cleanup plan"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Can you help me write cold outreach emails to prospects in our pipeline?",
+          "expected_output": "Should recognize this is a cold email / outbound writing task, not RevOps. Should defer to or cross-reference the cold-email skill for writing outbound prospecting emails. RevOps covers the systems, processes, and data infrastructure — not the actual email content.",
+          "assertions": [
+            "Recognizes this as cold email writing, not RevOps",
+            "References or defers to cold-email skill",
+            "Explains RevOps covers systems and processes, not email content"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "sales-enablement",
+      "reference": "sales.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me create a sales deck for our B2B SaaS product. We sell an employee engagement platform to HR directors at companies with 500-5000 employees. Our main differentiator is real-time pulse surveys with AI-powered insights.",
+          "expected_output": "Should check for product-marketing-context.md first. Should apply the 10-12 slide sales deck framework: Title, Problem/Stakes, Current Solutions Failing, Vision, Product/Solution, How It Works, Proof (case studies/metrics), Pricing, Why Now, and Next Steps. Should tailor the deck to the HR director audience and employee engagement space. Should incorporate the differentiator (real-time pulse surveys + AI insights). Should provide slide-by-slide content recommendations with speaker notes. Should recommend visual direction.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Applies 10-12 slide framework",
+            "Includes Problem, Solution, Proof, Pricing, Next Steps slides",
+            "Tailors to HR director audience",
+            "Incorporates stated differentiator",
+            "Provides slide-by-slide content",
+            "Includes speaker notes or talking points"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Our sales team keeps getting the same objections. The top ones are: 'we already use SurveyMonkey,' 'we don't have budget right now,' and 'our team is too small to need this.' Help me create an objection handling doc.",
+          "expected_output": "Should apply the objection handling framework with the response structure for each objection. Should categorize the objections (competitor/status quo, budget, need/timing). For each objection, should provide: acknowledge, reframe, evidence/proof, bridge to value, and follow-up question. Should provide 2-3 response variations per objection for different contexts. Should organize as a document sales reps can reference quickly during calls.",
+          "assertions": [
+            "Applies objection handling framework",
+            "Categorizes the three objections",
+            "Provides structured response for each (acknowledge, reframe, evidence, bridge)",
+            "Provides 2-3 response variations per objection",
+            "Organizes for quick reference during calls",
+            "Categorizes objections using the skill's framework (competitor, budget, need/timing)"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 3,
+          "prompt": "i need a one-pager we can leave behind after sales meetings. something that summarizes our product and key benefits.",
+          "expected_output": "Should trigger on casual phrasing. Should apply the one-pager/leave-behind framework. Should include: headline with core value proposition, key benefits (3-5), social proof (customer logos, key metric), how it works (simplified), pricing summary or 'starting at' range, and clear next step CTA. Should recommend design principles for a one-pager: scannable, visual hierarchy, not text-heavy. Should note this should fit on one page (front, or front and back).",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies one-pager/leave-behind framework",
+            "Includes headline, benefits, social proof, how it works, CTA",
+            "Keeps to one page format",
+            "Recommends scannable design",
+            "Provides specific content for each section"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 4,
+          "prompt": "Create a demo script for our analytics dashboard product. Typical demo is 30 minutes with a VP of Marketing.",
+          "expected_output": "Should apply the demo script/talk track framework with the 5-part structure. Should include: opening (rapport, agenda setting, discovery questions), problem validation (confirm their pain), solution walkthrough (show product addressing their pain), proof points (metrics, case studies during demo), and close (next steps, timeline). Should time-box each section for 30 minutes. Should include key questions to ask during discovery. Should note when to customize based on prospect's answers.",
+          "assertions": [
+            "Applies 5-part demo script structure",
+            "Includes opening with discovery questions",
+            "Includes problem validation",
+            "Includes solution walkthrough",
+            "Includes proof points",
+            "Includes close with next steps",
+            "Time-boxes for 30 minutes",
+            "Notes customization based on prospect responses"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Help me build an ROI calculator we can use during sales calls. We need to show prospects how much money they'll save by switching to our product.",
+          "expected_output": "Should apply the ROI calculator framework. Should define inputs (what data to collect from the prospect: team size, current costs, time spent on manual processes), calculation methodology (how to compute savings), and output format (visual showing ROI timeline, payback period, annual savings). Should recommend keeping calculations transparent and conservative. Should suggest validating assumptions during the sales call. Should provide the calculator structure and formula logic.",
+          "assertions": [
+            "Applies ROI calculator framework",
+            "Defines required inputs",
+            "Provides calculation methodology",
+            "Recommends conservative assumptions",
+            "Includes ROI timeline and payback period",
+            "Suggests validating assumptions during calls",
+            "Provides calculator structure"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        },
+        {
+          "id": 6,
+          "prompt": "We need a public comparison page showing how we stack up against Zendesk and Intercom.",
+          "expected_output": "Should recognize this is a public-facing competitor comparison page, not internal sales collateral. Should defer to or cross-reference the competitor-alternatives skill, which handles public comparison and alternatives pages. Sales-enablement covers internal materials (battle cards, objection handling) while competitor-alternatives handles SEO-focused public comparison content.",
+          "assertions": [
+            "Recognizes this as a public comparison page",
+            "References or defers to competitor-alternatives skill",
+            "Explains the distinction between internal and public collateral",
+            "Does not attempt public SEO comparison page using sales enablement patterns"
+          ],
+          "files": [],
+          "reference": "sales.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "signup-flow-cro",
+      "reference": "cro.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Audit our signup flow. We have a 3-step process: Step 1 asks for email, password, and full name. Step 2 asks for company name, company size, role, and industry. Step 3 asks for use case and how they heard about us. Current completion rate is 45%.",
+          "expected_output": "Should check for product-marketing-context.md first. Should identify the flow type (likely B2B SaaS trial). Should apply the core principles: minimize required fields (which of these are genuinely needed before they can use the product?). Should evaluate each step: Step 1 is reasonable, Step 2 fields are mostly deferrable to progressive profiling, Step 3 is entirely deferrable. Should recommend cutting to Step 1 only or at most 2 steps. Should provide audit findings in structured format (Issue, Impact, Fix, Priority). Should include Quick Wins, High-Impact Changes, and Test Hypotheses.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Identifies flow type",
+            "Applies minimize required fields principle",
+            "Evaluates each field for necessity",
+            "Recommends deferring most Step 2 and all Step 3 fields",
+            "Provides findings in structured format",
+            "Includes Quick Wins, High-Impact Changes, Test Hypotheses"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Should we add Google and Microsoft SSO to our signup page? We're a B2B project management tool and currently only have email/password signup.",
+          "expected_output": "Should apply the social auth options guidance. For B2B, should recommend Google and Microsoft as the primary SSO options (matching the B2B recommendation). Should explain benefits: higher conversion (less friction), pre-verified email, faster onboarding. Should recommend placing SSO prominently (often higher conversion than email). Should address implementation considerations: clear visual separation from email signup, button copy ('Sign up with Google' not just Google icon), consider which option to emphasize based on audience.",
+          "assertions": [
+            "Applies social auth options guidance",
+            "Recommends Google and Microsoft for B2B",
+            "Explains conversion benefits of SSO",
+            "Recommends prominent placement",
+            "Addresses visual separation from email signup",
+            "Provides implementation recommendations"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 3,
+          "prompt": "our signup form is just email and password but we still only get 35% of visitors to complete it. what else could be wrong?",
+          "expected_output": "Should trigger on casual phrasing. Should investigate beyond just form fields since the form is already minimal. Should apply trust and friction reduction guidance: is there a 'No credit card required' message? Privacy assurance? Testimonial near the form? Should check form-level issues: error handling, password requirements clarity, submit button copy. Should also look at pre-form factors: is the value proposition clear? Is the page optimized? (cross-reference page-cro). Should provide diagnostic checklist and recommendations.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Investigates beyond form fields",
+            "Applies trust and friction reduction",
+            "Checks for 'No credit card required' messaging",
+            "Checks error handling and password UX",
+            "Considers pre-form factors (value prop, page CRO)",
+            "Provides diagnostic checklist"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 4,
+          "prompt": "We require email verification before users can access the product. Is that hurting our conversion? Should we change it?",
+          "expected_output": "Should apply the verification flows guidance. Should explain that requiring verification before product access does create friction and likely reduces activation. Should recommend alternatives: delay verification until needed (let users explore first), magic link as alternative to password, let users start while verification is pending. Should discuss when email verification IS required (compliance, preventing abuse). Should provide specific recommendations for improving the verification experience if kept.",
+          "assertions": [
+            "Applies verification flows guidance",
+            "Explains verification friction impact",
+            "Recommends delaying verification",
+            "Suggests letting users explore while pending",
+            "Discusses when verification is required",
+            "Provides improvements if verification is kept"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 5,
+          "prompt": "What experiments should we run on our signup page? We want to improve our trial signup rate.",
+          "expected_output": "Should apply the experiment ideas section. Should provide experiments across categories: form design experiments (layout, field count, SSO), copy and messaging experiments (headline, CTA text, trust elements), trial and commitment experiments (credit card required vs not, trial length), and post-submit experiments. Should prioritize experiments by likely impact. Should cross-reference ab-test-setup for proper experiment design.",
+          "assertions": [
+            "Applies experiment ideas section",
+            "Covers form design experiments",
+            "Covers copy and messaging experiments",
+            "Covers trial and commitment experiments",
+            "Prioritizes by likely impact",
+            "Cross-references ab-test-setup skill"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Users sign up fine but then never activate. Only 20% complete onboarding. What do we do?",
+          "expected_output": "Should recognize this is a post-signup onboarding problem, not a signup flow problem. Should defer to or cross-reference the onboarding-cro skill, which handles post-signup activation and onboarding optimization. Signup-flow-cro covers getting users through the signup form, not what happens after.",
+          "assertions": [
+            "Recognizes this as post-signup onboarding, not signup flow",
+            "References or defers to onboarding-cro skill",
+            "Explains signup-flow-cro covers the signup form, not post-signup"
+          ],
+          "files": [],
+          "reference": "cro.md"
+        }
+      ]
+    },
+    {
+      "original_skill": "social-content",
+      "reference": "copy.md",
+      "evals": [
+        {
+          "id": 1,
+          "prompt": "Help me create a LinkedIn content strategy. I'm a SaaS founder building in public and want to grow my personal brand to drive awareness for my product. I currently have 500 followers and post maybe once a week.",
+          "expected_output": "Should check for product-marketing-context.md first. Should establish content pillars (3-5) appropriate for a SaaS founder building in public: industry insights, behind-the-scenes, educational content, personal stories, promotional (minimal). Should apply the platform quick reference for LinkedIn (3-5x/week recommended, carousels and stories perform well). Should provide hook formulas for LinkedIn posts. Should create a weekly content calendar. Should include engagement strategy (daily 30-min routine). Should address going from 1x/week to 3-5x/week with a batching strategy.",
+          "assertions": [
+            "Checks for product-marketing-context.md",
+            "Establishes 3-5 content pillars",
+            "Applies LinkedIn platform guidance",
+            "Provides hook formulas",
+            "Creates weekly content calendar",
+            "Includes engagement strategy",
+            "Addresses batching strategy for consistency",
+            "Recommends increasing from 1x to 3-5x per week"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 2,
+          "prompt": "Write me a Twitter/X thread about the lessons I learned bootstrapping my SaaS to $10k MRR. Include hooks and a CTA at the end.",
+          "expected_output": "Should apply the hook formulas for a story hook (e.g., '6 months ago, I had $0 MRR. Today, I hit $10k.'). Should structure the thread following platform best practices: strong hook in tweet 1, each tweet should stand alone but flow together, use specific numbers and stories, end with a CTA. Should reference the content pillar this fits into (behind-the-scenes / founder journey). Should provide the actual thread content with 8-12 tweets. Should include engagement prompts.",
+          "assertions": [
+            "Applies hook formulas from the skill",
+            "Uses a story hook for the first tweet",
+            "Structures thread with standalone but flowing tweets",
+            "Uses specific numbers and stories",
+            "Ends with clear CTA",
+            "Provides 8-12 tweet thread content",
+            "Includes engagement prompts"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 3,
+          "prompt": "i have a blog post that did really well. how do i turn it into social media content for multiple platforms?",
+          "expected_output": "Should trigger on casual phrasing. Should apply the content repurposing system. Should use the Blog Post → Social Content mapping: LinkedIn (key insight post + carousel of main points), Twitter/X (thread of key takeaways), Instagram (carousel with visuals + Reel summarizing the post). Should follow the repurposing workflow: create pillar content → extract key insights (3-5) → adapt to each platform → schedule across the week. Should provide specific format recommendations per platform.",
+          "assertions": [
+            "Triggers on casual phrasing",
+            "Applies content repurposing system",
+            "Uses Blog Post → Social Content mapping",
+            "Provides format for LinkedIn, Twitter/X, and Instagram",
+            "Follows the repurposing workflow",
+            "Extracts 3-5 key insights to repurpose",
+            "Provides platform-specific format recommendations"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 4,
+          "prompt": "My LinkedIn posts get like 200 impressions and almost no engagement. What am I doing wrong?",
+          "expected_output": "Should apply the analytics and optimization section, specifically the 'if engagement is low' guidance. Should diagnose potential issues: weak hooks (first line not compelling), posting at wrong times, not engaging with others' content, poor formatting (no line breaks, walls of text), content not resonating with audience. Should recommend specific fixes: test new hook formulas, post at different times, increase engagement with others (the daily engagement routine), try different formats (carousels, stories). Should provide before/after hook examples.",
+          "assertions": [
+            "Applies analytics and optimization guidance",
+            "Diagnoses potential engagement issues",
+            "Addresses hook quality",
+            "Addresses posting timing",
+            "Recommends daily engagement routine",
+            "Suggests trying different content formats",
+            "Provides specific before/after hook examples"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 5,
+          "prompt": "Help me reverse-engineer what's working for top creators in the DevTools space on Twitter. I want to understand their content patterns.",
+          "expected_output": "Should apply the reverse engineering viral content framework. Should walk through the process: identify 10-20 top accounts in DevTools, collect high-performing posts, analyze patterns (hooks, formats, CTAs, topics, posting times), codify a playbook of repeatable patterns, then layer the user's authentic voice. Should provide specific guidance on what to look for in the analysis. Should recommend tools or methods for collecting the data.",
+          "assertions": [
+            "Applies reverse engineering viral content framework",
+            "Walks through the full process (find, collect, analyze, codify, apply)",
+            "Recommends identifying 10-20 accounts",
+            "Describes what patterns to analyze",
+            "Emphasizes layering authentic voice",
+            "Provides data collection guidance"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        },
+        {
+          "id": 6,
+          "prompt": "Write me a 5-email welcome sequence for new email subscribers who came from my LinkedIn audience.",
+          "expected_output": "Should recognize this is an email sequence task, not social content. Should defer to or cross-reference the email-sequence skill, which handles welcome sequences, drip campaigns, and lifecycle emails. May note the social-to-email bridge context but should make clear that email-sequence is the right skill for writing email sequences.",
+          "assertions": [
+            "Recognizes this as email sequence work",
+            "References or defers to email-sequence skill",
+            "Does not attempt to write email sequence using social content patterns",
+            "May note social-to-email bridge context"
+          ],
+          "files": [],
+          "reference": "copy.md"
+        }
+      ]
+    }
+  ]
+}
