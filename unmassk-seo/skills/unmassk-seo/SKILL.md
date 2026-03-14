@@ -1,7 +1,7 @@
 ---
 name: unmassk-seo
 description: >
-  This skill should be used when the user asks to "audit a website", "audit a page",
+  Use when the user asks to "audit a website", "audit a page",
   "check SEO", "analyze SEO", "technical SEO audit", "check Core Web Vitals",
   "check CWV", "check page speed", "optimize images for SEO", "check alt text",
   "validate schema markup", "generate JSON-LD", "check structured data",

@@ -1,7 +1,7 @@
 ---
 name: unmassk-marketing
 description: >
-  This skill should be used when the user asks to "write copy", "CRO audit",
+  Use when the user asks to "write copy", "CRO audit",
   "optimize conversion", "email sequence", "cold email", "ad creative",
   "paid ads", "pricing strategy", "launch plan", "referral program",
   "churn prevention", "onboarding flow", "A/B test", "analytics tracking",
