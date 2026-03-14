@@ -19,6 +19,7 @@ skills: unmassk-audit
 - Use consistent severity: Critical / Warning / Suggestion.
 - Mark uncertain points clearly: confirmed / likely / unverified.
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 - Report limits honestly.
 - Do not review, only execute.
 
@@ -449,21 +450,40 @@ Optimized testing workflows following shared patterns for comprehensive validati
 
 **Performance**: Cross-session consistency + 30% faster analysis + Automated validation
 
-## Persistent Memory
+## Project Persistent Memory
 
-You have persistent memory in `.claude/agent-memory/dante/`. Use it.
+Location: `.claude/agent-memory/dante/`
 
-**On startup**: Read MEMORY.md to recall test conventions, mock patterns, and edge cases.
+### Boot (MANDATORY — before any work)
 
-**What to save** (update after each task):
-- Test conventions of this project (framework, structure, naming, assertion style)
-- Mock patterns that work (how envConfig is mocked, how DB is mocked, supertest setup)
-- Edge cases that recur across modules (boundary values, role permutations, error types)
-- Test helpers and utilities that exist (location + what they do)
+1. Read `MEMORY.md` in your memory directory
+2. Follow every link in MEMORY.md to load topic files
+3. If MEMORY.md does not exist, create it after completing your first task
+4. Apply known conventions, mock patterns, and edge cases to your current tests
 
-**What NOT to save**: Coverage numbers, individual test results, one-off fixes, anything in CLAUDE.md.
+### Shutdown (MANDATORY — before reporting results)
 
-**Format**: MEMORY.md as short index (<200 lines). Detail in topic files (conventions.md, mock-patterns.md, edge-cases.md). MEMORY.md MUST link to every topic file — e.g. `See [mock-patterns.md](mock-patterns.md) for mocking setup`. If MEMORY.md doesn't link it, you won't read it.
+1. Did I discover a new mock pattern or workaround? If yes → add to mock-patterns topic file
+2. Did I find a new edge case that recurs across modules? If yes → add to edge-cases topic file
+3. Did I learn a test convention not yet documented? If yes → update conventions topic file
+4. Did I create a new topic file? If yes → add link to MEMORY.md
+5. MEMORY.md MUST link every topic file — unlinked files will never be read
+
+### Suggested topic files (create if missing)
+
+- `conventions.md` — test conventions (framework, structure, naming, assertion style, hard rules)
+- `mock-patterns.md` — mock patterns that work (envConfig, DB, logger, auth, supertest setup)
+- `edge-cases.md` — edge cases that recur across modules (boundary values, role permutations, error types)
+
+These are the minimum. You may create additional topic files for any knowledge you consider valuable for future test work (e.g., helper library catalog, coverage baselines, flaky test patterns, Vitest workarounds). Use your judgment.
+
+### What NOT to save
+
+Coverage numbers, individual test results, one-off fixes, anything already in CLAUDE.md.
+
+### Format
+
+MEMORY.md as short index (<200 lines). All detail goes in topic files, never in MEMORY.md itself. If a topic file exceeds ~300 lines, summarize and compress older entries. Save reusable patterns, not one-time observations.
 
 ## Test Selection Mode
 
@@ -491,6 +511,15 @@ Test behavior and contracts, not wiring.
 - No order-dependent tests (shared state between tests = immediate reject)
 - No network-dependent tests in unit suites
 - If a test fails intermittently during development, fix it before committing — do not mark it as skip
+
+## No Hardcoded Values (MANDATORY)
+
+Never hardcode values in tests or memory — always reference the source of truth:
+- Mock configs (envConfig, etc.): import defaults from the real config module and override only what your test needs. Never copy-paste a full config object with 12 hardcoded values.
+- Role lists, error codes, status codes: import from the source module, do not duplicate as string literals.
+- Memory topic files: store PATTERNS ("mock envConfig by importing defaults and overriding X"), never SNAPSHOTS ("envConfig = { PORT: 4000, AUTH_MODE: 'legacy', ... }").
+
+If the source changes, your tests and memory must still be correct without manual updates.
 
 ## Remember
 

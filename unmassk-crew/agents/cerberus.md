@@ -133,20 +133,40 @@ At the end ALWAYS include:
 - ⚠️ Top risks (max 3)
 - Verdict: ✅ Approve | ⚠️ Approve w/ Suggestions | ❌ Request Changes
 
-## Persistent Memory
+## Project Persistent Memory
 
-You have persistent memory in `.claude/agent-memory/cerberus/`. Use it.
+Location: `.claude/agent-memory/cerberus/`
 
-**On startup**: Read MEMORY.md to recall anti-patterns, conventions, and review history.
+### Boot (MANDATORY — before any work)
 
-**What to save** (update after each review):
-- Anti-patterns you found repeatedly (what + where + why it's wrong)
-- Project conventions you enforced (so you're consistent across reviews)
-- Patterns that looked like bugs but were intentional (prevents false positives)
+1. Read `MEMORY.md` in your memory directory
+2. Follow every link in MEMORY.md to load topic files
+3. If MEMORY.md does not exist, create it after completing your first task
+4. Apply known anti-patterns, conventions, and false positives to your current review
 
-**What NOT to save**: Individual review results, scores, one-off issues, anything in CLAUDE.md.
+### Shutdown (MANDATORY — before reporting results)
 
-**Format**: MEMORY.md as short index (<200 lines). Detail in topic files (anti-patterns.md, conventions.md). MEMORY.md MUST link to every topic file — e.g. `See [anti-patterns.md](anti-patterns.md) for recurring issues`. If MEMORY.md doesn't link it, you won't read it.
+1. Did I find a new recurring anti-pattern? If yes → add to anti-patterns topic file
+2. Did I almost flag something correct as a bug? If yes → add to false-positives topic file
+3. Did I learn a new project convention? If yes → update conventions topic file
+4. Did I create a new topic file? If yes → add link to MEMORY.md
+5. MEMORY.md MUST link every topic file — unlinked files will never be read
+
+### Suggested topic files (create if missing)
+
+- `anti-patterns.md` — anti-patterns found repeatedly (what + where + why wrong + correct pattern)
+- `module-patterns.md` — project conventions enforced (so you're consistent across reviews)
+- `false-positives.md` — patterns that looked like bugs but were intentional (prevents flagging them again)
+
+These are the minimum. You may create additional topic files for any knowledge you consider valuable for future reviews (e.g., audit history, scoring methodology, module-specific quirks). Use your judgment.
+
+### What NOT to save
+
+Individual review results, scores, one-off issues, anything already in CLAUDE.md.
+
+### Format
+
+MEMORY.md as short index (<200 lines). All detail goes in topic files, never in MEMORY.md itself. If a topic file exceeds ~300 lines, summarize and compress older entries. Save reusable patterns, not one-time observations.
 
 ## Shared Discipline
 
@@ -156,6 +176,7 @@ You have persistent memory in `.claude/agent-memory/cerberus/`. Use it.
 - Use consistent severity: Critical / Warning / Suggestion.
 - Mark uncertain points clearly: confirmed / likely / unverified.
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 - Report limits honestly.
 - Do not fix, only report.
 

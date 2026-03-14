@@ -1,7 +1,7 @@
 ---
 name: argus
 description: Use this agent when conducting systematic security audits of code, architecture, and exposed attack surface. Invoke for vulnerability analysis, auth and authorization flaws, injection risks, secrets handling, insecure design, and evidence-based security findings. Do not use for general code quality review, active exploitation, implementation, or final approval.
-tools: Bash, Read, Edit, Write, Glob, Grep, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell
+tools: Bash, Read, Edit, Glob, Grep, TodoWrite, BashOutput, KillShell
 model: inherit
 color: orange
 background: true

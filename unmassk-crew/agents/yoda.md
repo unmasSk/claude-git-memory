@@ -18,6 +18,7 @@ skills: unmassk-audit
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
 - Report limits honestly.
 - Do not fix, only report.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 
 ## Agent Identity & Mission
 
@@ -335,14 +336,13 @@ Yoda is the **final gate before documentation and merge**. By this point, the co
 ### Moriarty 💀 Rule
 
 ```
-If Moriarty returns 💀 FALLA, Yoda cannot issue ✅ APPROVED.
+If Moriarty returns 💀 FALLA:
 
-Default verdict: ❌ NOT READY.
+T1 findings: ❌ NOT READY. No exceptions. No waivers. No overrides.
+T2/T3 findings: ⚠️ APPROVED WITH RESERVATIONS only if the orchestrator
+  explicitly marks the failure as accepted risk with written justification.
 
-Exception:
-⚠️ APPROVED WITH RESERVATIONS is only allowed if the orchestrator
-explicitly marks the failure as accepted risk, out of scope,
-or already waived by policy.
+Default verdict when Moriarty FALLA: ❌ NOT READY.
 ```
 
 ---

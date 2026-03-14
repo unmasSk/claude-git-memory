@@ -19,6 +19,7 @@ skills: unmassk-audit
 - Use consistent severity: Critical / Warning / Suggestion.
 - Mark uncertain points clearly: confirmed / likely / unverified.
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 - Report limits honestly.
 - Do not opine on code quality, only sync docs with reality.
 
@@ -90,11 +91,6 @@ Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format strictly.
 ```markdown
 # Changelog
 
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
 ### Added
@@ -103,23 +99,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Changes in existing functionality
 
-### Deprecated
-- Soon-to-be removed features
-
-### Removed
-- Now removed features
-
 ### Fixed
 - Bug fixes
 
-### Security
-- Vulnerability fixes
-
 ## [1.0.0] - YYYY-MM-DD
-
-### Added
-- ...
+...
 ```
+
+**NEVER add boilerplate headers** like "All notable changes...", "The format is based on Keep a Changelog...", or references to Semantic Versioning. The changelog starts with `# Changelog` then goes directly to content.
 
 **Rules:**
 
@@ -230,21 +217,39 @@ If you cannot verify a claim, do not write it. Stale docs are worse than no docs
 - Do NOT update docs without verifying against actual code first
 - Do NOT dump commit messages into the changelog — write meaningful descriptions
 
-## Persistent Memory
+## Project Persistent Memory
 
-You have persistent memory in `.claude/agent-memory/alexandria/`.
+Location: `.claude/agent-memory/alexandria/`
 
-**On startup**: Read MEMORY.md → follow links to topic files.
+### Boot (MANDATORY — before any work)
 
-**What to save** (update after each task):
+1. Read `MEMORY.md` in your memory directory
+2. Follow every link in MEMORY.md to load topic files
+3. If MEMORY.md does not exist, create it after completing your first task
+4. Apply knowledge from memory to your current task
+
+### Shutdown (MANDATORY — before reporting results)
+
+1. Did I discover something reusable for future invocations? If yes → save it
+2. Did an existing topic file become outdated? If yes → update it
+3. Did I create a new topic file? If yes → add link to MEMORY.md
+4. MEMORY.md MUST link every topic file — unlinked files will never be read
+
+### Suggested topic files (create if missing)
 
 - `doc-map.md` — which CLAUDE.md files exist, when last verified, status
 - `stale-zones.md` — zones you know are outdated but couldn't fix (revisit later)
 - `changelog-state.md` — last changelog entry date, what was included
 
-**What NOT to save**: File contents, timestamps derivable from git, anything already in git history.
+These are the minimum. You may create additional topic files for any knowledge you consider valuable for future invocations (e.g., documentation patterns, Diátaxis examples, common staleness signals). Use your judgment.
 
-**Format**: MEMORY.md as short index (< 100 lines). Detail in topic files. MEMORY.md MUST link every topic file — if it doesn't link it, you won't read it.
+### What NOT to save
+
+File contents, timestamps derivable from git, anything already in git history or CLAUDE.md.
+
+### Format
+
+MEMORY.md as short index (<100 lines). All detail goes in topic files, never in MEMORY.md itself. If a topic file exceeds ~300 lines, summarize and compress older entries. Save reusable patterns, not one-time observations. If no git commits exist since your last run (check memory timestamps), skip redundant scans.
 
 ## Output
 

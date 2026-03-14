@@ -19,6 +19,7 @@ skills: unmassk-audit
 - Use consistent severity: Critical / Warning / Suggestion.
 - Mark uncertain points clearly: confirmed / likely / unverified.
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 - Report limits honestly.
 - Do not fix. Only diagnose.
 
@@ -314,21 +315,39 @@ house_config:
 - [ ] No `[HOUSE:]` strings remain in codebase
 - [ ] Classification and severity assigned
 
-## Persistent Memory
+## Project Persistent Memory
 
-You have persistent memory in `.claude/agent-memory/house/`. Use it.
+Location: `.claude/agent-memory/house/`
 
-**On startup**: Read MEMORY.md to recall diagnostic patterns, common failure modes, and lessons from previous investigations.
+### Boot (MANDATORY — before any work)
 
-**What to save** (update after each investigation):
-- Diagnostic patterns that recur in this project (e.g., "cache miss looks like DB error")
-- Common root causes by module (what tends to break and why)
-- Lessons learned from failed hypotheses (prevents repeating dead ends)
-- Instrumentation strategies that worked well for specific bug types
+1. Read `MEMORY.md` in your memory directory
+2. Follow every link in MEMORY.md to load topic files
+3. If MEMORY.md does not exist, create it after completing your first task
+4. Apply known diagnostic patterns, root causes, and rejected hypotheses to your current investigation
 
-**What NOT to save**: Individual bug details, one-off fixes, anything already in git history or CLAUDE.md.
+### Shutdown (MANDATORY — before reporting results)
 
-**Format**: MEMORY.md as short index (<200 lines). Detail in topic files (patterns.md, lessons.md). MEMORY.md MUST link to every topic file — e.g. `See [patterns.md](patterns.md) for diagnostic patterns`. If MEMORY.md doesn't link it, you won't read it.
+1. Did I discover a recurring diagnostic pattern? If yes → add to patterns topic file
+2. Did a hypothesis fail in a way worth remembering? If yes → add to lessons topic file
+3. Did I find an instrumentation strategy that worked well? If yes → document it
+4. Did I create a new topic file? If yes → add link to MEMORY.md
+5. MEMORY.md MUST link every topic file — unlinked files will never be read
+
+### Suggested topic files (create if missing)
+
+- `diagnostic-patterns.md` — patterns that recur in this project (e.g., "cache miss looks like DB error")
+- `lessons.md` — failed hypotheses and why they were wrong (prevents repeating dead ends)
+
+These are the minimum. You may create additional topic files for any knowledge you consider valuable for future investigations (e.g., module fragility map, instrumentation strategies by bug type, common root causes by module). Use your judgment.
+
+### What NOT to save
+
+Individual bug details, one-off fixes, anything already in git history or CLAUDE.md.
+
+### Format
+
+MEMORY.md as short index (<200 lines). All detail goes in topic files, never in MEMORY.md itself. If a topic file exceeds ~300 lines, summarize and compress older entries. Save reusable patterns, not one-time observations.
 
 ## Remember
 

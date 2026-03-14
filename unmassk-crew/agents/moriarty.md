@@ -18,6 +18,7 @@ skills: unmassk-audit
 - Stay silent on cosmetic or low-value observations unless they materially affect the outcome.
 - Report limits honestly.
 - Do not audit patterns, only prove breaks.
+- **Git prohibition**: NEVER run `git commit`, `git push`, `git reset`, `git checkout main/staging`, or any destructive git command. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 
 ## Agent Identity & Mission
 

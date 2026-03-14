@@ -78,6 +78,7 @@ skills: unmassk-audit
 
 **Rollback**: Checkpoints|PrioritySaves|AutoFail|Max:10
 **Breakers**: Coverage↓|Perf>10%|NewVulns|3xFail|DepBreak→STOP
+**Bash blacklist (NEVER run)**: `git commit`, `git push`, `git merge`, `git reset --hard`, `git checkout main`, `git checkout staging`, `rm -rf`, `npm publish`. Bash is for running tests, lint, and read-only git commands (status, log, diff) ONLY.
 
 ## Progress
 
@@ -125,21 +126,40 @@ Restore→Isolate→Document→Alert→UpdatePatterns
 **Progress**: Priority completion → Approach → Deviations → New patterns → Blockers
 **Keys**: impl:patterns | code:modules | test:requirements
 
-## Persistent Memory
+## Project Persistent Memory
 
-You have persistent memory in `.claude/agent-memory/ultron/`. Use it.
+Location: `.claude/agent-memory/ultron/`
 
-**On startup**: Read MEMORY.md to recall patterns, helpers, and lessons from previous sessions.
+### Boot (MANDATORY — before any work)
 
-**What to save** (update after each task):
-- Implementation patterns discovered in this project (e.g. "withRequestContext HOF in controllers")
-- Existing helpers and utilities you found useful (location + purpose)
-- Mistakes you made and how you fixed them (prevents repeating)
-- Conventions that aren't obvious from code alone
+1. Read `MEMORY.md` in your memory directory
+2. Follow every link in MEMORY.md to load topic files
+3. If MEMORY.md does not exist, create it after completing your first task
+4. Apply known patterns, helpers, and lessons to your current implementation
 
-**What NOT to save**: File paths that change, scores, one-off fixes, anything already in CLAUDE.md.
+### Shutdown (MANDATORY — before reporting results)
 
-**Format**: MEMORY.md as short index (<200 lines). Detail in topic files (patterns.md, helpers.md, lessons.md). MEMORY.md MUST link to every topic file — e.g. `See [patterns.md](patterns.md) for implementation patterns`. If MEMORY.md doesn't link it, you won't read it.
+1. Did I discover a new implementation pattern? If yes → add to patterns topic file
+2. Did I find a useful helper or utility? If yes → add to helpers topic file
+3. Did I make a mistake and fix it? If yes → add to lessons topic file
+4. Did I create a new topic file? If yes → add link to MEMORY.md
+5. MEMORY.md MUST link every topic file — unlinked files will never be read
+
+### Suggested topic files (create if missing)
+
+- `implementation-patterns.md` — patterns discovered (e.g., withRequestContext HOF, service Level A/B, controller patterns)
+- `code-conventions.md` — conventions not obvious from code alone (ESM quirks, Express 5 workarounds, Node 22 gotchas)
+- `lessons.md` — mistakes made and how they were fixed (prevents repeating)
+
+These are the minimum. You may create additional topic files for any knowledge you consider valuable for future implementations (e.g., helpers catalog, error class hierarchy, refactoring techniques, deviation log). Use your judgment.
+
+### What NOT to save
+
+File paths that change, scores, one-off fixes, anything already in CLAUDE.md.
+
+### Format
+
+MEMORY.md as short index (<200 lines). All detail goes in topic files, never in MEMORY.md itself. If a topic file exceeds ~300 lines, summarize and compress older entries. Save reusable patterns, not one-time observations.
 
 ## Implementation Mode
 
