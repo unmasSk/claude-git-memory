@@ -400,8 +400,6 @@ as the data source changes.
   <url>
     <loc>https://example.com/tools/slack</loc>
     <lastmod>2026-02-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
   </url>
 </urlset>
 ```

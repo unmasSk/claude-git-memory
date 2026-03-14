@@ -19,7 +19,7 @@
     {
       "name": "unmassk-flow",
       "version": "1.0.0",
-      "description": "8-step creative pipeline — from idea to shipped code",
+      "description": "8-step creative pipeline \u2014 from idea to shipped code",
       "source": "./unmassk-flow/"
     },
     {
@@ -30,38 +30,38 @@
     },
     {
       "name": "unmassk-seo",
-      "version": "0.1.0",
-      "description": "Technical SEO — crawling, schema, Core Web Vitals, GEO/AEO, site audits",
+      "version": "1.0.0",
+      "description": "Technical SEO \u2014 crawling, schema, Core Web Vitals, GEO/AEO, site audits",
       "source": "./unmassk-seo/"
     },
     {
       "name": "unmassk-marketing",
       "version": "0.1.0",
-      "description": "Strategic marketing — CRO, copywriting, email, ads, pricing, growth",
+      "description": "Strategic marketing \u2014 CRO, copywriting, email, ads, pricing, growth",
       "source": "./unmassk-marketing/"
     },
     {
       "name": "unmassk-design",
       "version": "0.1.0",
-      "description": "Frontend/UX — design systems, component patterns, responsive layouts",
+      "description": "Frontend/UX \u2014 design systems, component patterns, responsive layouts",
       "source": "./unmassk-design/"
     },
     {
       "name": "unmassk-ops",
       "version": "0.1.0",
-      "description": "DevOps — CI/CD, database migrations, performance, observability",
+      "description": "DevOps \u2014 CI/CD, database migrations, performance, observability",
       "source": "./unmassk-ops/"
     },
     {
       "name": "unmassk-compliance",
       "version": "0.1.0",
-      "description": "Compliance — accessibility (WCAG), i18n, GDPR, E2E testing, API docs",
+      "description": "Compliance \u2014 accessibility (WCAG), i18n, GDPR, E2E testing, API docs",
       "source": "./unmassk-compliance/"
     },
     {
       "name": "unmassk-media",
       "version": "0.1.0",
-      "description": "Media generation — video (Remotion/ffmpeg), images (AI gen/optimization), SVG, thumbnails, OG images",
+      "description": "Media generation \u2014 video (Remotion/ffmpeg), images (AI gen/optimization), SVG, thumbnails, OG images",
       "source": "./unmassk-media/"
     }
   ]
