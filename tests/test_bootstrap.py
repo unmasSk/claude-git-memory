@@ -1,5 +1,5 @@
 """
-Bootstrap tests for conservative scout detection.
+Bootstrap tests for conservative project detection.
 
 Covers empty projects, Node.js/TS, Python, monorepo detection,
 commitlint integration, installed memory, multiple ecosystems, and silent mode.

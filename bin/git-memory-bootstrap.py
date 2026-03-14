@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-git-memory-bootstrap -- Conservative scout for first contact with a repo.
+git-memory-bootstrap -- Conservative analyzer for first contact with a repo.
 
 Analyzes structure, dependencies, tech stack, and recent commits.
 Classifies findings by confidence level (fact/hypothesis).
@@ -920,8 +920,8 @@ def run_bootstrap(silent: bool = False, as_json: bool = False) -> int:
 
 
 def main() -> None:
-    """CLI entry point. Parses args and runs the bootstrap scout."""
-    parser = argparse.ArgumentParser(description="Scout for first contact with a repo.")
+    """CLI entry point. Parses args and runs the bootstrap analyzer."""
+    parser = argparse.ArgumentParser(description="Analyze repo for first contact.")
     parser.add_argument("--silent", action="store_true", help="Exit code only")
     parser.add_argument("--json", dest="json", action="store_true", help="Machine-readable JSON output")
     args = parser.parse_args()

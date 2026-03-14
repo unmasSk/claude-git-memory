@@ -26,14 +26,14 @@ import subprocess
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.realpath(__file__))), "lib"))
-from constants import MEMORY_TYPES
+from constants import MEMORY_TYPES, DEFAULT_CO_AUTHOR
 from git_helpers import run_git
 from parsing import suggest_scope_from_paths
 
 # ── Config ───────────────────────────────────────────────────────────────
 
-# Co-author line appended to every commit (pending user decision on final value)
-CO_AUTHOR = "Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
+# Co-author line: configurable via env var, falls back to constant
+CO_AUTHOR = os.environ.get("GIT_MEMORY_CO_AUTHOR", DEFAULT_CO_AUTHOR)
 
 EMOJIS = {
     "feat": "✨", "fix": "🐛", "refactor": "♻️", "perf": "⚡",

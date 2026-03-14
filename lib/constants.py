@@ -8,7 +8,7 @@ and memo categories. Imported everywhere.
 # Trailer keys (case-sensitive, matching the spec)
 VALID_KEYS: set[str] = {
     "Issue", "Why", "Touched", "Decision", "Memo", "Next",
-    "Blocker", "Risk", "Conflict", "Resolution", "Refs",
+    "Blocker", "Risk", "Conflict", "Resolution",
     "Remember",  # Personality/working-style notes between sessions
     "Resolved-Next", "Stale-Blocker",  # GC tombstone trailers
 }
@@ -30,3 +30,7 @@ CODE_TYPES: set[str] = {"feat", "fix", "refactor", "perf", "chore", "ci", "test"
 
 # Commit types that are memory-only (allow-empty)
 MEMORY_TYPES: set[str] = {"context", "decision", "memo", "remember"}
+
+# Default Co-Author line appended to every commit.
+# Override via GIT_MEMORY_CO_AUTHOR environment variable.
+DEFAULT_CO_AUTHOR: str = "Co-Authored-By: Claude <noreply@anthropic.com>"
