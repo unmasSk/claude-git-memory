@@ -263,6 +263,38 @@ Include rationale for non-obvious choices.
 **For motion specs:** Define the element, property, duration, easing,
 trigger, and reduced-motion fallback for every animation.
 
+## User Interaction and Refinement
+
+### Initial Design Direction
+
+Before executing any design work, present 2-3 design system options to the
+user in plain language. Run `search.py --design-system` with the project
+description, then translate each result into non-technical terms:
+
+- Describe the visual feeling, not the style name ("elegant and calm" not "Soft UI Evolution")
+- Show the color palette as a simple list with descriptive names
+- Explain the typography choice by mood ("sophisticated serif" not "Cormorant Garamond")
+- Offer to generate quick HTML mockups if the user wants to see the options visually
+
+Proceed only after the user selects a direction.
+
+### Refinement Patterns
+
+| User Request Type | Action |
+|-------------------|--------|
+| Subjective (colors, style, vibes) | Present 2-3 options with plain descriptions, offer mockups |
+| Technical (animation, responsive, accessibility) | Execute directly, no options needed |
+| Explicit (specific color, specific font) | Execute without asking |
+| Partial change ("same style, different colors") | Re-run search.py for the changed domain only, present options, keep everything else |
+| Full reset ("start over") | Return to initial design direction step |
+
+### Mockup Generation
+
+When the user asks to see options visually, generate a minimal HTML file per
+option demonstrating: header, hero section, one content block, and footer.
+Use inline styles matching the proposed design system. Save to the project
+directory as `mockup-option-a.html`, `mockup-option-b.html`, etc.
+
 ## Attribution
 
 Based on Impeccable by Paul Bakaus (Apache 2.0), UI/UX Pro Max by
