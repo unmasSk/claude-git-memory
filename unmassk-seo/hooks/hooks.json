@@ -1,0 +1,29 @@
+{
+  "description": "unmassk-seo hooks — pre-commit SEO checks and post-edit schema validation (non-blocking, warning-only)",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-commit-seo-check.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/scripts/validate-schema.py \"$FILE_PATH\"",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,1 +1,14 @@
-{"name": "unmassk-seo", "version": "0.1.0"}
+{
+  "name": "unmassk-seo",
+  "version": "1.0.0",
+  "description": "Technical SEO toolkit — crawling, schema validation, Core Web Vitals, GEO/AEO optimization, site audits. Sourced from claude-seo by AgriciDaniel.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": ["seo", "schema", "core-web-vitals", "geo", "audit", "e-e-a-t"],
+  "skills": "./skills/"
+}
