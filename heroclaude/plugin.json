@@ -1,0 +1,13 @@
+{
+  "name": "heroclaude",
+  "version": "1.0.0",
+  "description": "Creative pipeline for building features, fixes, and refactors — from idea to shipped code. 8-step workflow with specialized agents (Bilbo, Ultron, Dante, Cerberus, Argus, Moriarty, Yoda, House, Alexandria) and enterprise audit capability.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "license": "MIT",
+  "keywords": ["pipeline", "features", "agents", "audit", "tdd", "workflow"],
+  "skills": "./skills/",
+  "agents": "./agents/"
+}

@@ -9,6 +9,12 @@
       "version": "3.7.0",
       "description": "Persistent memory for Claude Code via git commit trailers",
       "source": "./"
+    },
+    {
+      "name": "heroclaude",
+      "version": "1.0.0",
+      "description": "Creative pipeline with specialized agents — from idea to shipped code",
+      "source": "./heroclaude/"
     }
   ]
 }
