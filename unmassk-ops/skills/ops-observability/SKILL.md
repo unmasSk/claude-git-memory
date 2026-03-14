@@ -47,7 +47,7 @@ version: 1.0.0
 
 ## Scripts
 
-All scripts are in `/Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/`.
+All scripts are in `${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/`.
 
 **Run scripts using the absolute path above. Do not use relative paths.**
 
@@ -72,19 +72,19 @@ Before delivering any generated query or config, run the relevant validator:
 
 ```bash
 # Validate PromQL syntax
-python3 /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/promql-validate-syntax.py "<query>"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/promql-validate-syntax.py "<query>"
 
 # Check PromQL best practices
-python3 /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/promql-check-best-practices.py "<query>"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/promql-check-best-practices.py "<query>"
 
 # Generate Loki config
-python3 /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/loki-generate-config.py
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/loki-generate-config.py
 
 # Validate Fluent Bit config
-python3 /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/fluentbit-validate-config.py "<config_path>"
+python3 ${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/fluentbit-validate-config.py "<config_path>"
 
 # Run LogQL regression checks
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-observability/scripts/logql-regression-checks.sh
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-observability/scripts/logql-regression-checks.sh
 ```
 
 ## Mandatory Rules

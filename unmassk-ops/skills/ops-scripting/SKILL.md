@@ -43,26 +43,26 @@ version: 1.0.0
 
 ## Script Commands
 
-All scripts are in `/Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/`.
+All scripts are in `${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/`.
 
 ```bash
 # Generate a bash script template
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/generate_script_template.sh [OPTIONS] [SCRIPT_NAME]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/generate_script_template.sh [OPTIONS] [SCRIPT_NAME]
 
 # Generate a Makefile template
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/generate_makefile_template.sh [OPTIONS] [PROJECT_TYPE] [PROJECT_NAME] [OUTPUT_FILE]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/generate_makefile_template.sh [OPTIONS] [PROJECT_TYPE] [PROJECT_NAME] [OUTPUT_FILE]
 
 # Add standard targets to an existing Makefile
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/add_standard_targets.sh [MAKEFILE]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/add_standard_targets.sh [MAKEFILE]
 
 # Validate a bash script
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/bash-validate.sh [SCRIPT]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/bash-validate.sh [SCRIPT]
 
 # Run ShellCheck on a script
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/shellcheck_wrapper.sh [SCRIPT]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/shellcheck_wrapper.sh [SCRIPT]
 
 # Validate a Makefile
-bash /Users/unmassk/Workspace/claude-toolkit/unmassk-ops/skills/ops-scripting/scripts/validate_makefile.sh [MAKEFILE]
+bash ${CLAUDE_PLUGIN_ROOT}/skills/ops-scripting/scripts/validate_makefile.sh [MAKEFILE]
 ```
 
 ## Script Reference
