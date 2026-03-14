@@ -222,8 +222,19 @@ async function main() {
           if (!language) { result = { error: '--language required (e.g. eng)' }; break }
           const body = { language }
           if (args['srt-file']) {
+            const path = require('path')
             const fs = require('fs')
-            body.caption_file = fs.readFileSync(args['srt-file'], 'utf8')
+            const srtPath = path.resolve(args['srt-file'])
+            const cwd = process.cwd()
+            if (!srtPath.startsWith(cwd + path.sep) && srtPath !== cwd) {
+              result = { error: 'srt-file must be within the current working directory' }
+              break
+            }
+            if (args['dry-run']) {
+              result = { _dry_run: true, action: 'captions create', srt_file: srtPath, media_id: id, language }
+              break
+            }
+            body.caption_file = fs.readFileSync(srtPath, 'utf8')
           }
           result = await api('POST', `/medias/${id}/captions.json`, body)
           break

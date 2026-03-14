@@ -92,7 +92,7 @@ async function main() {
         break
       }
       const token = await authenticate()
-      result = { jwt: token }
+      result = { jwt: token.substring(0, 10) + '...', message: 'Token obtained successfully. Set ZOOMINFO_ACCESS_TOKEN environment variable.' }
       break
     }
 

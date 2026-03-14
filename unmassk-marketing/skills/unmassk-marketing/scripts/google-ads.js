@@ -59,12 +59,19 @@ const args = parseArgs(process.argv.slice(2))
 const [cmd, sub, ...rest] = args._
 
 function daysToDateRange(days) {
-  const d = parseInt(days) || 30
+  const d = parseInt(days, 10)
+  if (isNaN(d) || d <= 0) return 'LAST_30_DAYS'
   if (d === 7) return 'LAST_7_DAYS'
   if (d === 14) return 'LAST_14_DAYS'
   if (d === 30) return 'LAST_30_DAYS'
   if (d === 90) return 'LAST_90_DAYS'
   return `LAST_${d}_DAYS`
+}
+
+function validateLimit(value) {
+  const n = parseInt(value, 10)
+  if (isNaN(n) || n <= 0 || String(n) !== String(value).trim()) return null
+  return n
 }
 
 async function main() {
@@ -124,7 +131,12 @@ async function main() {
       switch (sub) {
         case 'performance': {
           const dateRange = daysToDateRange(args.days)
-          const limit = args.limit ? ` LIMIT ${args.limit}` : ''
+          let limit = ''
+          if (args.limit) {
+            const n = validateLimit(args.limit)
+            if (n === null) { result = { error: '--limit must be a positive integer' }; break }
+            limit = ` LIMIT ${n}`
+          }
           result = await gaql(`SELECT ad_group.name, metrics.impressions, metrics.clicks, metrics.conversions FROM ad_group WHERE segments.date DURING ${dateRange}${limit}`)
           break
         }
@@ -137,7 +149,12 @@ async function main() {
       switch (sub) {
         case 'performance': {
           const dateRange = daysToDateRange(args.days)
-          const limit = args.limit || '50'
+          let limit = 50
+          if (args.limit) {
+            const n = validateLimit(args.limit)
+            if (n === null) { result = { error: '--limit must be a positive integer' }; break }
+            limit = n
+          }
           result = await gaql(`SELECT ad_group_criterion.keyword.text, metrics.impressions, metrics.clicks, metrics.average_cpc FROM keyword_view WHERE segments.date DURING ${dateRange} ORDER BY metrics.clicks DESC LIMIT ${limit}`)
           break
         }
