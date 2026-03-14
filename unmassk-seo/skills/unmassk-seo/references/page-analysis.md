@@ -77,7 +77,7 @@ Evaluate each element and record findings with priority level.
 | Check | Criteria | Priority if Failing |
 |-------|----------|-------------------|
 | Present | Page has a `<title>` tag | Critical |
-| Length | 50-60 characters | Medium |
+| Length | 30-60 characters | Medium |
 | Keyword inclusion | Primary keyword appears in title | High |
 | Uniqueness | Title is unique across the site | High |
 | Truncation risk | Title does not exceed 60 characters (Google truncates beyond this) | Medium |
