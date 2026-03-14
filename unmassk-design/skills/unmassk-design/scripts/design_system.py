@@ -505,9 +505,17 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
 
     # Use project name for project-specific folder
     project_name = design_system.get("project_name", "default")
-    project_slug = project_name.lower().replace(' ', '-')
+    # Sanitize: strip path separators and traversal sequences
+    import re as _re
+    project_slug = _re.sub(r'[^a-z0-9\-]', '', project_name.lower().replace(' ', '-'))
+    if not project_slug:
+        project_slug = "default"
 
     design_system_dir = base_dir / "design-system" / project_slug
+    # Verify resolved path stays within base_dir
+    if not str(design_system_dir.resolve()).startswith(str(base_dir.resolve())):
+        return {"error": "Invalid project name: path traversal detected", "files": []}
+
     pages_dir = design_system_dir / "pages"
 
     created_files = []
@@ -526,7 +534,13 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
 
     # If page is specified, create page override file with intelligent content
     if page:
-        page_file = pages_dir / f"{page.lower().replace(' ', '-')}.md"
+        page_slug = _re.sub(r'[^a-z0-9\-]', '', page.lower().replace(' ', '-'))
+        if not page_slug:
+            page_slug = "page"
+        page_file = pages_dir / f"{page_slug}.md"
+        # Verify page path stays within pages_dir
+        if not str(page_file.resolve()).startswith(str(pages_dir.resolve())):
+            return {"error": "Invalid page name: path traversal detected", "files": created_files}
         page_content = format_page_override_md(design_system, page, page_query)
         with open(page_file, 'w', encoding='utf-8') as f:
             f.write(page_content)

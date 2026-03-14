@@ -280,8 +280,9 @@ contrast (still well above AA) reduces eye strain.
 
 | Duration | Pattern |
 |---|---|
-| < 500ms | No indicator (instant feel) |
-| 500ms – 2s | Spinner or skeleton screen |
+| < 300ms | No indicator (feels instant) |
+| 300ms – 1s | Subtle spinner or skeleton screen |
+| 1s – 2s | Skeleton screen with content placeholder |
 | > 2s | Progress bar with percentage or estimated time |
 | Interactive operations | Spinner inside the button — do not disable, show state |
 

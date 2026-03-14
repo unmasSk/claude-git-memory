@@ -48,7 +48,7 @@ This skill combines five expert sources into one coherent workflow:
    compliance, responsive patterns, and component-level rigor.
 3. **bencium.io plugins** -- design token generation, Tailwind config
    scaffolding, shadcn integration, and agentic UX patterns.
-4. **Accessibility canon** -- WCAG 2.2 AA as the minimum bar, WCAG 2.2 AAA
+4. **Accessibility canon** -- WCAG 2.1 AA as the minimum bar (WCAG 2.2 AA aspirational)
    and ARIA authoring practices as the aspirational target.
 5. **UX writing discipline** -- every visible string is a design decision.
    Labels, errors, empty states, and onboarding copy are part of the design.
@@ -207,7 +207,7 @@ buttons without an accessible label.
 
 ## Accessibility Baseline
 
-Every design output must meet WCAG 2.2 AA. This is not optional.
+Every design output must meet WCAG 2.1 AA. WCAG 2.2 AA is aspirational. This is not optional.
 
 - Text contrast: 4.5:1 minimum for normal text, 3:1 for large text.
 - UI component contrast: 3:1 for interactive elements and focus indicators.
@@ -234,7 +234,7 @@ All paths relative to the skill root (`skills/unmassk-design/`).
 | `references/responsive.md` | Breakpoint systems, mobile-first approach, container queries, fluid typography, responsive images | Responsive design, mobile audit, breakpoint planning |
 | `references/ux-writing.md` | Microcopy principles, button labels, error messages, empty states, onboarding copy, voice and tone | Any visible string, `harden` command, onboarding flows |
 | `references/design-system-kickoff.md` | Design token structure, Tailwind config scaffolding, shadcn setup, component naming conventions | New project setup, design token generation, `normalize` command |
-| `references/accessibility.md` | WCAG 2.2 checklist, ARIA roles and properties, screen reader behavior, keyboard interaction patterns | Accessibility audit, `audit` command, any WCAG question |
+| `references/accessibility.md` | WCAG 2.1 AA checklist (2.2 aspirational), ARIA roles and properties, screen reader behavior, keyboard interaction patterns | Accessibility audit, `audit` command, any WCAG question |
 | `references/agentic-ux.md` | AI-native interface patterns, memory UI, trust signals, progressive disclosure for AI, error recovery in agentic flows | AI interface design, chatbot UI, agentic product design |
 
 Load references on-demand. Do not load all at startup.
@@ -287,6 +287,7 @@ Proceed only after the user selects a direction.
 | Explicit (specific color, specific font) | Execute without asking |
 | Partial change ("same style, different colors") | Re-run search.py for the changed domain only, present options, keep everything else |
 | Full reset ("start over") | Return to initial design direction step |
+| Rejection ("none of these") | Ask what specifically does not fit (too bold? too calm? wrong vibe?), re-run search.py with adjusted keywords based on feedback, present new options |
 
 ### Mockup Generation
 

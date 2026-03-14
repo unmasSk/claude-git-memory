@@ -83,7 +83,7 @@ A design system has three tiers:
 
 **Adaptable (context-dependent)** — Component variants for different screen sizes, dark/light mode overrides, density modes (compact vs comfortable).
 
-Use `python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-design/scripts/design_system.py` to generate a design system scaffold.
+Use `python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-design/scripts/search.py '<description>' --design-system -p '<project>'` to generate a design system scaffold.
 
 Generate design tokens as CSS custom properties before writing any component CSS:
 

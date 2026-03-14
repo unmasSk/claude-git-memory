@@ -61,7 +61,7 @@ Eleven reference files provide the knowledge base. The skill loads them on-deman
 | `color.md` | Color theory, palette construction, dark mode implementation, semantic color tokens, contrast ratios |
 | `typography.md` | Font stacks, type scales (fluid and fixed), font pairing rules, OpenType features, typographic correctness |
 | `motion.md` | Motion principles, easing curves, duration guidelines, reduced motion, Framer Motion patterns |
-| `layout-and-space.md` | Spacing systems, 8pt grid, CSS Grid and Flexbox patterns, z-index scale, visual rhythm |
+| `layout-and-space.md` | Spacing systems, 4pt grid, CSS Grid and Flexbox patterns, z-index scale, visual rhythm |
 | `interaction.md` | Focus management, keyboard navigation, form design, ARIA patterns, error states, loading states |
 | `responsive.md` | Breakpoint systems, mobile-first approach, container queries, fluid typography, responsive images |
 | `ux-writing.md` | Microcopy principles, button labels, error messages, empty states, onboarding copy, voice and tone |
