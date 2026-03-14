@@ -14,13 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Next cleanup in boot: checks GitHub issue status for pending Next items — closed issues are filtered out, items older than 7 days without an issue ref are marked `[stale]`
 - Cross-repo guard prevents false positives when Next items reference issues in other repositories
 - GC tombstone support for `Resolved-Next:` trailers — resolved pending items are hidden from future boot output
+- Context warnings now use debounce: same-level warnings suppressed for 5 messages (shows `[CTX: N%]` instead), severity escalation (warning to critical) bypasses debounce
+- Advisory language for context warnings — informs the agent instead of commanding it
+- Test coverage for `context-writer.py` statusline wrapper (7 tests)
+- `CO_AUTHOR` is now configurable via `GIT_MEMORY_CO_AUTHOR` environment variable
 
 ### Changed
 - Scout agent removed — scope scanning now handled by an Explore agent prompt during boot
 - Context percentage is now always shown in the UserPromptSubmit hook output (previously only displayed at 60%+ usage)
+- Removed `Refs:` trailer key from valid keys — was unused dead code
+- Replaced remaining scout terminology in bootstrap script and tests
 
 ### Fixed
 - Boot and commit script hardening from code review feedback
+- Debounce oscillation bug: context bouncing between 59-61% caused stale debounce state to suppress warnings incorrectly — state now resets when context drops back to info level
+- `.context-status.json` and `.context-warn-state.json` added to `.gitignore` (were being tracked as noise)
 
 ## [3.6.0] - 2026-03-13
 

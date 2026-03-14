@@ -327,9 +327,11 @@ A **statusline wrapper** (`context-writer.py`) intercepts Claude Code's session 
 
 | Context used | Output |
 |-------------|---------|
-| < 60% | Context percentage shown (informational) |
-| 60-75% | `[context-warning]` -- "Consider creating a context() commit" |
-| 75%+ | `[CONTEXT CRITICAL]` -- "Auto-compact imminent. Create context() commit NOW" |
+| < 60% | `[CTX: N%]` shown every message (informational, no debounce) |
+| 60-75% | `[context-warning]` -- advisory to consider a context() checkpoint |
+| 75%+ | `[CONTEXT CRITICAL]` -- advisory to preserve session state before auto-compact |
+
+Warnings at 60%+ use **debounce**: after the first full warning, the next 5 messages show only `[CTX: N%]` instead of repeating the same message. Severity escalation (warning to critical) bypasses the debounce and fires immediately. If context drops back below 60%, debounce state resets so warnings fire fresh if usage climbs again.
 
 The statusline wrapper is configured automatically on first session start.
 
@@ -362,7 +364,6 @@ The plugin adapts to your project's constraints automatically:
 | `Risk:` | `low` / `medium` / `high` | Dangerous operations |
 | `Conflict:` | Free text | Merge conflict context |
 | `Resolution:` | Free text | How a conflict was resolved |
-| `Refs:` | URLs, doc links | External references |
 | `Resolved-Next:` | (GC tombstone) | Marks a Next: as done |
 | `Stale-Blocker:` | (GC tombstone) | Marks a Blocker: as stale |
 
