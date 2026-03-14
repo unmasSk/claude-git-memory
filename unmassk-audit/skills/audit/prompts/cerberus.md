@@ -50,6 +50,13 @@ Evaluar contra `docs/ENTERPRISE-STANDARDS.md`:
 
 NO inventar criterios fuera de ENTERPRISE-STANDARDS.md.
 NO arreglar nada — solo reportar.
+
+### Regla critica: verificar contexto externo antes de reportar auth/routing
+
+Antes de reportar findings de auth bypass, missing middleware, o rutas sin proteccion:
+1. Verificar si el middleware se aplica globalmente en el punto de montaje del router (leer `config/routes/`)
+2. Verificar `config/routes/auth.ts` y `config/routes/protected.ts` para entender que middlewares se aplican antes de que el request llegue al modulo
+3. Si el middleware ya se aplica upstream, NO reportar como finding del modulo — es contexto externo valido
 ```
 
 ---
@@ -81,6 +88,13 @@ NO arreglar nada — solo reportar.
 2. Ejecutar DOS VECES
 3. `cd backend && npx prettier --check "src/[MODULO]/**/*.ts"`
 4. `cd backend && npx eslint src/[MODULO]/`
+
+### Regla critica: verificar contexto externo antes de reportar auth/routing
+
+Antes de reportar findings de auth bypass, missing middleware, o rutas sin proteccion:
+1. Verificar si el middleware se aplica globalmente en el punto de montaje del router (leer `config/routes/`)
+2. Verificar `config/routes/auth.ts` y `config/routes/protected.ts` para entender que middlewares se aplican antes de que el request llegue al modulo
+3. Si el middleware ya se aplica upstream, NO reportar como finding del modulo — es contexto externo valido
 
 ### Output esperado
 - Findings cerrados: X/Y
