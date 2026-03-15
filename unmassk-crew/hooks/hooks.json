@@ -1,0 +1,16 @@
+{
+  "description": "unmassk-crew hooks — orchestrator instructions injection",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/session-start-crew.py",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

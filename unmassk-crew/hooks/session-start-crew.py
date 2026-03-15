@@ -1,24 +1,16 @@
-# CLAUDE.md — unmassk-gitmemory
+#!/usr/bin/env python3
+"""
+SessionStart hook for unmassk-crew.
+Ensures the orchestrator block exists in CLAUDE.md.
+"""
+import subprocess
+import sys
+from pathlib import Path
 
-<!-- BEGIN unmassk-gitmemory (managed block — do not edit) -->
-## Git Memory Active
+MARKER_BEGIN = "<!-- BEGIN unmassk-crew (managed block — do not edit) -->"
+MARKER_END = "<!-- END unmassk-crew -->"
 
-This project uses **unmassk-gitmemory**. Git is the memory.
-
-**On every session start**, you MUST:
-1. Use the Skill tool with `skill="unmassk-gitmemory"` (TOOL CALL, not bash)
-2. Read the `[git-memory-boot]` SessionStart output already in your context (do NOT run doctor or git-memory-log)
-3. Show the boot summary, then respond to the user
-
-**On every user message**, the `[memory-check]` hook fires. Follow the skill instructions.
-
-**On session end**, the Stop hook fires. Follow its instructions (wip commits, etc).
-
-All rules, commit types, trailers, capture behavior, and protocol are in the **git-memory skill**.
-If the user says "install/repair/uninstall/doctor/status" -> use skill `unmassk-gitmemory-lifecycle`.
-Never ask the user to run commands -- run them yourself.
-<!-- END unmassk-gitmemory -->
-
+BLOCK = """
 <!-- BEGIN unmassk-crew (managed block — do not edit) -->
 ## Agent Crew Active
 
@@ -63,3 +55,56 @@ The difference: good prompts name the technology (PostgreSQL, Docker, MongoDB, R
 - Simple git operations — just run them
 - Questions the user is asking YOU — don't delegate conversation
 <!-- END unmassk-crew -->
+""".strip()
+
+
+def find_git_root():
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, timeout=5
+        )
+        if result.returncode == 0:
+            return Path(result.stdout.strip())
+    except Exception:
+        pass
+    return None
+
+
+def main():
+    git_root = find_git_root()
+    if not git_root:
+        print("[crew] Not a git repo, skipping CLAUDE.md check")
+        return
+
+    claude_md = git_root / "CLAUDE.md"
+
+    if claude_md.exists():
+        content = claude_md.read_text(encoding="utf-8")
+        if MARKER_BEGIN in content:
+            # Block already present — update it in case it changed
+            import re
+            pattern = re.compile(
+                re.escape(MARKER_BEGIN) + r".*?" + re.escape(MARKER_END),
+                re.DOTALL
+            )
+            new_content = pattern.sub(BLOCK, content)
+            if new_content != content:
+                claude_md.write_text(new_content, encoding="utf-8")
+                print("[crew] Updated orchestrator block in CLAUDE.md")
+            else:
+                print("[crew] Orchestrator block up to date")
+            return
+
+        # Block missing — append it
+        content = content.rstrip() + "\n\n" + BLOCK + "\n"
+        claude_md.write_text(content, encoding="utf-8")
+        print("[crew] Injected orchestrator block into CLAUDE.md")
+    else:
+        # No CLAUDE.md — create it
+        claude_md.write_text(BLOCK + "\n", encoding="utf-8")
+        print("[crew] Created CLAUDE.md with orchestrator block")
+
+
+if __name__ == "__main__":
+    main()
