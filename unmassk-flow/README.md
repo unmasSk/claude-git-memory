@@ -1,6 +1,6 @@
 # unmassk-flow
 
-**8-step creative pipeline -- from idea to shipped code.**
+**8-step creative pipeline -- from idea to shipped code. 2 skills.**
 
 A structured workflow for building features, fixes, and refactors. Combines gray-area brainstorming, TDD-based planning, and evidence-first agent execution. All decisions persist in git-memory. The plan file is the single source of truth.
 
@@ -78,6 +78,13 @@ Full test suite must pass. Merge to dev, push, close issue, delete branch, mark 
 | User abandons mid-feature | WIP commit + context commit with Next trailer |
 | Verify finds issues | Return to Execute |
 | Merge conflict | Resolve or escalate, re-run Verify |
+
+## Skills
+
+| Skill | What It Does |
+|-------|-------------|
+| **unmassk-flow** | 8-step creative pipeline -- from idea to shipped code |
+| **flow-stack-selection** | IDE-grade project scaffolding wizard -- 70+ project types (HTML/CSS, React, Next.js, Vue, Astro, Expo, FastAPI, NestJS, Go/Gin, Rust/Axum, Chrome Extensions, Tauri, and more) with interactive SDK selection, framework configuration, database setup, and DevOps tooling |
 
 ## Dependencies
 

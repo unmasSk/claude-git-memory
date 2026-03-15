@@ -1,8 +1,8 @@
 # unmassk-ops
 
-**DevOps toolkit covering infrastructure, containers, CI/CD, observability, and scripting.**
+**DevOps toolkit covering infrastructure, containers, CI/CD, observability, scripting, deployments, and error tracking.**
 
-5 skills spanning the full DevOps lifecycle: Infrastructure as Code (Terraform, Terragrunt, Ansible), containers (Docker, Helm, Kubernetes), CI/CD pipelines (GitHub Actions, GitLab CI, Azure Pipelines, Jenkins), observability (PromQL, LogQL, Loki, Fluent Bit), and scripting (Bash, Makefile).
+7 skills spanning the full DevOps lifecycle: Infrastructure as Code (Terraform, Terragrunt, Ansible), containers (Docker, Helm, Kubernetes), CI/CD pipelines (GitHub Actions, GitLab CI, Azure Pipelines, Jenkins), observability (PromQL, LogQL, Loki, Fluent Bit), scripting (Bash, Makefile), deployments (Vercel, Railway), and error tracking (Sentry, OpenTelemetry).
 
 Based on [cc-devops-skills](https://github.com/akin-ozer/cc-devops-skills) by akin-ozer (Apache-2.0).
 
@@ -15,7 +15,9 @@ Based on [cc-devops-skills](https://github.com/akin-ozer/cc-devops-skills) by ak
 | `ops-cicd` | 30 | 30 | GitHub Actions, GitLab CI, Azure Pipelines, Jenkins |
 | `ops-observability` | 9 | 10 | PromQL, LogQL, Loki, Fluent Bit |
 | `ops-scripting` | 21 | 11 | Bash, Makefile |
-| **Total** | **93** | **93** | |
+| `ops-deploy` | 6 | 2 | Vercel (preview + production), Railway (setup, configure, deploy, operate, GraphQL API) |
+| `ops-error-tracking` | 7 | - | Sentry (Python, Node.js/Bun/Deno, Next.js, React), Sentry MCP issue fixing, alert creation, OpenTelemetry (Datadog, Honeycomb, SigNoz, Sentry) |
+| **Total** | **106** | **95** | |
 
 ## Quick start
 

@@ -24,7 +24,7 @@
 |--------|---------|-------------|
 | [unmassk-gitmemory](#unmassk-gitmemory) | 3.7.1 | Persistent memory for Claude Code via git commit trailers |
 | [unmassk-crew](#unmassk-crew) | 1.0.0 | 10 specialized agents for software engineering |
-| [unmassk-flow](#unmassk-flow) | 1.0.0 | 8-step creative pipeline -- from idea to shipped code |
+| [unmassk-flow](#unmassk-flow) | 1.1.0 | 8-step creative pipeline + project scaffolding wizard (70+ project types) |
 | [unmassk-audit](#unmassk-audit) | 1.0.0 | 14-step enterprise audit for backend modules |
 
 ### Domain plugins
@@ -34,10 +34,10 @@
 | [unmassk-seo](./unmassk-seo/README.md) | 1.0.0 | Technical SEO -- crawling, schema, Core Web Vitals, GEO/AEO, site audits |
 | [unmassk-marketing](./unmassk-marketing/README.md) | 1.0.0 | Strategic marketing -- CRO, copywriting, email, ads, pricing, growth |
 | [unmassk-design](./unmassk-design/README.md) | 1.0.0 | Frontend design -- design systems, typography, color, motion, accessibility |
-| [unmassk-ops](./unmassk-ops/README.md) | 1.0.0 | DevOps -- IaC, containers, CI/CD, observability, scripting (93 scripts) |
+| [unmassk-ops](./unmassk-ops/README.md) | 1.1.0 | DevOps -- IaC, containers, CI/CD, observability, scripting, Vercel/Railway deployments, Sentry + OTel error tracking (7 skills) |
 | [unmassk-db](./unmassk-db/README.md) | 1.0.0 | Database -- PostgreSQL, MySQL, MongoDB, Redis, migrations, vector/RAG |
 | [unmassk-compliance](./unmassk-compliance/README.md) | 1.0.0 | Compliance -- GDPR, OWASP, NIS2, SOC 2, ISO 27001, ENS, LOPDGDD, cookies, i18n, legal docs (9 skills) |
-| [unmassk-media](./unmassk-media/README.md) | 1.0.0 | Media -- Remotion video, AI image gen/edit, Mermaid diagrams, FFmpeg, screenshots, transcription (7 skills) |
+| [unmassk-media](./unmassk-media/README.md) | 1.1.0 | Media -- Remotion video, AI image gen/edit, Mermaid diagrams, FFmpeg, screenshots, transcription, react-pdf (8 skills) |
 
 Each plugin is independent. Install only what you need, or install the full toolkit.
 
@@ -139,9 +139,11 @@ None. Works standalone or with Flow and Audit.
 
 ## unmassk-flow
 
-**8-step creative pipeline -- from idea to shipped code.**
+**8-step creative pipeline -- from idea to shipped code. 2 skills.**
 
 A structured workflow for building features, fixes, and refactors. Combines brainstorming, TDD-based planning, and evidence-first agent execution. All decisions persist in git-memory. The plan file is the single source of truth.
+
+Includes **flow-stack-selection**: an IDE-grade project scaffolding wizard supporting 70+ project types (HTML/CSS, React, Next.js, Vue, Astro, Remix, React Native, Flutter, Expo, FastAPI, Django, Express, NestJS, Go/Gin, Rust/Axum, Spring Boot, Chrome Extensions, Tauri, and more). Invoked automatically when the user says "scaffold project", "create new project", or "what tech stack".
 
 ### The pipeline
 
@@ -226,7 +228,7 @@ unmassk-flow ──> unmassk-crew + unmassk-gitmemory
 | Full development + auditing | gitmemory + crew + flow + audit |
 | Web project (frontend) | + seo + marketing + design |
 | Web project (backend) | + ops + db |
-| Everything | all 10 (media coming soon) |
+| Everything | all 11 |
 
 ---
 

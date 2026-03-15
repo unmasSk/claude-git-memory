@@ -1,7 +1,7 @@
 {
   "name": "unmassk-ops",
-  "version": "1.0.0",
-  "description": "DevOps toolkit — Terraform, Terragrunt, Ansible, Docker, Helm, Kubernetes, CI/CD pipelines, PromQL, LogQL, Fluent Bit, and bash/Makefile scripting. 5 skills with 83 scripts and 63 reference files. Sourced from cc-devops-skills by akin-ozer.",
+  "version": "1.1.0",
+  "description": "DevOps toolkit — Terraform, Terragrunt, Ansible, Docker, Helm, Kubernetes, CI/CD pipelines, PromQL, LogQL, Fluent Bit, bash/Makefile scripting, PaaS deployment (Vercel, Railway), and app-level error tracking (Sentry, OpenTelemetry). 7 skills. Sourced from cc-devops-skills by akin-ozer, vercel-labs, railwayapp, getsentry.",
   "author": {
     "name": "unmasSk",
     "url": "https://github.com/unmasSk"

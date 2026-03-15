@@ -1,7 +1,7 @@
 {
   "name": "unmassk-media",
-  "version": "1.0.0",
-  "description": "Media toolkit — programmatic video creation with Remotion, AI image generation and editing via Gemini and fal.ai, Mermaid diagram generation, FFmpeg video/audio processing, marketing screenshots with Playwright, and audio/video transcription with whisper.cpp. 7 skills covering the full media production lifecycle.",
+  "version": "1.1.0",
+  "description": "Media toolkit — programmatic video creation with Remotion, AI image generation and editing via Gemini and fal.ai, Mermaid diagram generation, FFmpeg video/audio processing, marketing screenshots with Playwright, audio/video transcription with whisper.cpp, and professional PDF generation with react-pdf. 8 skills covering the full media production lifecycle.",
   "author": {
     "name": "unmasSk",
     "url": "https://github.com/unmasSk"

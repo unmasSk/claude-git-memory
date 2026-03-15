@@ -1,6 +1,6 @@
 # unmassk-media
 
-Media toolkit for Claude Code — 7 skills covering the full media production lifecycle.
+Media toolkit for Claude Code — 8 skills covering the full media production lifecycle.
 
 ## Skills
 
@@ -13,6 +13,7 @@ Media toolkit for Claude Code — 7 skills covering the full media production li
 | **media-ffmpeg** | Video/audio processing — trim, concat, convert, compress, transcode | 2 (commands, codec guide) | - | `ffmpeg`, `ffprobe` |
 | **media-screenshots** | Marketing-quality screenshots with Playwright | 2 (screenshot types, workflow) | `screenshot-script.mjs` | Node.js, Playwright |
 | **media-transcribe** | Transcribe audio/video from URLs or local files | 3 (platforms, whisper models, analysis prompt) | `transcribe.sh` | `whisper-cli`, `yt-dlp`, `ffmpeg` |
+| **media-pdf** | Professional PDF generation with react-pdf — custom fonts (local only), SVG graphics, emoji, fixed headers/footers, page numbers, page breaks, Canvas drawing, Google Fonts catalog | 2 (components API, Google Fonts catalog) | - | Node.js, `@react-pdf/renderer`, `tsx` |
 
 ## Setup
 
@@ -50,6 +51,7 @@ cp .env.example .env
 | media-ffmpeg | [madappgang/claude-code](https://github.com/madappgang/claude-code) (ffmpeg-core) | MIT |
 | media-screenshots | [Shpigford/skills](https://github.com/Shpigford/skills) (screenshots) | MIT |
 | media-transcribe | [jftuga/transcript-critic](https://github.com/jftuga/transcript-critic) | MIT |
+| media-pdf | [diegomura/react-pdf](https://github.com/diegomura/react-pdf) (official react-pdf) | MIT |
 
 ## License
 
