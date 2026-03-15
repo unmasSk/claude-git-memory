@@ -64,6 +64,8 @@ class BM25:
 
     def fit(self, documents):
         """Build BM25 index from documents"""
+        self.doc_freqs = defaultdict(int)  # reset on re-fit
+        self.idf = {}
         self.corpus = [self.tokenize(doc) for doc in documents]
         self.N = len(self.corpus)
         if self.N == 0:
@@ -169,8 +171,8 @@ def parse_skillcat(path):
                     "tools": (row.get("tools") or "").strip(),
                     "skillcat_path": path,
                 })
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"WARNING: skipping {path}: {e}", file=sys.stderr)
     return rows
 
 
@@ -180,11 +182,12 @@ def build_document(row):
     return " ".join(parts)
 
 
-def derive_skill_md_path(skillcat_path, skill_name):
-    """
-    SKILL.md lives in the same directory as the .skillcat file.
-    """
-    return skillcat_path.parent / "SKILL.md"
+def derive_skill_md_path(skillcat_path):
+    """SKILL.md is a sibling of the .skillcat file (one skill per catalog)."""
+    skill_md = skillcat_path.parent / "SKILL.md"
+    if not skill_md.exists():
+        print(f"WARNING: SKILL.md not found at {skill_md}", file=sys.stderr)
+    return skill_md
 
 
 # ============ MAIN ============
@@ -234,12 +237,12 @@ def main():
     # Threshold warning
     best_score = top[0][1]
     if best_score < LOW_SCORE_THRESHOLD:
-        print(f"WARNING: low confidence (best score {best_score:.1f} < {LOW_SCORE_THRESHOLD})")
+        print(f"WARNING: low confidence (best score {best_score:.1f} < {LOW_SCORE_THRESHOLD})", file=sys.stderr)
 
     # Output
     for rank, (idx, score) in enumerate(top, start=1):
         row = all_rows[idx]
-        skill_md = derive_skill_md_path(row["skillcat_path"], row["name"])
+        skill_md = derive_skill_md_path(row["skillcat_path"])
         print(f"#{rank} {row['name']} ({score:.1f}) -> {skill_md}")
 
 
