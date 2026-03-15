@@ -1,0 +1,2 @@
+name,plugin,triggers,domains,frameworks,tools
+db-postgres,unmassk-db,"PostgreSQL Postgres schema query optimize index TimescaleDB PostGIS full-text search tsvector GIN BRIN partitioning RLS connection pooling PgBouncer VACUUM MVCC WAL replication JSONB EXPLAIN ANALYZE dead tuples XID wraparound","database sql relational","Django FastAPI Express NestJS any-backend","psql pg_dump pg_restore"

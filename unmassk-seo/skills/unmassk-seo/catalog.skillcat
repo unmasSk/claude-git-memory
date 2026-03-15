@@ -1,0 +1,2 @@
+name,plugin,triggers,domains,frameworks,tools
+unmassk-seo,unmassk-seo,"SEO audit sitemap schema markup Core Web Vitals hreflang E-E-A-T GEO AI Overviews structured data robots.txt crawlability indexability rich results JSON-LD PageSpeed Lighthouse image optimization meta tags canonical redirect mobile JavaScript IndexNow competitor comparison programmatic","seo web marketing search-engine optimization","Next.js Astro WordPress React any-web-framework","fetch_page.py parse_html.py capture_screenshot.py analyze_visual.py"

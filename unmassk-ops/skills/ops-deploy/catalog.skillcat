@@ -1,0 +1,2 @@
+name,plugin,triggers,domains,frameworks,tools
+ops-deploy,unmassk-ops,"deploy Vercel Railway preview production push live hosting PaaS serverless deployment release","deployment hosting infrastructure","Next.js React any-web-app","vercel railway vercel-deploy.sh railway-api.sh"
