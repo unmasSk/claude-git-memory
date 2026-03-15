@@ -21,6 +21,18 @@ exit $?
 
 This is intentional. Calling `exit` directly in `finalize_exit()` would exit the shell if the function were ever sourced. The two-step preserves the exit code from the function's `return` statement and then exits the script. Do not flag as redundant.
 
+## BM25 IDF variant (+1 outside log) in skill-search.py
+
+`skill-search.py` uses `log((N - freq + 0.5) / (freq + 0.5) + 1)` (Robertson-Sparck-Jones variant). The `+1` is outside the log, not inside. This keeps IDF always positive for common terms in small corpora (N=36). It is intentional and correct for this use case. Do NOT flag as incorrect BM25 formula.
+
+## BM25 ZeroDivisionError when avgdl=0 is latent but safe
+
+`BM25.score()` divides by `self.avgdl` (via `doc_len / self.avgdl`). If all documents tokenize to empty strings, `avgdl=0`. However, in that case `self.idf` is also empty, so the inner loop `if token in self.idf:` never executes and the division is never reached. This is safe in practice. Do NOT flag as an active bug; it is a latent fragility.
+
+## Dedup order (cache wins over dev-tree) in skill-search.py
+
+`skill-search.py` deduplicates skills by name keeping the first occurrence. Search dirs are ordered: home cache first, then git-root last. This means cached plugin versions win over dev-tree versions. The comment `# keep first seen — cache version wins over dev` documents this as intentional. Do NOT flag as incorrect dedup ordering.
+
 ## sed -i.bak pattern in generate_* scripts
 
 ```bash
@@ -29,6 +41,10 @@ rm -f "${FILE}.bak"
 ```
 
 This is the cross-platform form of `sed -i` (GNU requires `-i ''`, macOS requires `-i .bak`). The `.bak` suffix approach is intentional for macOS compatibility. The `.bak` cleanup with `rm -f` is correct. Do not flag as unnecessary.
+
+## configureRateLimitLogging registered AFTER applyRateLimit in app.middleware.ts
+
+In `app.middleware.ts` lines 87-88, `applyRateLimit(app)` is called before `configureRateLimitLogging(app)`. This looks like it could be a registration order issue, but both register on `/api/v1`. The logging monitor patches `res.setHeader` and therefore intercepts the headers that `express-rate-limit` sets during request processing — not during registration. The order of Express middleware registration matters for *request processing*, and since `configureRateLimitLogging` is registered immediately after `applyRateLimit` (both during startup, not per-request), the `setHeader` wrapper WILL be present on the response object when the rate limiter fires on the *same request*. Do NOT flag as an ordering bug.
 
 ## IGNORECASE=1 replaced by tolower() in dockerfile-validate.sh awk
 

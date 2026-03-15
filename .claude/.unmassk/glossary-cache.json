@@ -1,14 +1,18 @@
 {
-  "head_sha": "36617e0ef2948c1ba787d1d4dbfc03bc9fe6fbf0",
-  "generated_at": "2026-03-15T10:51:11.166261+00:00",
+  "head_sha": "2b7a36a8db1d6e21f511569ed4a5d7619a8e27ad",
+  "generated_at": "2026-03-15T22:03:02.957969+00:00",
   "decisions": [
     [
-      "(plugin/compliance)",
-      "compliance 9 skills, repos cloned, structure mounted, content copied \u2014 pending SKILL.md writing and from-scratch builds"
+      "(plugin/architecture)",
+      "BM25 with .skillcat CSVs replaces static skill-map table in CLAUDE.md"
     ],
     [
       "(plugin)",
-      "compliance has 9 skills: 4 from repos (gdpr, soc2-iso, i18n, owasp-privacy) + 5 from scratch (lopdgdd, ens, nis2, cookies, legal-docs)"
+      ".skillcat custom extension (CSV inside) to avoid collision with design CSVs"
+    ],
+    [
+      "(plugin/compliance)",
+      "compliance 9 skills, repos cloned, structure mounted, content copied \u2014 pending SKILL.md writing and from-scratch builds"
     ],
     [
       "(plugin/db)",
@@ -35,30 +39,34 @@
       "8 plugins in marketplace covering 100% of web project lifecycle \u2014 4 done, 4 to build"
     ],
     [
-      "(plugin/architecture)",
-      "new plugins are skill-only \u2014 unmassk-crew agents execute all domain work via skill loading, no external agents"
-    ],
-    [
       "(plugin/boot)",
       "boot checks gh issue state for Next with #number (closed=skip), Next without issue use latest context() as cutoff"
     ]
   ],
   "memos": [
     [
+      "(plugin)",
+      "antipattern - marketplace.json debe estar sincronizado con cada plugin.json, si no los usuarios no reciben updates"
+    ],
+    [
+      "(plugin/architecture)",
+      "requirement - skillcat triggers must be domain-unique, processed not copied, minimal overlap between skills"
+    ],
+    [
+      "(claude)",
+      "antipattern - do not blindly follow Yoda findings, use own judgement, never delete original content without asking"
+    ],
+    [
+      "(plugin/compliance)",
+      "preference - all plugin content in English, never Spanish, even for Spanish-specific legislation"
+    ],
+    [
       "(plugin/agents)",
       "antipattern - Alexandria and other agents create agent-memory dirs in .ref-repos and other dirs they explore, polluting read-only sources"
     ],
     [
-      "(plugin)",
-      "antipattern - README must be updated in the same commit as plugin changes, never deferred"
-    ],
-    [
       "(plugin/db)",
       "antipattern - Alexandria reescribe contenido existente, no lo genera desde cero. Si hay que crear, lo hace el orquestador"
-    ],
-    [
-      "(plugin/architecture)",
-      "requirement - referencias siempre de repos verificados contra produccion, nunca contenido inventado por Claude que puede alucinar"
     ],
     [
       "(plugin/ops)",
@@ -75,17 +83,25 @@
     [
       "(plugin/seo)",
       "requirement - SKILL.md frontmatter canonical third-person format, complete trigger phrases, nothing missing"
-    ],
-    [
-      "(plugin/crew)",
-      "requirement - when syncing agents, only rename enterprise-audit to unmassk-audit, preserve all other skills they declare"
-    ],
-    [
-      "(plugin/install)",
-      "requirement - install script must auto-gitignore generated .claude/*.json (except scopes)"
     ]
   ],
   "remembers": [
+    [
+      "(claude)",
+      "claude - read all loaded context before acting, asking, or exploring \u2014 the answer is usually already there"
+    ],
+    [
+      "(claude)",
+      "claude - read what the user ACTUALLY said before acting \u2014 past tense means already done, do not repeat"
+    ],
+    [
+      "(claude)",
+      "claude - kill process immediately when told, no questions, no waiting, no confirmation"
+    ],
+    [
+      "(claude)",
+      "claude - when user says do it yourself, do it yourself \u2014 never delegate to subagents against explicit instruction"
+    ],
     [
       "(claude)",
       "claude - 11 preferencias criticas del usuario para construccion de plugins"

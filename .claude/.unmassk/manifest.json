@@ -1,6 +1,6 @@
 {
-  "version": "3.7.1",
-  "installed_at": "2026-03-15T16:28:04.767011",
+  "version": "3.9.0",
+  "installed_at": "2026-03-15T23:55:45.563821",
   "runtime_mode": "normal",
   "managed_blocks": [
     {
@@ -17,5 +17,5 @@
     "SessionStart",
     "UserPromptSubmit"
   ],
-  "last_healthcheck_at": "2026-03-15T16:28:04.853813"
+  "last_healthcheck_at": "2026-03-15T23:55:45.709277"
 }

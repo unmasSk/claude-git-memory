@@ -110,3 +110,21 @@ exit "$rc"
 ```
 
 Found in: `shellcheck_wrapper.sh:49` `check_system_shellcheck()`.
+
+## ASCII box line[:85] + '|' truncation pattern
+
+In `skill-search.py` `format_ascii()`, the corpus line is constructed as:
+```python
+lines.append(f'|  Corpus: {total_skills} skills indexed ...|'[:85] + '|')
+```
+The intent is to pad to 85 chars. The pattern is fragile: if the raw string is exactly 85 chars, slice returns all 85 then '|' is appended making it 86 chars (one over the box). For skill counts >= 100, the raw string is already 86+ chars and the slice-then-append makes it 86, misaligning the closing border.
+
+Correct pattern: use an f-string with explicit ljust or format spec to 83 inner chars, then wrap in '| ... |'.
+
+## Unused wrapper function (thin forwarding)
+
+`get_plugin_json_path()` in `bump-version.py` is a one-line wrapper that just calls `safe_plugin_path()`. It is never called internally (all callers use `safe_plugin_path()` directly or `load_plugin_json()`). Dead code.
+
+## --all error path saves partial state without rollback
+
+In `bump-version.py` `main()`, the `--all` path calls `bump_plugin()` in a loop and then `save_marketplace()` regardless of per-plugin failures. If one plugin's marketplace entry fails to update (plugin not found), `save_marketplace()` still persists the partial changes. No dry-run or rollback mechanism.
