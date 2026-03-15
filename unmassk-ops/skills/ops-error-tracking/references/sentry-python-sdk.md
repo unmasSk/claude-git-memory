@@ -164,7 +164,7 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn=os.environ["SENTRY_DSN"],
-    send_default_pii=True,
+    send_default_pii=True,  # ⚠️ See PII warning above
     traces_sample_rate=1.0,
     profile_session_sample_rate=1.0,
     profile_lifecycle="trace",
@@ -181,7 +181,7 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn=os.environ["SENTRY_DSN"],
-    send_default_pii=True,
+    send_default_pii=True,  # ⚠️ See PII warning above
     traces_sample_rate=1.0,
     profile_session_sample_rate=1.0,
     profile_lifecycle="trace",

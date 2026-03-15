@@ -116,7 +116,7 @@ const Sentry = require("@sentry/node");
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   includeLocalVariables: true,
   enableLogs: true,
@@ -130,7 +130,7 @@ import * as Sentry from "@sentry/node";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   includeLocalVariables: true,
   enableLogs: true,
@@ -182,7 +182,7 @@ import * as Sentry from "@sentry/bun";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   enableLogs: true,
 });
@@ -222,7 +222,7 @@ import * as Sentry from "@sentry/deno";
 
 Sentry.init({
   dsn: Deno.env.get("SENTRY_DSN") ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: Deno.env.get("DENO_ENV") === "development" ? 1.0 : 0.1,
   enableLogs: true,
 });

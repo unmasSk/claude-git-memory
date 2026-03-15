@@ -92,7 +92,7 @@ Sentry.init({
   environment: import.meta.env.MODE,
   release: import.meta.env.VITE_APP_VERSION,
 
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
 
   integrations: [
     Sentry.browserTracingIntegration(),

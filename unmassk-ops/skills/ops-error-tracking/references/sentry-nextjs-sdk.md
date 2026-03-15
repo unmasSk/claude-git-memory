@@ -92,7 +92,7 @@ import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN ?? "___PUBLIC_DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   replaysSessionSampleRate: 0.1,
   replaysOnErrorSampleRate: 1.0,
@@ -113,7 +113,7 @@ import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   includeLocalVariables: true,
   enableLogs: true,
@@ -127,7 +127,7 @@ import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN ?? "___DSN___",
-  sendDefaultPii: true,
+  sendDefaultPii: true, // ⚠️ Sends IP, headers, cookies to Sentry. Set false for GDPR/HIPAA.
   tracesSampleRate: process.env.NODE_ENV === "development" ? 1.0 : 0.1,
   enableLogs: true,
 });
