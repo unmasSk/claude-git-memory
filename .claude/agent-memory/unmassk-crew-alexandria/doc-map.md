@@ -194,9 +194,22 @@ type: project
 | Path | Type | Status |
 |------|------|--------|
 | `unmassk-compliance/skills/compliance-soc2-iso/SKILL.md` | Skill definition | Created 2026-03-15 — frontmatter, routing table (15 rows), 4 workflows, mandatory rules, done criteria |
-| `unmassk-compliance/skills/compliance-soc2-iso/references/ciso-advisor-overview.md` | Reference | Fixed 2026-03-15 — stripped YAML frontmatter, removed non-existent script references (risk_quantifier.py, compliance_tracker.py), removed agent-protocol/SKILL.md reference, removed company-context.md reference |
-| `unmassk-compliance/skills/compliance-soc2-iso/references/compliance_roadmap.md` | Reference | Verified 2026-03-15 — clean, no issues |
-| `unmassk-compliance/skills/compliance-soc2-iso/references/incident_response.md` | Reference | Verified 2026-03-15 — clean, no issues |
-| `unmassk-compliance/skills/compliance-soc2-iso/references/security_strategy.md` | Reference | Verified 2026-03-15 — clean, no issues |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/ciso-advisor-overview.md` | Reference | Fixed 2026-03-15 — stripped YAML frontmatter, removed non-existent script references |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/compliance_roadmap.md` | Reference | Verified 2026-03-15 — clean |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/incident_response.md` | Reference | Verified 2026-03-15 — clean |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/security_strategy.md` | Reference | Verified 2026-03-15 — clean |
+
+## unmassk-ops error-tracking skill
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-ops/skills/ops-error-tracking/SKILL.md` | Skill definition | Created 2026-03-15 — frontmatter, 7-row routing table, framework disambiguation, 4-step workflow, 8 mandatory rules, done criteria |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-python-sdk.md` | Reference | Stripped frontmatter 2026-03-15 — Python SDK setup for Django/Flask/FastAPI/Celery, OTel path detection |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-node-sdk.md` | Reference | Stripped frontmatter 2026-03-15 — Node.js/Bun/Deno SDK, framework error handlers, ESM/CJS patterns |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-nextjs-sdk.md` | Reference | Stripped frontmatter 2026-03-15 — Next.js 3-runtime setup (browser/server/edge), App Router, source maps |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-react-sdk.md` | Reference | Stripped frontmatter 2026-03-15 — React 16-19 support, router integrations, Redux, source maps |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-fix-issues.md` | Reference | Stripped frontmatter 2026-03-15 — 7-phase MCP issue fixing workflow with security constraints |
+| `unmassk-ops/skills/ops-error-tracking/references/sentry-create-alert.md` | Reference | Stripped frontmatter 2026-03-15 — Sentry workflow engine API, polymorphic comparison field, all action types |
+| `unmassk-ops/skills/ops-error-tracking/references/otel-backends.md` | Reference | Created 2026-03-15 — OTel JS/Python instrumentation, 3 backend setups (Honeycomb/Datadog/SigNoz), custom spans, sampling |
 
 **How to apply:** On each launch, check git commits since last verified date for each CLAUDE.md. If stale, update.
