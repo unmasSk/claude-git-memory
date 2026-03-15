@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>A suite of Claude Code plugins for the full web project lifecycle.</strong><br>
-  <em>11 plugins covering memory, agents, workflows, audits, SEO, marketing, design, DevOps, databases, compliance, and media.</em>
+  <em>10 plugins covering memory, agents, workflows, audits, SEO, marketing, design, DevOps, databases, and compliance.</em>
 </p>
 
 <p align="center">
@@ -40,8 +40,8 @@
 | [unmassk-design](./unmassk-design/README.md) | 1.0.0 | Frontend design -- design systems, typography, color, motion, accessibility |
 | [unmassk-ops](./unmassk-ops/README.md) | 1.0.0 | DevOps -- IaC, containers, CI/CD, observability, scripting (93 scripts) |
 | [unmassk-db](./unmassk-db/README.md) | 1.0.0 | Database -- PostgreSQL, MySQL, MongoDB, Redis, migrations, vector/RAG |
-| unmassk-compliance | 0.1.0 | Compliance -- WCAG, i18n, GDPR, E2E testing, API docs (coming soon) |
-| unmassk-media | 0.1.0 | Media -- video, images, SVG, thumbnails, OG images (coming soon) |
+| [unmassk-compliance](./unmassk-compliance/README.md) | 1.0.0 | Compliance -- GDPR, OWASP, NIS2, SOC 2, ISO 27001, ENS, LOPDGDD, cookies, i18n, legal docs (9 skills) |
+| unmassk-media | — | Media -- video, images, SVG, thumbnails, OG images (coming soon) |
 
 Each plugin is independent. Install only what you need, or install the full toolkit.
 
@@ -209,7 +209,7 @@ Scoring dimensions: Security (x3), Error handling (x3), Structure (x2), Testing 
 The plugins form a layered system:
 
 ```
-Domain plugins (seo, marketing, design, ops, db) ──> unmassk-crew (agents execute domain work)
+Domain plugins (seo, marketing, design, ops, db, compliance) ──> unmassk-crew (agents execute domain work)
 unmassk-audit ──> unmassk-crew
 unmassk-flow ──> unmassk-crew + unmassk-gitmemory
 ```
@@ -218,7 +218,7 @@ unmassk-flow ──> unmassk-crew + unmassk-gitmemory
 - **crew** provides 10 agents. Works standalone or consumed by Flow, Audit, and all domain plugins.
 - **flow** orchestrates agents through an 8-step pipeline, with decisions persisted by gitmemory.
 - **audit** orchestrates agents through a 14-step audit workflow.
-- **Domain plugins** (seo, marketing, design, ops, db) provide skills and references. Agents from crew execute the domain work.
+- **Domain plugins** (seo, marketing, design, ops, db, compliance) provide skills and references. Agents from crew execute the domain work.
 
 ### Recommended setups
 
@@ -230,7 +230,7 @@ unmassk-flow ──> unmassk-crew + unmassk-gitmemory
 | Full development + auditing | gitmemory + crew + flow + audit |
 | Web project (frontend) | + seo + marketing + design |
 | Web project (backend) | + ops + db |
-| Everything | all 9 (compliance + media coming soon) |
+| Everything | all 10 (media coming soon) |
 
 ---
 

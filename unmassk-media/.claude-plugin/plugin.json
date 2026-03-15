@@ -1,1 +1,13 @@
-{"name": "unmassk-media", "version": "0.1.0"}
+{
+  "name": "unmassk-media",
+  "version": "0.1.0",
+  "description": "Media and content toolkit — video, audio, and image processing. Work in progress.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": ["media", "video", "audio", "image"]
+}

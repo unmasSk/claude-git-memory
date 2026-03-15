@@ -1,1 +1,26 @@
-{"name": "unmassk-compliance", "version": "0.1.0"}
+{
+  "name": "unmassk-compliance",
+  "version": "1.0.0",
+  "description": "Regulatory compliance toolkit — GDPR, OWASP, NIS2, SOC 2, ISO 27001, ENS, LOPDGDD, cookie consent, i18n, and legal document processing. 9 skills covering EU/Spanish data protection, cybersecurity directives, audit frameworks, and privacy implementation.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "compliance",
+    "gdpr",
+    "owasp",
+    "nis2",
+    "soc2",
+    "iso27001",
+    "ens",
+    "lopdgdd",
+    "cookies",
+    "privacy",
+    "legal"
+  ],
+  "skills": "./skills/"
+}

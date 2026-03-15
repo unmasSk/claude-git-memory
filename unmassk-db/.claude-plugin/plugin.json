@@ -1,1 +1,24 @@
-{"name": "unmassk-db", "version": "1.0.0"}
+{
+  "name": "unmassk-db",
+  "version": "1.0.0",
+  "description": "Database toolkit — PostgreSQL, MySQL, MongoDB, Redis, schema design, migrations, and vector/RAG patterns. 7 skills covering query optimization, connection pooling, indexing, replication, sharding, and AI-powered retrieval.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "database",
+    "postgres",
+    "mysql",
+    "mongodb",
+    "redis",
+    "migrations",
+    "schema",
+    "vector",
+    "rag"
+  ],
+  "skills": "./skills/"
+}

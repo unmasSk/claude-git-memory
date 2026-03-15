@@ -132,4 +132,71 @@ type: project
 | `unmassk-marketing/skills/unmassk-marketing/references/growth.md` | Reference | Updated 2026-03-14 — added industry conversion benchmarks, video mini-courses, evergreen webinars, Finance tool concepts, affiliate outreach template, affiliate tool platforms table |
 | `unmassk-marketing/skills/unmassk-marketing/references/sales.md` | Reference | Updated 2026-03-14 — expanded HubSpot recipes (auto-MQL, lead activity digest), full Salesforce Flow equivalents, Zapier cross-tool patterns, Actions on entry per lifecycle stage, SQL-to-Opportunity and Opportunity-to-Close SLAs |
 
+## unmassk-compliance legal-docs skill
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-legal-docs/SKILL.md` | Skill definition | Created 2026-03-15 — 42-reference routing table, 7 workflows, done criteria, all 42 filenames verified against disk |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-assignation-refere-communication-associe-selim-brihi.md` | Reference | Fixed 2026-03-15 — removed broken sub-file refs (workflow-informations.md, structure-assignation.md); workflow now self-contained |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-assignation-refere-recouvrement-creance-selim-brihi.md` | Reference | Fixed 2026-03-15 — removed 4 broken sub-file refs; workflow now self-contained with inline strategy notes |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-gdpr-privacy-notice-eu-oliver-schmidt-prietz.md` | Reference | Fixed 2026-03-15 — removed /mnt/skills/public/docx/SKILL.md path |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-dpia-sentinel-oliver-schmidt-prietz.md` | Reference | Fixed 2026-03-15 — removed /mnt/skills/public/docx/SKILL.md path (2 occurrences) |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-gdpr-breach-sentinel-oliver-schmidt-prietz.md` | Reference | Fixed 2026-03-15 — removed /mnt/skills/public/docx/SKILL.md path |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-politique-confidentialite-malik-taiar.md` | Reference | Fixed 2026-03-15 — removed assets/ template path, removed broken knowledge base refs (BASES_LEGALES.md etc.), updated Step 1 |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-docx-processing-anthropic.md` | Reference | Fixed 2026-03-15 — replaced scripts/office/unpack.py, scripts/comment.py, scripts/accept_changes.py, scripts/office/validate.py with standard system commands (unzip/zip/libreoffice) |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-pptx-processing-anthropic.md` | Reference | Fixed 2026-03-15 — removed editing.md/pptxgenjs.md/scripts/thumbnail.py refs; replaced with inline instructions |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-xlsx-processing-anthropic.md` | Reference | Fixed 2026-03-15 — removed scripts/recalc.py ref; replaced with LibreOffice --headless commands |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-pdf-processing-anthropic.md` | Reference | Fixed 2026-03-15 — removed REFERENCE.md/FORMS.md companion file refs |
+| `unmassk-compliance/skills/compliance-legal-docs/references/legal-tabular-review-lawvable.md` | Reference | Fixed 2026-03-15 — removed AskUserQuestion/Task tool calls; replaced skill refs with reference file names |
+
+**Stale-zone note:** The 42 reference files in compliance-legal-docs are NOT all audited. The above 12 files were fixed. The remaining 30 files were sampled (contract-review, nda-review, nda-triage, compliance, legal-risk-assessment-anthropic, mediation, gdpr-breach-sentinel, tech-contract-negotiation, vendor-due-diligence, canned-responses, politique-lanceur-alerte, requete-cph) — all clean, no broken paths.
+
+## unmassk-compliance gdpr reference files
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-gdpr/SKILL.md` | Skill definition | Fixed 2026-03-15 — routing table updated (4 rows, correct split between code-scanning and organizational posture), reference files table descriptions rewritten to match actual content |
+| `unmassk-compliance/skills/compliance-gdpr/references/gdpr-pii-detection.md` | Reference | Rewritten 2026-03-15 — removed `${CLAUDE_SKILL_DIR}/` broken paths and README.md reference; restructured as 7-section reference: PII category table, regex patterns per type, 10-step scanning procedure, CWE reference table, regulation article cross-reference, output format templates, error handling table |
+| `unmassk-compliance/skills/compliance-gdpr/references/gdpr-scanning.md` | Reference | Rewritten 2026-03-15 — complete rewrite from non-existent `gdpr-compliance-scanner` plugin boilerplate to GDPR organizational posture assessment: ROPA (Art. 30), lawful basis 6-basis table (Art. 6), special category data (Art. 9), consent checklist (Art. 7), DPO designation rules (Art. 37), DPA required clauses (Art. 28), cross-border transfer mechanisms including EU-US DPF (Art. 44-46), DPIA triggers and required content (Art. 35), breach notification (Art. 33), compliance gap matrix format |
+
+## unmassk-compliance nis2 reference files
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-nis2/SKILL.md` | Skill definition | Rewritten 2026-03-15 — routing table maps to 10 sections within nis2-overview.md, tightened workflow steps, added 11-control table with critical flags, corrected done criteria |
+| `unmassk-compliance/skills/compliance-nis2/references/nis2-overview.md` | Reference | Rewritten 2026-03-15 — complete rewrite from upstream README (described non-existent .xlsx/.rtf files) to self-contained 9-section actionable reference: applicability table with override rules, 11-control gap assessment with maturity checklists, 12-month roadmap, 7-phase incident response procedure, 3 policy templates, GDPR crosswalk, ISO 27001 Annex A crosswalk, executive briefing content, Belgium/Netherlands regional guidance |
+
+## unmassk-compliance owasp-privacy reference files
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-owasp-privacy/SKILL.md` | Skill definition | Fixed 2026-03-15 — corrected A04-A06 ranking (Crypto/Injection/Insecure Design), fixed ASI01/ASI06 names to match reference headings, fixed description frontmatter category list, routing Focus Section matches exact reference heading |
+| `unmassk-compliance/skills/compliance-owasp-privacy/references/owasp-2025-2026-report.md` | Reference | Fixed 2026-03-15 — stripped subtitle line and stale timestamp footer; no broken paths, no frontmatter, content solid |
+
+## unmassk-compliance i18n reference files
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-i18n/SKILL.md` | Skill definition | Verified 2026-03-15 — frontmatter canonical, routing table correct, 10 references all exist |
+| `unmassk-compliance/skills/compliance-i18n/references/i18n-best-practices.md` | Reference | Fixed 2026-03-15 — removed all `./resources/` broken link prefixes (9 links in Quick Reference table + 8 links in Start Here section) |
+| `unmassk-compliance/skills/compliance-i18n/references/getting-started.md` | Reference | Verified 2026-03-15 — correct relative links, no frontmatter |
+| `unmassk-compliance/skills/compliance-i18n/references/cli-usage.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/key-management.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/ai-translation.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/github-sync.md` | Reference | Verified 2026-03-15 — `---` on line 180 is HR separator not frontmatter |
+| `unmassk-compliance/skills/compliance-i18n/references/cdn-delivery.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/mcp-integration.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/sdk-integration.md` | Reference | Verified 2026-03-15 — no issues |
+| `unmassk-compliance/skills/compliance-i18n/references/best-practices.md` | Reference | Verified 2026-03-15 — no issues |
+
+## unmassk-compliance soc2-iso reference files
+
+| Path | Type | Status |
+|------|------|--------|
+| `unmassk-compliance/skills/compliance-soc2-iso/SKILL.md` | Skill definition | Created 2026-03-15 — frontmatter, routing table (15 rows), 4 workflows, mandatory rules, done criteria |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/ciso-advisor-overview.md` | Reference | Fixed 2026-03-15 — stripped YAML frontmatter, removed non-existent script references (risk_quantifier.py, compliance_tracker.py), removed agent-protocol/SKILL.md reference, removed company-context.md reference |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/compliance_roadmap.md` | Reference | Verified 2026-03-15 — clean, no issues |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/incident_response.md` | Reference | Verified 2026-03-15 — clean, no issues |
+| `unmassk-compliance/skills/compliance-soc2-iso/references/security_strategy.md` | Reference | Verified 2026-03-15 — clean, no issues |
+
 **How to apply:** On each launch, check git commits since last verified date for each CLAUDE.md. If stale, update.

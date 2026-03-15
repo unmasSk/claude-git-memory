@@ -70,6 +70,29 @@ Minor observations (not failures):
 
 No escalation needed.
 
+## 2026-03-15 — compliance-i18n skill content audit
+
+Full read of all 10 reference files in `/unmassk-compliance/skills/compliance-i18n/references/`.
+
+**Critical finding: SKILL.md is MISSING.** The directory contains only references, no frontmatter, no trigger declarations, no workflow. The skill cannot be invoked by any agent — it is structurally incomplete.
+
+**Content reality: this is NOT a compliance skill. It is 100% localization tooling documentation for the "Better i18n" SaaS platform.** Zero regulatory, legal, or compliance content.
+
+Reference files confirmed:
+- `i18n-best-practices.md` — Master index/architecture overview + CDN URL structure + caching tables
+- `getting-started.md` — Platform onboarding (account, project, i18n.config.ts, CLI scan, SDK install)
+- `cli-usage.md` — CLI commands: scan, check/check:missing/check:unused, sync, push, pull + CI/CD + pre-commit hooks
+- `key-management.md` — Key naming conventions, namespace patterns, translation status lifecycle, CRUD operations
+- `ai-translation.md` — AI translation workflow, glossary management, ICU MessageFormat handling, batch translation, language-specific notes
+- `github-sync.md` — GitHub App setup, AST-based key discovery, PR workflow, webhooks, conflict resolution
+- `cdn-delivery.md` — Cloudflare CDN, URL structure, output formats (flat/nested/namespaced), caching headers, service worker
+- `mcp-integration.md` — MCP server for Claude/Cursor: 10 tools (listProjects, getProject, getAllTranslations, listKeys, createKeys, updateKeys, deleteKeys, addLanguage, getPendingChanges, publishTranslations, getSyncs, getSync)
+- `sdk-integration.md` — @better-i18n/next (Next.js/next-intl), @better-i18n/use-intl (React/Vite/TanStack Start), ICU MessageFormat, TypeScript support
+- `best-practices.md` — ICU pluralization, gender/select, numbers/currency/dates, RTL, text expansion, accessibility, pseudo-localization testing
+
+Scripts: NONE. No scripts in this skill.
+Escalation: Ultron needs to create SKILL.md before this skill is usable.
+
 ## 2026-03-14 — cc-devops-skills ref-repo full inventory
 
 Surveyed all 31 skills in `.ref-repos/cc-devops-skills/devops-skills-plugin/skills/`.

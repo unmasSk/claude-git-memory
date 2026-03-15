@@ -1,1 +1,24 @@
-{"name": "unmassk-ops", "version": "1.0.0"}
+{
+  "name": "unmassk-ops",
+  "version": "1.0.0",
+  "description": "DevOps toolkit — Terraform, Terragrunt, Ansible, Docker, Helm, Kubernetes, CI/CD pipelines, PromQL, LogQL, Fluent Bit, and bash/Makefile scripting. 5 skills with 83 scripts and 63 reference files. Sourced from cc-devops-skills by akin-ozer.",
+  "author": {
+    "name": "unmasSk",
+    "url": "https://github.com/unmasSk"
+  },
+  "homepage": "https://github.com/unmasSk/claude-toolkit",
+  "repository": "https://github.com/unmasSk/claude-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "devops",
+    "terraform",
+    "docker",
+    "kubernetes",
+    "helm",
+    "cicd",
+    "observability",
+    "scripting",
+    "ansible"
+  ],
+  "skills": "./skills/"
+}
