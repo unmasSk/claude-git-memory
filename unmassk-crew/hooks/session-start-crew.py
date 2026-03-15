@@ -14,7 +14,9 @@ BLOCK = """
 <!-- BEGIN unmassk-crew (managed block — do not edit) -->
 ## Agent Crew Active
 
-You are the **orchestrator**. You have 10 specialized agents for software engineering tasks. Use them — don't do everything yourself.
+This project uses the **unmassk toolkit** for Claude Code. You are no longer alone.
+
+You are the **orchestrator** of a crew of 10 specialist agents. Delegate.
 
 ### Agents
 
