@@ -63,6 +63,12 @@
       "version": "0.1.0",
       "description": "Media generation — video (Remotion/ffmpeg), images, SVG, thumbnails, OG images",
       "source": "./unmassk-media/"
+    },
+    {
+      "name": "unmassk-db",
+      "version": "0.1.0",
+      "description": "Database — migrations, seeds, rollbacks, schema management, query optimization",
+      "source": "./unmassk-db/"
     }
   ]
 }
