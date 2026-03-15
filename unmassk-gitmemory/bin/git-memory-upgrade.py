@@ -62,7 +62,10 @@ def read_installed_manifest(target: str) -> dict[str, Any] | None:
     """
     manifest_path = os.path.join(target, ".claude", ".unmassk", "manifest.json")
     if not os.path.isfile(manifest_path):
-        return None
+        # Fallback: check legacy location (pre-v3.8)
+        manifest_path = os.path.join(target, ".claude", "git-memory-manifest.json")
+        if not os.path.isfile(manifest_path):
+            return None
     try:
         with open(manifest_path) as f:
             data: dict[str, Any] = json.load(f)
@@ -157,6 +160,68 @@ def create_backup(target: str, manifest: dict[str, Any]) -> str:
     return backup_path
 
 
+# ── Migration: .claude/ root → .claude/.unmassk/ (v3.7→v3.8) ─────────────
+
+def _migrate_runtime_to_unmassk(target: str) -> list[str]:
+    """Move legacy runtime files from .claude/ root to .claude/.unmassk/.
+
+    Returns list of migrated file descriptions.
+    """
+    claude_dir = os.path.join(target, ".claude")
+    unmassk_dir = os.path.join(claude_dir, ".unmassk")
+    migrated = []
+
+    # Map: old path → new path
+    migrations = {
+        os.path.join(claude_dir, ".context-status.json"): os.path.join(unmassk_dir, "context-status.json"),
+        os.path.join(claude_dir, ".glossary-cache.json"): os.path.join(unmassk_dir, "glossary-cache.json"),
+        os.path.join(claude_dir, ".context-warn-state.json"): os.path.join(unmassk_dir, "context-warn-state.json"),
+        os.path.join(claude_dir, "git-memory-manifest.json"): os.path.join(unmassk_dir, "manifest.json"),
+        os.path.join(claude_dir, ".session-booted"): os.path.join(unmassk_dir, ".session-booted"),
+        os.path.join(claude_dir, ".message-counter"): os.path.join(unmassk_dir, ".message-counter"),
+    }
+
+    for old_path, new_path in migrations.items():
+        if os.path.isfile(old_path):
+            os.makedirs(os.path.dirname(new_path), exist_ok=True)
+            try:
+                # If new path already exists, old is stale — just delete
+                if os.path.isfile(new_path):
+                    os.remove(old_path)
+                else:
+                    os.rename(old_path, new_path)
+                migrated.append(f"  {os.path.basename(old_path)} → .unmassk/{os.path.basename(new_path)}")
+            except OSError:
+                pass
+
+    # Migrate scopes to agent-memory if still at old location
+    old_scopes = os.path.join(claude_dir, "git-memory-scopes.json")
+    if os.path.isfile(old_scopes):
+        # Find or create an agent-memory dir for scopes
+        agent_mem = os.path.join(claude_dir, "agent-memory")
+        # Check if any agent already has scopes
+        target_dir = None
+        if os.path.isdir(agent_mem):
+            for agent_dir in os.listdir(agent_mem):
+                candidate = os.path.join(agent_mem, agent_dir, "scopes.json")
+                if os.path.isfile(candidate):
+                    target_dir = os.path.dirname(candidate)
+                    break
+        if not target_dir:
+            # Default to a generic agent-memory location
+            target_dir = os.path.join(agent_mem, "unmassk-crew-bilbo")
+            os.makedirs(target_dir, exist_ok=True)
+        new_scopes = os.path.join(target_dir, "scopes.json")
+        if not os.path.isfile(new_scopes):
+            os.rename(old_scopes, new_scopes)
+            migrated.append(f"  git-memory-scopes.json → agent-memory/.../scopes.json")
+        else:
+            os.remove(old_scopes)
+            migrated.append(f"  git-memory-scopes.json removed (already in agent-memory)")
+
+    return migrated
+
+
 # ── Apply upgrade ─────────────────────────────────────────────────────────
 
 def apply_upgrade(source: str, target: str, manifest: dict[str, Any], check_result: dict[str, Any]) -> list[str]:
@@ -166,6 +231,14 @@ def apply_upgrade(source: str, target: str, manifest: dict[str, Any], check_resu
         List of error messages (empty on success).
     """
     errors = []
+
+    # v3.8 migration: consolidate runtime files into .claude/.unmassk/
+    migrated = _migrate_runtime_to_unmassk(target)
+    if migrated:
+        print("Migrated runtime files to .claude/.unmassk/:")
+        for m in migrated:
+            print(m)
+
     install_mod = _load_install_module()
 
     # Clean up old-style install files

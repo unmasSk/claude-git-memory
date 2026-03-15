@@ -607,6 +607,45 @@ def partition_by_relevance(items, keywords, text_fn):
     return branch_scoped, other
 
 
+def _migrate_runtime_to_unmassk(project_root: str) -> None:
+    """Move legacy runtime files from .claude/ root to .claude/.unmassk/ (v3.7→v3.8)."""
+    claude_dir = os.path.join(project_root, ".claude")
+    unmassk_dir = os.path.join(claude_dir, ".unmassk")
+    migrations = {
+        ".context-status.json": "context-status.json",
+        ".glossary-cache.json": "glossary-cache.json",
+        ".context-warn-state.json": "context-warn-state.json",
+        "git-memory-manifest.json": "manifest.json",
+        ".session-booted": ".session-booted",
+        ".message-counter": ".message-counter",
+    }
+    for old_name, new_name in migrations.items():
+        old_path = os.path.join(claude_dir, old_name)
+        if os.path.isfile(old_path):
+            os.makedirs(unmassk_dir, exist_ok=True)
+            new_path = os.path.join(unmassk_dir, new_name)
+            try:
+                if os.path.isfile(new_path):
+                    os.remove(old_path)
+                else:
+                    os.rename(old_path, new_path)
+            except OSError:
+                pass
+    # Migrate scopes to agent-memory
+    old_scopes = os.path.join(claude_dir, "git-memory-scopes.json")
+    if os.path.isfile(old_scopes):
+        agent_dir = os.path.join(claude_dir, "agent-memory", "unmassk-crew-bilbo")
+        os.makedirs(agent_dir, exist_ok=True)
+        new_scopes = os.path.join(agent_dir, "scopes.json")
+        try:
+            if os.path.isfile(new_scopes):
+                os.remove(old_scopes)
+            else:
+                os.rename(old_scopes, new_scopes)
+        except OSError:
+            pass
+
+
 def _migrate_untrack_generated_jsons(project_root: str) -> None:
     """Retrocompat: untrack generated JSONs that older installs committed."""
     from git_helpers import _GENERATED_JSONS
@@ -643,8 +682,9 @@ def main() -> None:
     # 0a. Ensure statusline wrapper is configured
     _ensure_statusline()
 
-    # 0b. Migrate: untrack generated JSONs from older installs
+    # 0b. Migrate: move runtime files from .claude/ root to .claude/.unmassk/ (v3.7→v3.8)
     if project_root:
+        _migrate_runtime_to_unmassk(project_root)
         _migrate_untrack_generated_jsons(project_root)
 
     # 0c. Fetch remote refs silently
