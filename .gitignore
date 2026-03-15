@@ -17,4 +17,3 @@ __pycache__/
 .claude/.context-status.json
 .claude/.context-warn-state.json
 .ref-repos/
-.claude/agent-memory/
