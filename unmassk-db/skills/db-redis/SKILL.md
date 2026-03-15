@@ -29,6 +29,12 @@ version: 1.0.0
 
 ## Routing Table
 
+### Overview
+
+| Reference | When to use |
+|-----------|-------------|
+| `references/redis-overview.md` | General Redis capabilities, skill summary, rule categories |
+
 ### Data Structures
 
 | Reference | When to use |
