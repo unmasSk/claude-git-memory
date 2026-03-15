@@ -12,14 +12,14 @@
     },
     {
       "name": "unmassk-crew",
-      "version": "1.3.0",
+      "version": "1.4.0",
       "description": "10 specialized agents with BM25 skill routing for software engineering",
       "source": "./unmassk-crew/"
     },
     {
       "name": "unmassk-flow",
       "version": "1.2.0",
-      "description": "8-step creative pipeline — from idea to shipped code",
+      "description": "8-step creative pipeline \u2014 from idea to shipped code",
       "source": "./unmassk-flow/"
     },
     {
@@ -31,43 +31,43 @@
     {
       "name": "unmassk-seo",
       "version": "1.1.0",
-      "description": "Technical SEO — crawling, schema, Core Web Vitals, GEO/AEO, site audits",
+      "description": "Technical SEO \u2014 crawling, schema, Core Web Vitals, GEO/AEO, site audits",
       "source": "./unmassk-seo/"
     },
     {
       "name": "unmassk-marketing",
       "version": "1.1.0",
-      "description": "Strategic marketing — CRO, copywriting, email, ads, pricing, growth",
+      "description": "Strategic marketing \u2014 CRO, copywriting, email, ads, pricing, growth",
       "source": "./unmassk-marketing/"
     },
     {
       "name": "unmassk-design",
       "version": "1.1.0",
-      "description": "Frontend design — design systems, typography, color, motion, accessibility, BM25 search engine",
+      "description": "Frontend design \u2014 design systems, typography, color, motion, accessibility, BM25 search engine",
       "source": "./unmassk-design/"
     },
     {
       "name": "unmassk-ops",
       "version": "1.2.0",
-      "description": "DevOps — IaC (Terraform/Terragrunt/Ansible), containers (Docker/Helm/K8s), CI/CD (GitHub Actions/GitLab/Azure/Jenkins), observability (PromQL/LogQL/Loki/Fluent Bit), scripting (Bash/Makefile), deploy (Vercel/Railway), error tracking (Sentry/OTel)",
+      "description": "DevOps \u2014 IaC (Terraform/Terragrunt/Ansible), containers (Docker/Helm/K8s), CI/CD (GitHub Actions/GitLab/Azure/Jenkins), observability (PromQL/LogQL/Loki/Fluent Bit), scripting (Bash/Makefile), deploy (Vercel/Railway), error tracking (Sentry/OTel)",
       "source": "./unmassk-ops/"
     },
     {
       "name": "unmassk-compliance",
       "version": "1.1.0",
-      "description": "Compliance — GDPR, LOPDGDD, ENS, NIS2, cookies, OWASP, SOC2/ISO, i18n, legal docs",
+      "description": "Compliance \u2014 GDPR, LOPDGDD, ENS, NIS2, cookies, OWASP, SOC2/ISO, i18n, legal docs",
       "source": "./unmassk-compliance/"
     },
     {
       "name": "unmassk-media",
       "version": "1.2.0",
-      "description": "Media — video (Remotion/ffmpeg), images (gen/edit), PDF, mermaid, screenshots, transcription",
+      "description": "Media \u2014 video (Remotion/ffmpeg), images (gen/edit), PDF, mermaid, screenshots, transcription",
       "source": "./unmassk-media/"
     },
     {
       "name": "unmassk-db",
       "version": "1.1.0",
-      "description": "Database — PostgreSQL, MySQL, MongoDB, Redis, migrations (zero-downtime), vector/RAG (pgvector), schema design",
+      "description": "Database \u2014 PostgreSQL, MySQL, MongoDB, Redis, migrations (zero-downtime), vector/RAG (pgvector), schema design",
       "source": "./unmassk-db/"
     }
   ]

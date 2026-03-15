@@ -86,10 +86,6 @@ def save_marketplace(data):
         f.write("\n")
 
 
-def get_plugin_json_path(plugin_name):
-    return safe_plugin_path(plugin_name)
-
-
 def load_plugin_json(plugin_name):
     path = safe_plugin_path(plugin_name)
     if not path:
@@ -177,10 +173,19 @@ def main():
             return 1
         marketplace = load_marketplace()
         print(f"Bumping ALL plugins to {args.all}:\n")
+        all_ok = True
         for entry in marketplace["plugins"]:
-            bump_plugin(entry["name"], args.all, marketplace)
-        save_marketplace(marketplace)
-        print(f"\nDone. {len(marketplace['plugins'])} plugins bumped.")
+            if not validate_plugin_name(entry["name"]):
+                all_ok = False
+                continue
+            if not bump_plugin(entry["name"], args.all, marketplace):
+                all_ok = False
+        if all_ok:
+            save_marketplace(marketplace)
+            print(f"\nDone. {len(marketplace['plugins'])} plugins bumped.")
+        else:
+            print(f"\nERROR: Some plugins failed. marketplace.json NOT written.")
+            return 1
         return 0
 
     if not args.plugin or not args.version:

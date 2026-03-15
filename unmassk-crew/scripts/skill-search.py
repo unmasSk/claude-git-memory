@@ -88,7 +88,7 @@ class BM25:
 
     def score(self, query):
         query_tokens = self.tokenize(query)
-        if not query_tokens:
+        if not query_tokens or self.avgdl == 0:
             return []
         scores = []
         for idx, doc in enumerate(self.corpus):
@@ -185,7 +185,7 @@ def read_skill_description(skill_md_path):
         return ""
     try:
         with open(skill_md_path, "r", encoding="utf-8") as f:
-            content = f.read(4096)  # first 4KB is enough for frontmatter
+            content = f.read(4096).replace('\r\n', '\n')  # normalize CRLF
         # Extract YAML frontmatter
         match = re.match(r'^---\s*\n(.*?)\n---', content, re.DOTALL)
         if not match:
