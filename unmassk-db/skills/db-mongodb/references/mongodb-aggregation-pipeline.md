@@ -103,7 +103,7 @@ db.sales.aggregate([
 `$concat`, `$substr`, `$toLower`, `$toUpper`, `$trim`, `$split`, `$regexMatch`, `$regexFind`
 
 ### Array
-`$arrayElemAt`, `$slice`, `$first`, `$last`, `$reverse`, `$sortArray`, `$filter`, `$map`, `$reduce`, `$zip`, `$concatArrays`
+`$arrayElemAt`, `$slice`, `$first`, `$last`, `$reverseArray`, `$sortArray`, `$filter`, `$map`, `$reduce`, `$zip`, `$concatArrays`
 
 ### Date
 `$dateAdd`, `$dateDiff`, `$dateFromString`, `$dateToString`, `$dayOfMonth`, `$month`, `$year`, `$hour`, `$minute`, `$second`

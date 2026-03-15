@@ -67,12 +67,11 @@ db.posts.updateOne(
 )
 
 // Find and modify atomically
-db.counters.findAndModify({
-  query: { _id: "sequence" },
-  update: { $inc: { value: 1 } },
-  new: true,
-  upsert: true
-})
+db.counters.findOneAndUpdate(
+  { _id: "sequence" },
+  { $inc: { value: 1 } },
+  { upsert: true, returnDocument: "after" }
+)
 ```
 
 ## Query Operators
@@ -130,10 +129,9 @@ db.users.find({ deleted: { $ne: true } })
 
 ### Atomic Counter
 ```javascript
-db.counters.findAndModify({
-  query: { _id: "sequence" },
-  update: { $inc: { value: 1 } },
-  new: true,
-  upsert: true
-})
+db.counters.findOneAndUpdate(
+  { _id: "sequence" },
+  { $inc: { value: 1 } },
+  { upsert: true, returnDocument: "after" }
+)
 ```

@@ -61,9 +61,9 @@ db.collection.stats()
 | `E11000 duplicate key` | Duplicate unique field | Check unique indexes, handle duplicates |
 | `ValidationError` | Schema validation failed | Check document structure, field types |
 | `OperationTimeout` | Query too slow | Add indexes, optimize query, increase timeout |
-| `AggregationResultTooLarge` | Result > 16MB | Use `$limit`, `$project`, or `$out` |
+| `BSONObjectTooLarge` | Document/result > 16MB | Use `$limit`, `$project`, or `$out` |
 | `InvalidShardKey` | Bad shard key | Choose high-cardinality, even-distribution key |
-| `ChunkTooBig` | Jumbo chunk | Use `refineShardKey` or re-shard |
+| `ChunkTooBig` | Jumbo chunk | Use `refineCollectionShardKey` or re-shard |
 | `OplogTailFailed` | Replication lag | Check network, increase oplog size |
 
 ## Debugging

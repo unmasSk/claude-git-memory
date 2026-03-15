@@ -28,8 +28,8 @@ sh.shardCollection("myDatabase.orders", { customerId: 1, orderDate: 1 })
 ## Zone Sharding
 
 ```javascript
-sh.addShardTag("shard0", "US-EAST")
-sh.addShardTag("shard1", "US-WEST")
+sh.addShardToZone("shard0", "US-EAST")
+sh.addShardToZone("shard1", "US-WEST")
 
 sh.addTagRange(
   "myDatabase.users",
