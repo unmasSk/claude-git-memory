@@ -128,6 +128,8 @@ their logic manually.
 | Script | Purpose | Usage |
 |---|---|---|
 | `search.py` | Query the design reference corpus for patterns, tokens, or a full design system | `python3 ${CLAUDE_PLUGIN_ROOT}/skills/unmassk-design/scripts/search.py '<query>' [--design-system] [--domain <domain>] [-p '<project>']` |
+| `core.py` | Internal library used by search.py — BM25 search engine, CSV config, domain routing. Do not invoke directly. Do not delete. | _(imported by search.py)_ |
+| `design_system.py` | Internal library used by search.py — design system generation from search results. Do not invoke directly. Do not delete. | _(imported by search.py)_ |
 
 ### search.py Flags
 
