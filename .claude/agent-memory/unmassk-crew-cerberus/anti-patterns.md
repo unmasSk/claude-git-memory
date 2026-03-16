@@ -1,6 +1,6 @@
 ---
-name: Anti-patterns found in ops scripts
-description: Recurring shell and Python scripting anti-patterns found in ops-containers and ops-scripting/ops-observability skills (2026-03-14)
+name: Anti-patterns found in ops scripts and hooks
+description: Recurring shell and Python scripting anti-patterns found in ops-containers, ops-scripting/ops-observability skills, and unmassk-crew hooks (2026-03-14, 2026-03-16)
 type: project
 ---
 
@@ -128,3 +128,33 @@ Correct pattern: use an f-string with explicit ljust or format spec to 83 inner 
 ## --all error path saves partial state without rollback
 
 In `bump-version.py` `main()`, the `--all` path calls `bump_plugin()` in a loop and then `save_marketplace()` regardless of per-plugin failures. If one plugin's marketplace entry fails to update (plugin not found), `save_marketplace()` still persists the partial changes. No dry-run or rollback mechanism.
+
+## Windows drive-letter case mismatch in path startswith checks
+
+`git rev-parse --show-toplevel` on Windows Git Bash returns lowercase drive letters (e.g., `c:/Users/...`). `os.path.abspath()` returns OS-cased paths (e.g., `C:\Users\...`). After `.replace("\\", "/")` you get `C:/Users/...`. A `str.startswith()` comparison between `c:/Users/...` and `C:/Users/...` is case-sensitive and fails silently.
+
+Correct pattern — always normalize case before comparison on Windows-hosting code:
+
+```python
+if resolved.lower().startswith(valid_prefix.lower()):
+```
+
+Or use `os.path.normcase()` on both sides before the comparison (platform-aware).
+
+Found in: `unmassk-crew/hooks/validate-memory-path.py:63` (2026-03-16).
+
+## os.path.abspath() anchored to cwd, not to project root
+
+`os.path.abspath(relative_path)` resolves against `os.getcwd()`, which in a subprocess hook context is NOT guaranteed to be the git root. An agent writing a relative path like `backend/.claude/agent-memory/...` will resolve it against whatever cwd the hook process was spawned with.
+
+Correct pattern — anchor relative paths explicitly:
+
+```python
+if os.path.isabs(file_path):
+    resolved = os.path.normpath(file_path)
+else:
+    resolved = os.path.normpath(os.path.join(git_root, file_path))
+resolved = resolved.replace("\\", "/")
+```
+
+Found in: `unmassk-crew/hooks/validate-memory-path.py:61` (2026-03-16).

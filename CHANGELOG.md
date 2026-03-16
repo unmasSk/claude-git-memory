@@ -5,6 +5,16 @@
 ### Added
 - `compliance-legal-docs` skill: SKILL.md created with 42-reference routing table organized by category (contract review, GDPR/privacy, risk assessment, litigation, French employment law, vendor due diligence, document processing, legal ops)
 
+## [1.5.0] - 2026-03-16 (unmassk-crew)
+
+### Added
+- `validate-memory-path.py` PreToolUse hook blocks agent-memory writes outside the git root — prevents agents from creating `.claude/agent-memory/` directories in wrong locations after `cd` operations. Fail-closed design with Windows case-insensitive path handling and symlink resolution via `realpath`.
+- Orchestrator rules added to the `session-start-crew.py` managed block: orchestrator must not write code (delegate to Ultron), must launch Cerberus+Argus after any new code lands, decides what and who — not how.
+
+### Changed
+- Agent boot prompts hardened in 6 agents (cerberus, dante, ultron, alexandria, bilbo, house): `GIT_ROOT` is now resolved once as an absolute path with `|| exit 1` fallback, and the memory section enforces absolute paths anchored to `GIT_ROOT`.
+- `hooks.json` updated with PreToolUse matcher for `Write|Edit` pointing to `validate-memory-path.py`.
+
 ### Fixed
 - `compliance-legal-docs` references: removed broken `/mnt/skills/public/docx/SKILL.md` paths in 3 GDPR files (gdpr-privacy-notice-eu, dpia-sentinel, gdpr-breach-sentinel) — now points to `legal-docx-processing-anthropic`
 - `compliance-legal-docs` references: removed broken sub-file references in both assignation-en-référé files (workflow-informations.md, structure-assignation.md, workflow-collecte.md, variantes-cas-particuliers.md, conseils-strategie.md) — workflows now self-contained in the reference files

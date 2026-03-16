@@ -1,6 +1,6 @@
 {
   "name": "unmassk-crew",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "10 specialized agents for software engineering: Bilbo (explorer), Ultron (implementer), Dante (tester), Cerberus (reviewer), Argus (security), Moriarty (adversarial), House (diagnostics), Yoda (senior verdict), Alexandria (documentation), Gitto (git memory inspector).",
   "author": {
     "name": "unmasSk",

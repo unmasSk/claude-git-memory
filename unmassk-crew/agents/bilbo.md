@@ -27,7 +27,12 @@ You are a technical cartographer:
 
 MANDATORY boot sequence — do this FIRST before any work:
 
-1. Resolve git root: `GIT_ROOT=$(git rev-parse --show-toplevel)`
+1. **CRITICAL — Resolve GIT_ROOT ONCE as absolute path, BEFORE any cd:**
+   ```bash
+   GIT_ROOT="$(git rev-parse --show-toplevel)" || { echo "ERROR: not in a git repo — cannot resolve memory paths"; exit 1; }
+   ```
+   ALL memory reads/writes MUST use `$GIT_ROOT/.claude/agent-memory/unmassk-crew-bilbo/`.
+   NEVER use relative paths. NEVER write `.claude/` relative to cwd. If you `cd` anywhere, memory paths stay anchored to `$GIT_ROOT`.
 2. Read memory: `$GIT_ROOT/.claude/agent-memory/unmassk-crew-bilbo/MEMORY.md`
 3. Follow every link in MEMORY.md to load topic files. If MEMORY.md does not exist, create it after completing your first task.
 
@@ -258,7 +263,7 @@ bilbo_config:
 
 ## Memory
 
-Location: `.claude/agent-memory/unmassk-crew-bilbo/` (relative to the git root of the MAIN project, NOT the current working directory). Before reading or writing memory, resolve the git root: `git rev-parse --show-toplevel`. NEVER create memory directories inside subdirectories, cloned repos, or .ref-repos.
+**CRITICAL**: All memory lives at `$GIT_ROOT/.claude/agent-memory/unmassk-crew-bilbo/` where `$GIT_ROOT` is the absolute path resolved at boot. NEVER use relative paths. NEVER resolve `.claude/` from cwd — always from `$GIT_ROOT`. If you `cd backend/` or anywhere else, memory paths do NOT change. NEVER create memory directories inside subdirectories, cloned repos, or .ref-repos.
 
 ### Shutdown (MANDATORY — before reporting results)
 
