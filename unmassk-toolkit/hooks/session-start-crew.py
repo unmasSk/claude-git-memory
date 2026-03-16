@@ -12,57 +12,12 @@ MARKER_END = "<!-- END unmassk-toolkit -->"
 
 BLOCK = """
 <!-- BEGIN unmassk-toolkit (managed block — do not edit) -->
-## Agent Crew Active
+## unmassk-toolkit Active
 
-This project uses the **unmassk toolkit** for Claude Code. You are no longer alone.
+This project uses the **unmassk toolkit**. Memory, agents, workflows, and standards are loaded automatically on boot.
 
-You are the **orchestrator** of a crew of 10 specialist agents. Delegate.
-
-### Agents
-
-| Agent | Role | When to use |
-|-------|------|-------------|
-| **Bilbo** | Deep codebase explorer | Unfamiliar codebase, trace dependencies, find dead code, map structure |
-| **Ultron** | Implementer | Write code, refactor, fix bugs, add features |
-| **Dante** | Test engineer | Write/expand/harden tests, regression coverage |
-| **Cerberus** | Code reviewer | Two modes: audit (enterprise checklist /110) and commit-review (diff-only, issues/suggestions/nitpicks) |
-| **Argus** | Security auditor | Vulnerability analysis, injection risks, auth flaws, OWASP |
-| **Moriarty** | Adversarial validator | Try to break things, exploit edge cases, prove failure modes |
-| **House** | Diagnostician | Root cause analysis for bugs, test failures, performance issues |
-| **Yoda** | Senior evaluator | Final production-readiness judgment before merge |
-| **Alexandria** | Documentation | Two modes: default (full doc sync, staleness, CHANGELOG) and merge (fast pre-merge changelog + CLAUDE.md check) |
-| **Gitto** | Git memory oracle | Query past decisions, blockers, pending work from commit history |
-
-### How to prompt agents
-
-Agents auto-discover domain skills via BM25 search on boot. For this to work, your prompt must include **technology names and domain terms** — not vague instructions.
-
-**GOOD prompts** (agents will find the right skill):
-- "Review the PostgreSQL query optimization in `src/db/queries.ts` — check index usage and EXPLAIN plans"
-- "Audit the Dockerfile in `infra/` for security hardening — non-root, multi-stage, image pinning"
-- "Write tests for the MongoDB aggregation pipeline in `services/analytics.ts`"
-- "Explore the Redis caching layer — trace how TTL and invalidation work across services"
-
-**BAD prompts** (agents won't find any skill):
-- "Review this code"
-- "Fix the bug"
-- "Check if this is secure"
-- "Write some tests"
-
-The difference: good prompts name the technology (PostgreSQL, Docker, MongoDB, Redis) and the specific concern (query optimization, security hardening, aggregation pipeline, TTL). The agent uses these terms to search 36 domain skills via BM25 and loads the matching SKILL.md with checklists, patterns, and references.
-
-### When NOT to use agents
-
-- Trivial 1-file edits — just do it yourself
-- Simple git operations — just run them
-- Questions the user is asking YOU — don't delegate conversation
-
-### Orchestrator rules
-
-- NEVER write code yourself. Delegate implementation to Ultron. Exception: trivial edits the user explicitly asks you to do.
-- After NEW code is written (first time, not a fix from review), launch Cerberus (code review) and Argus (security audit) automatically. Do not re-audit code that was already reviewed — if Ultron is fixing findings from Cerberus/Argus, the review is already done.
-- You decide WHAT to do and WHO does it. You consolidate results. You do not write code.
-- **Merge gate**: A PreToolUse hook blocks `git merge` and `git pull` (non-rebase) commands automatically. When blocked, launch in parallel: Cerberus (commit-review on the merge diff) and Alexandria (merge mode for changelog + CLAUDE.md). If Cerberus has 0 blocking issues, retry the merge with `# merge-reviewed` appended to the command to bypass the gate. If you know a merge is coming, you can launch the agents proactively before attempting the merge.
+The boot hook injects all context — you do NOT need to load skills manually.
+Never ask the user to run commands -- run them yourself.
 <!-- END unmassk-toolkit -->
 """.strip()
 
@@ -89,10 +44,23 @@ def main():
     claude_md = git_root / "CLAUDE.md"
 
     if claude_md.exists():
+        import re
         content = claude_md.read_text(encoding="utf-8")
+
+        # Remove legacy blocks (unmassk-gitmemory, unmassk-crew)
+        legacy_blocks = [
+            (r"<!-- BEGIN unmassk-gitmemory.*?<!-- END unmassk-gitmemory -->", "unmassk-gitmemory"),
+            (r"<!-- BEGIN unmassk-crew.*?<!-- END unmassk-crew -->", "unmassk-crew"),
+        ]
+        for pattern_str, name in legacy_blocks:
+            pattern = re.compile(pattern_str, re.DOTALL)
+            if pattern.search(content):
+                content = pattern.sub("", content)
+                content = re.sub(r"\n{3,}", "\n\n", content).strip() + "\n"
+                print(f"[crew] Removed legacy {name} block from CLAUDE.md")
+
         if MARKER_BEGIN in content:
             # Block already present — update it in case it changed
-            import re
             pattern = re.compile(
                 re.escape(MARKER_BEGIN) + r".*?" + re.escape(MARKER_END),
                 re.DOTALL
@@ -100,15 +68,16 @@ def main():
             new_content = pattern.sub(BLOCK, content)
             if new_content != content:
                 claude_md.write_text(new_content, encoding="utf-8")
-                print("[crew] Updated orchestrator block in CLAUDE.md")
+                print("[crew] Updated toolkit block in CLAUDE.md")
             else:
-                print("[crew] Orchestrator block up to date")
+                claude_md.write_text(content, encoding="utf-8")
+                print("[crew] Toolkit block up to date")
             return
 
         # Block missing — append it
         content = content.rstrip() + "\n\n" + BLOCK + "\n"
         claude_md.write_text(content, encoding="utf-8")
-        print("[crew] Injected orchestrator block into CLAUDE.md")
+        print("[crew] Injected toolkit block into CLAUDE.md")
     else:
         # No CLAUDE.md — create it
         claude_md.write_text(BLOCK + "\n", encoding="utf-8")
