@@ -158,3 +158,30 @@ resolved = resolved.replace("\\", "/")
 ```
 
 Found in: `unmassk-crew/hooks/validate-memory-path.py:61` (2026-03-16).
+
+## Dead negative lookahead for `git mergetool` exclusion
+
+In `pre-merge-gate.py`, the regex includes `(?!\s*tool\b)` intended to exclude `git mergetool`. This is dead code: `\bgit\s+merge\b` never matches `git mergetool` because the word boundary `\b` after `merge` requires a non-word character — but in `mergetool`, the character after `merge` is `t` (word character). The lookahead never fires and creates false documentation confidence.
+
+Correct regex (remove the dead lookahead):
+```python
+_GIT_MERGE_RE = re.compile(
+    r'\bgit\s+merge\b(?!\s*--abort\b)(?!\s*--continue\b)'
+)
+```
+
+When reviewing hook regexes that claim to exclude subcommands: verify whether the base pattern would even match the subcommand before adding a lookahead for it.
+
+Found in: `unmassk-crew/hooks/pre-merge-gate.py:17-19` (2026-03-16).
+
+## Dual severity framework conflict in agent mode definitions
+
+Agent mode instructions that define two independent severity/category axes (e.g., category: Issue/Suggestion/Nitpick AND severity: Critical/Major/Minor/Trivial) produce incoherent combinations (e.g., "Nitpick Critical"). If both dimensions are needed, add an explicit constraint table showing valid combinations. Otherwise collapse to one axis.
+
+Found in: `unmassk-crew/agents/cerberus.md` commit-review mode (2026-03-16).
+
+## Mode-scoped "do NOT" instructions conflicting with unconditional MANDATORY sections
+
+When an agent has multiple modes and one mode prohibits an action (e.g., "do NOT touch memory in merge mode"), any MANDATORY section below it that covers the same action without a mode guard creates a direct instruction conflict. Always add an explicit mode conditional to MANDATORY sections, or move them above the mode definitions.
+
+Found in: `unmassk-crew/agents/alexandria.md` — merge mode says "do NOT touch memory", Shutdown section says MANDATORY save (2026-03-16).

@@ -64,6 +64,7 @@ The difference: good prompts name the technology (PostgreSQL, Docker, MongoDB, R
 - Trivial 1-file edits — just do it yourself
 - Simple git operations — just run them
 - Questions the user is asking YOU — don't delegate conversation
+
 ### Orchestrator rules
 
 - NEVER write code yourself. Delegate implementation to Ultron. Exception: trivial edits the user explicitly asks you to do.

@@ -5,6 +5,17 @@
 ### Added
 - `compliance-legal-docs` skill: SKILL.md created with 42-reference routing table organized by category (contract review, GDPR/privacy, risk assessment, litigation, French employment law, vendor due diligence, document processing, legal ops)
 
+## [1.6.0] - 2026-03-16 (unmassk-crew)
+
+### Added
+- Cerberus commit-review mode: diff-only review pass with three severity tiers — Issue (blocks merge), Suggestion (recommended, non-blocking), Nitpick (never blocks). Includes a nitpick checklist covering naming conventions, natural language, import type consistency, `as const` usage, magic numbers, stray `console.log`, and similar low-stakes hygiene items. Inspired by CodeRabbit's review model.
+- Alexandria merge mode: fast pre-merge documentation gate. Reads only the branch commits vs target branch, updates CHANGELOG under `[Unreleased]`, and checks affected CLAUDE.md files for staleness. No new files created, no memory writes — designed for speed at the merge boundary.
+- `pre-merge-gate.py` PreToolUse hook: blocks `git merge` and `git pull` (non-rebase) commands until Cerberus and Alexandria have both passed. Detects `git.exe` on Windows, uses case-insensitive command matching, guards against `eval`/`bash -c`/`sh -c` indirection, and normalizes null bytes. Bypass by adding `# merge-reviewed` comment after both agents pass.
+
+### Changed
+- Orchestrator rules in `session-start-crew.py` updated with merge gate awareness: orchestrator must not call merge commands without a prior Cerberus + Alexandria pass, and proactive agent launch guidance is now explicit in the managed block.
+- Crew table descriptions updated: Cerberus now documents both enterprise-audit mode and commit-review mode; Alexandria now documents both standard mode and merge mode.
+
 ## [1.5.0] - 2026-03-16 (unmassk-crew)
 
 ### Added
