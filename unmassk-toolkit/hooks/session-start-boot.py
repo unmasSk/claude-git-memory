@@ -1074,7 +1074,16 @@ def main() -> None:
         lines.extend(timeline)
         lines.append("")
 
-    # ── INJECT CORE SKILLS ──────────────────────────────────────────
+    # ── MANDATORY READING ─────────────────────────────────────────
+    lines.append("")
+    lines.append("=" * 80)
+    lines.append("MANDATORY: YOU MUST READ THE FOLLOWING DOCUMENTS COMPLETELY BEFORE DOING ANYTHING.")
+    lines.append("These define how you work, how you use memory, and how you delegate.")
+    lines.append("If you skip them, you WILL make mistakes that have already been solved.")
+    lines.append("READ THEM NOW. NOT LATER. NOW.")
+    lines.append("=" * 80)
+    lines.append("")
+
     skills_root = os.path.join(plugin_root, "skills")
     for skill_name in ("unmassk-core", "unmassk-gitmemory"):
         skill_path = os.path.join(skills_root, skill_name, "SKILL.md")
@@ -1088,21 +1097,21 @@ def main() -> None:
                     if end != -1:
                         content = content[end + 4:].strip()
                 lines.append("")
-                lines.append(f"<!-- BEGIN {skill_name} -->")
+                lines.append(f"<!-- BEGIN {skill_name} — MANDATORY READING -->")
                 lines.append(content)
                 lines.append(f"<!-- END {skill_name} -->")
                 lines.append("")
             except OSError:
                 pass
 
-    # Inject CALIBRATION.md reference
+    # Inject CALIBRATION.md
     calibration_path = os.path.join(skills_root, "unmassk-gitmemory", "CALIBRATION.md")
     if os.path.isfile(calibration_path):
         try:
             with open(calibration_path, "r") as f:
                 cal_content = f.read().strip()
             lines.append("")
-            lines.append("<!-- BEGIN CALIBRATION -->")
+            lines.append("<!-- BEGIN CALIBRATION — MANDATORY READING -->")
             lines.append(cal_content)
             lines.append("<!-- END CALIBRATION -->")
             lines.append("")
