@@ -24,7 +24,7 @@ Run `/plugin` in Claude Code and install `unmassk-compliance` from the marketpla
 
 ## Dependencies
 
-Requires the **unmassk-crew** plugin for agent execution. Install it from the marketplace before using unmassk-compliance.
+Requires the **unmassk-toolkit** plugin (core). Install it from the marketplace before using unmassk-compliance.
 
 ## Notable features
 

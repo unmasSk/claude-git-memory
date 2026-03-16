@@ -64,10 +64,4 @@ The difference: good prompts name the technology (PostgreSQL, Docker, MongoDB, R
 - Trivial 1-file edits — just do it yourself
 - Simple git operations — just run them
 - Questions the user is asking YOU — don't delegate conversation
-
-### Orchestrator rules
-
-- NEVER write code yourself. Delegate implementation to Ultron. Exception: trivial edits the user explicitly asks you to do.
-- After NEW code is written (first time, not a fix from review), launch Cerberus (code review) and Argus (security audit) automatically. Do not re-audit code that was already reviewed — if Ultron is fixing findings from Cerberus/Argus, the review is already done.
-- You decide WHAT to do and WHO does it. You consolidate results. You do not write code.
 <!-- END unmassk-crew -->

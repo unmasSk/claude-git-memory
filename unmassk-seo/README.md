@@ -20,7 +20,7 @@ Run `/plugin` in Claude Code and install `unmassk-seo` from the marketplace.
 
 ## Dependencies
 
-Requires the **unmassk-crew** plugin for agent execution. Install it from the marketplace before using unmassk-seo.
+Requires the **unmassk-toolkit** plugin (core). Install it from the marketplace before using unmassk-seo.
 
 ## MCP setup
 

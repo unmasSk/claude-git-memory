@@ -268,9 +268,10 @@ Submit final report using template above at T+1 month.
 ## NCA Contact Information
 
 **Spain — Private sector** (INCIBE-CERT):
-- Reporting portal: https://www.incibe.es/incibe-cert/alerta/reporte
-- Phone: 017 (cybersecurity hotline, 24/7 for critical incidents)
-- Email: cert@incibe.es
+- Incident notification form: https://www.incibe.es/incibe-cert/incidentes/notificaciones
+- Registered portal: https://servicios.incibe-cert.es (requires prior registration)
+- Email for incident reporting: incidencias@incibe-cert.es
+- Reference: https://www.incibe.es/en/incibe-cert/incidents/incident-handling
 
 **Spain — Public sector / essential entities** (CCN-CERT):
 - Reporting: https://www.ccn-cert.cni.es

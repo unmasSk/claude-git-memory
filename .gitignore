@@ -18,5 +18,5 @@ __pycache__/
 .claude/.context-warn-state.json
 .ref-repos/
 
-# unmassk-gitmemory generated (do not track)
+# unmassk-toolkit generated (do not track)
 .claude/.unmassk/

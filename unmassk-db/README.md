@@ -30,7 +30,7 @@ Run `/plugin` in Claude Code and install `unmassk-db` from the marketplace.
 
 ## Dependencies
 
-Requires the **unmassk-crew** plugin for agent execution. Install it from the marketplace before using unmassk-db.
+Requires the **unmassk-toolkit** plugin (core). Install it from the marketplace before using unmassk-db.
 
 ## Scripts
 
@@ -38,7 +38,7 @@ Migration and schema design scripts are Python CLI tools. They generate SQL outp
 
 ## BM25 skill discovery
 
-All 7 skills include `catalog.skillcat` files for BM25-indexed discovery by agents in unmassk-crew. db-postgres had a pre-existing skillcat; the remaining 6 were added in 1.1.0.
+All 7 skills include `catalog.skillcat` files for BM25-indexed discovery by agents in unmassk-toolkit. db-postgres had a pre-existing skillcat; the remaining 6 were added in 1.1.0.
 
 ## Audited by
 

@@ -1,2 +1,0 @@
-name,plugin,triggers,domains,frameworks,tools
-flow-stack-selection,unmassk-flow,"scaffold project create new project tech stack what framework initialize boilerplate starter template project wizard SDK selection database setup DevOps tooling 70+ project types","scaffolding project-creation","React Next.js Vue Astro Remix FastAPI Django Express NestJS Go Rust Spring Flutter Expo Tauri","none"

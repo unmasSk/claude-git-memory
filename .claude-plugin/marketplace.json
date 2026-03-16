@@ -5,70 +5,84 @@
   },
   "plugins": [
     {
-      "name": "unmassk-gitmemory",
-      "version": "3.10.0",
-      "description": "Persistent memory for Claude Code via git commit trailers",
-      "source": "./unmassk-gitmemory/"
-    },
-    {
-      "name": "unmassk-crew",
-      "version": "1.6.0",
-      "description": "10 specialized agents with BM25 skill routing for software engineering",
-      "source": "./unmassk-crew/"
-    },
-    {
-      "name": "unmassk-flow",
-      "version": "1.2.0",
-      "description": "8-step creative pipeline \u2014 from idea to shipped code",
-      "source": "./unmassk-flow/"
-    },
-    {
-      "name": "unmassk-audit",
+      "name": "unmassk-toolkit",
       "version": "1.0.0",
-      "description": "14-step enterprise audit for backend modules",
-      "source": "./unmassk-audit/"
+      "description": "Core toolkit — persistent memory, 10 specialized agents, creative pipeline, enterprise audit, quality standards, and memory calibration",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-toolkit"
+      }
     },
     {
       "name": "unmassk-seo",
       "version": "1.1.0",
-      "description": "Technical SEO \u2014 crawling, schema, Core Web Vitals, GEO/AEO, site audits",
-      "source": "./unmassk-seo/"
+      "description": "Technical SEO — crawling, schema, Core Web Vitals, GEO/AEO, site audits",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-seo"
+      }
     },
     {
       "name": "unmassk-marketing",
       "version": "1.1.0",
-      "description": "Strategic marketing \u2014 CRO, copywriting, email, ads, pricing, growth",
-      "source": "./unmassk-marketing/"
+      "description": "Strategic marketing — CRO, copywriting, email, ads, pricing, growth",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-marketing"
+      }
     },
     {
       "name": "unmassk-design",
       "version": "1.1.0",
-      "description": "Frontend design \u2014 design systems, typography, color, motion, accessibility, BM25 search engine",
-      "source": "./unmassk-design/"
+      "description": "Frontend design — design systems, typography, color, motion, accessibility, BM25 search engine",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-design"
+      }
     },
     {
       "name": "unmassk-ops",
       "version": "1.3.0",
-      "description": "DevOps \u2014 IaC (Terraform/Terragrunt/Ansible), containers (Docker/Helm/K8s), CI/CD (GitHub Actions/GitLab/Azure/Jenkins), observability (PromQL/LogQL/Loki/Fluent Bit), scripting (Bash/Makefile), deploy (Vercel/Railway), error tracking (Sentry/OTel)",
-      "source": "./unmassk-ops/"
+      "description": "DevOps — IaC (Terraform/Terragrunt/Ansible), containers (Docker/Helm/K8s), CI/CD (GitHub Actions/GitLab/Azure/Jenkins), observability (PromQL/LogQL/Loki/Fluent Bit), scripting (Bash/Makefile), deploy (Vercel/Railway), error tracking (Sentry/OTel)",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-ops"
+      }
     },
     {
       "name": "unmassk-compliance",
       "version": "1.1.0",
-      "description": "Compliance \u2014 GDPR, LOPDGDD, ENS, NIS2, cookies, OWASP, SOC2/ISO, i18n, legal docs",
-      "source": "./unmassk-compliance/"
+      "description": "Compliance — GDPR, LOPDGDD, ENS, NIS2, cookies, OWASP, SOC2/ISO, i18n, legal docs",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-compliance"
+      }
     },
     {
       "name": "unmassk-media",
       "version": "1.2.0",
-      "description": "Media \u2014 video (Remotion/ffmpeg), images (gen/edit), PDF, mermaid, screenshots, transcription",
-      "source": "./unmassk-media/"
+      "description": "Media — video (Remotion/ffmpeg), images (gen/edit), PDF, mermaid, screenshots, transcription",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-media"
+      }
     },
     {
       "name": "unmassk-db",
       "version": "1.2.0",
-      "description": "Database \u2014 PostgreSQL, MySQL, MongoDB, Redis, migrations (zero-downtime), vector/RAG (pgvector), schema design",
-      "source": "./unmassk-db/"
+      "description": "Database — PostgreSQL, MySQL, MongoDB, Redis, migrations (zero-downtime), vector/RAG (pgvector), schema design",
+      "source": {
+        "source": "git-subdir",
+        "url": "unmassk/claude-toolkit",
+        "path": "unmassk-db"
+      }
     }
   ]
 }

@@ -11,8 +11,8 @@ Usage:
   python3 bin/bump-version.py --all <new-version>           # Bump ALL plugins to same version
 
 Examples:
-  python3 bin/bump-version.py unmassk-gitmemory 3.8.0
-  python3 bin/bump-version.py unmassk-crew 1.1.0
+  python3 bin/bump-version.py unmassk-toolkit 1.1.0
+  python3 bin/bump-version.py unmassk-db 1.3.0
   python3 bin/bump-version.py --list
 """
 
@@ -157,7 +157,7 @@ def bump_plugin(plugin_name, new_version, marketplace_data):
 
 def main():
     parser = argparse.ArgumentParser(description="Bump plugin versions in the toolkit")
-    parser.add_argument("plugin", nargs="?", help="Plugin name (e.g. unmassk-gitmemory)")
+    parser.add_argument("plugin", nargs="?", help="Plugin name (e.g. unmassk-toolkit)")
     parser.add_argument("version", nargs="?", help="New version (e.g. 3.8.0)")
     parser.add_argument("--list", action="store_true", help="List all plugins and versions")
     parser.add_argument("--all", metavar="VERSION", help="Bump ALL plugins to this version")
