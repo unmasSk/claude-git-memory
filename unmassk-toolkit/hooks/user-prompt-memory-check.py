@@ -101,7 +101,7 @@ def main() -> None:
     session_booted = os.path.isfile(booted_flag)
 
     if not session_booted:
-        # First message — boot instructions (SessionStart already provided all context)
+        # First message — force skill loading
         lines.append(
             f"[git-memory-boot] Plugin root: {PLUGIN_ROOT}\n"
             "MANDATORY — Do these steps NOW before responding to the user:\n"
@@ -111,6 +111,13 @@ def main() -> None:
             "  Step 4: Show the user a boot summary from the SessionStart output above\n"
             "DO NOT SKIP ANY STEP. DO NOT GREET THE USER BEFORE COMPLETING ALL STEPS."
         )
+        # Create the flag so subsequent messages don't repeat this
+        try:
+            runtime_dir = os.path.join(root, ".claude", ".unmassk")
+            os.makedirs(runtime_dir, exist_ok=True)
+            open(booted_flag, "w").close()
+        except OSError:
+            pass
     else:
         # Already booted — just plugin root for reference
         lines.append(f"[git-memory] root: {PLUGIN_ROOT}")

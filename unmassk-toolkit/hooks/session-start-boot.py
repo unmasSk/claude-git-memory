@@ -1126,15 +1126,9 @@ def main() -> None:
     lines.append(f'Commit: python3 "{commit_script}"')
     lines.append(f'Log: python3 "{log_script}"')
 
-    # Create .session-booted flag automatically after successful boot
-    if project_root:
-        runtime_dir = os.path.join(project_root, ".claude", ".unmassk")
-        os.makedirs(runtime_dir, exist_ok=True)
-        booted_flag = os.path.join(runtime_dir, ".session-booted")
-        try:
-            open(booted_flag, "w").close()
-        except OSError:
-            pass
+    # DO NOT create .session-booted flag here — let the UserPromptSubmit hook
+    # detect the first message and force skill loading. The flag is created
+    # by user-prompt-memory-check.py AFTER it tells Claude to load skills.
 
     print("\n".join(lines))
     sys.exit(0)
