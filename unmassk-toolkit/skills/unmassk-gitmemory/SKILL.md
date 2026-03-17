@@ -77,7 +77,7 @@ Examples:
 - `decision(frontend/ux): usar glassmorphic style`
 - `memo(backend/auth): preference - JWT over sessions`
 
-**Scope map:** read `.claude/git-memory-scopes.json` or `.claude/agent-memory/*/scopes.json` if it exists. To generate or update scopes, use an Explore agent to analyze the project structure and write the JSON to agent-memory. You can use unlisted scopes — the map is a guide, not a constraint.
+**Scope map:** read `.claude/git-memory-scopes.json` or `.claude/agent-memory/unmassk-crew-bilbo/scopes.json` if it exists. To generate or update scopes, launch Bilbo (`subagent_type=unmassk-toolkit:bilbo`) to analyze the project structure and write the JSON to `.claude/agent-memory/unmassk-crew-bilbo/scopes.json`. You can use unlisted scopes — the map is a guide, not a constraint.
 
 ## Commit Types
 

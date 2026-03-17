@@ -903,8 +903,8 @@ def main() -> None:
     elif project_root:
         lines.append("SCOPES: not generated yet")
         lines.append(
-            "  ACTION: Launch an Explore agent (subagent_type=Explore) to analyze the project "
-            "structure and generate .claude/agent-memory/<agent-name>/scopes.json. "
+            "  ACTION: Launch Bilbo (subagent_type=unmassk-toolkit:bilbo) to analyze the project "
+            "structure and generate .claude/agent-memory/unmassk-crew-bilbo/scopes.json. "
             "The agent should: scan directories, detect frameworks, extract existing scopes "
             "from git log, and write a JSON with version, project_type, scopes (2 levels max), "
             "existing_scopes, and notes. Run it in background."
