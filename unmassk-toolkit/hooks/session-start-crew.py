@@ -59,6 +59,7 @@ def main():
         legacy_blocks = [
             (r"<!-- BEGIN unmassk-gitmemory.*?<!-- END unmassk-gitmemory -->", "unmassk-gitmemory"),
             (r"<!-- BEGIN unmassk-crew.*?<!-- END unmassk-crew -->", "unmassk-crew"),
+            (r"<!-- BEGIN claude-git-memory.*?<!-- END claude-git-memory -->", "claude-git-memory"),
         ]
         for pattern_str, name in legacy_blocks:
             pattern = re.compile(pattern_str, re.DOTALL)
