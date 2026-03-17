@@ -1,0 +1,20 @@
+{
+  "name": "agent-chatroom",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently --names \"backend,frontend\" --prefix-colors \"cyan,magenta\" \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev:backend": "cd apps/backend && bun run dev",
+    "dev:frontend": "cd apps/frontend && bun run dev",
+    "build": "bun run build:shared && bun run build:frontend",
+    "build:shared": "cd packages/shared && bun run build",
+    "build:frontend": "cd apps/frontend && bun run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
