@@ -1,4 +1,7 @@
 import type { ServerMessage, Message } from '@agent-chatroom/shared';
+import { createLogger } from '../logger.js';
+
+const logger = createLogger('message-bus');
 
 // ---------------------------------------------------------------------------
 // Message bus
@@ -53,7 +56,7 @@ export async function broadcast(roomId: string, event: ServerMessage): Promise<v
   const app = await getApp();
 
   if (!app.server) {
-    console.warn('[message-bus] broadcast called before server is ready — dropping event');
+    logger.warn({ roomId, eventType: event.type }, 'broadcast called before server is ready — dropping event');
     return;
   }
 

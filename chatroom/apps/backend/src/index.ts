@@ -5,6 +5,9 @@ import { initializeSchema } from './db/schema.js';
 import { loadAgentRegistry } from './services/agent-registry.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
+import { createLogger } from './logger.js';
+
+const logger = createLogger('index');
 
 // Initialize database schema on startup
 initializeSchema();
@@ -35,9 +38,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.listen({ port: PORT, hostname: HOST }, () => {
-  console.log(`[backend] Listening on http://${HOST}:${PORT}`);
-  console.log(`[backend] NODE_ENV=${process.env.NODE_ENV ?? 'development'}`);
-  console.log(`[backend] DB initialized`);
+  logger.info({ host: HOST, port: PORT, env: process.env.NODE_ENV ?? 'development' }, 'server started');
 });
 
 export type App = typeof app;

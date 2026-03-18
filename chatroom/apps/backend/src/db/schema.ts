@@ -1,4 +1,7 @@
 import { getDb } from './connection.js';
+import { createLogger } from '../logger.js';
+
+const logger = createLogger('schema');
 
 /**
  * Creates all tables and indexes if they don't exist.
@@ -54,6 +57,6 @@ export function initializeSchema(): void {
 // e.g. bun run src/db/schema.ts
 if (import.meta.main) {
   initializeSchema();
-  console.log('Schema initialized successfully.');
-  console.log('Tables:', getDb().query("SELECT name FROM sqlite_master WHERE type='table'").all());
+  const tables = getDb().query("SELECT name FROM sqlite_master WHERE type='table'").all();
+  logger.info({ tables }, 'schema initialized');
 }

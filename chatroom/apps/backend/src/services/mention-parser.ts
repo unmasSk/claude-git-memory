@@ -2,7 +2,7 @@ import { getAgentConfig } from './agent-registry.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('mention-parser');
-function log(...args: unknown[]) { logger.debug(args.map(String).join(' ')); }
+function log(...args: unknown[]) { logger.debug(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 // ---------------------------------------------------------------------------
 // Mention extraction

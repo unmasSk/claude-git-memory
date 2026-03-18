@@ -1,6 +1,9 @@
 import { join } from 'node:path';
 import { existsSync, globSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { createLogger } from './logger.js';
+
+const logger = createLogger('config');
 
 /** Port for the Elysia HTTP/WS server */
 export const PORT = Number(process.env.PORT ?? 3001);
@@ -91,10 +94,7 @@ export const WS_ALLOWED_ORIGINS: readonly string[] = [
 ];
 
 if (_isDev) {
-  console.warn(
-    '[config] NODE_ENV is "' + process.env.NODE_ENV + '" — WS upgrade accepts connections with no Origin header.' +
-    ' Set NODE_ENV=production to enforce origin checking.'
-  );
+  logger.warn({ nodeEnv: process.env.NODE_ENV }, 'WS upgrade accepts connections with no Origin header — set NODE_ENV=production to enforce origin checking');
 }
 
 /**

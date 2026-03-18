@@ -19,7 +19,7 @@
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('agent-invoker');
-function log(...args: unknown[]) { logger.debug(args.map(String).join(' ')); }
+function log(...args: unknown[]) { logger.debug(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 import { parseStreamLine } from './stream-parser.js';
 import { getAgentConfig } from './agent-registry.js';

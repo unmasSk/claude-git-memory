@@ -1,7 +1,7 @@
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('ws');
-function log(...args: unknown[]) { logger.debug(args.map(String).join(' ')); }
+function log(...args: unknown[]) { logger.debug(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 import { Elysia, t } from 'elysia';
 import {
