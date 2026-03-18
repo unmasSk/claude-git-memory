@@ -29,7 +29,19 @@ Root chatroom/.gitignore covers all plan requirements: node_modules/, dist/, *.d
 ## Build commands (from chatroom root)
 - Backend start: `bun run --cwd apps/backend src/index.ts` — binds to 127.0.0.1:3001
 - Frontend build: `bunx vite build` from apps/frontend — outputs to dist/
-- All tests: `bun test` — 373 tests across 13 files, all pass (as of 2026-03-17)
+- All tests: `bun test` — 450 pass / 8 fail (pre-existing, Windows path + source-scan env issues) as of 2026-03-18
+
+## user_list_update broadcast pattern (2026-03-18)
+When a WS connection opens or closes, broadcast the updated user list to all room subscribers:
+- In open(): after `ws.subscribe(topic)`, call `ws.publish(topic, userListJson)` AND `ws.send(userListJson)` (publish excludes sender)
+- In close(): after cleaning up connStates/roomConns, call `ws.publish(topic, userListJson)` BEFORE `ws.unsubscribe()`
+- Protocol type `ServerUserListUpdate` added to protocol.ts union and schemas.ts discriminatedUnion
+- Frontend handles it in ws-store.ts `handleServerMessage` as `case 'user_list_update'`
+
+## ParticipantPanel claude identity (2026-03-18)
+- ConnectedUser with `name.toLowerCase() === 'claude'` renders: role='orchestrator', avatar class='av-claude', icon=Bot (not User)
+- All other users: role='human', avatar class='av-user', icon=User
+- React key uses `u.name + '-' + u.connectedAt` to avoid duplicate key collisions (multiple connections same name)
 
 ## T1 bug fixes applied (2026-03-17, by Cerberus review)
 All three were already in the codebase when Ultron was invoked — fixes had been pre-applied:

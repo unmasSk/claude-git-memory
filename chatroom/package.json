@@ -7,9 +7,10 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "concurrently --names \"backend,frontend\" --prefix-colors \"cyan,magenta\" \"bun run dev:backend\" \"bun run dev:frontend\"",
+    "dev": "concurrently --names \"backend,frontend,bridge\" --prefix-colors \"cyan,magenta,yellow\" \"bun run dev:backend\" \"bun run dev:frontend\" \"bun run dev:bridge\"",
     "dev:backend": "cd apps/backend && bun run dev",
     "dev:frontend": "cd apps/frontend && bun run dev",
+    "dev:bridge": "cd apps/bridge && bun run claude-bridge.ts",
     "build": "bun run build:shared && bun run build:frontend",
     "build:shared": "cd packages/shared && bun run build",
     "build:frontend": "cd apps/frontend && bun run build"

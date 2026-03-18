@@ -11,73 +11,80 @@ describe('extractMentions', () => {
   // --- Basic extraction ---
 
   it('extracts a single mention', () => {
-    const result = extractMentions('@bilbo check this out', 'human');
+    const result = extractMentions('@bilbo check this out');
     expect(result).toEqual(new Set(['bilbo']));
   });
 
   it('extracts multiple distinct mentions', () => {
-    const result = extractMentions('@bilbo @ultron please help', 'human');
+    const result = extractMentions('@bilbo @ultron please help');
     expect(result).toEqual(new Set(['bilbo', 'ultron']));
   });
 
   // --- FIX 9: Deduplication ---
 
   it('deduplicates repeated mentions', () => {
-    const result = extractMentions('@bilbo @bilbo explore this', 'human');
+    const result = extractMentions('@bilbo @bilbo explore this');
     expect(result).toEqual(new Set(['bilbo']));
     expect(result.size).toBe(1);
   });
 
-  // --- FIX 5: Agent-authored messages ---
+  // --- Agent @mentions with depth tracking ---
 
-  it('returns empty set for agent-authored messages', () => {
-    const result = extractMentions('@bilbo @ultron', 'agent');
-    expect(result).toEqual(new Set());
-    expect(result.size).toBe(0);
+  it('allows agent mentions at depth 0', () => {
+    const result = extractMentions('@bilbo hello', 0);
+    expect(result).toEqual(new Set(['bilbo']));
   });
 
-  it('passes through mentions for system-authored messages (only agent type is blocked)', () => {
-    // FIX 5 only blocks authorType='agent'. 'system' is not a user-driven
-    // author type but the spec only specifies blocking 'agent'.
-    // System messages with @mentions are unusual and handled by the caller.
-    const result = extractMentions('@bilbo @ultron', 'system');
-    // System type is not blocked — only 'agent' is blocked per FIX 5
-    expect(result.size).toBeGreaterThanOrEqual(0);
+  it('extracts multiple distinct mentions', () => {
+    const result = extractMentions('@bilbo @ultron check this');
+    expect(result).toEqual(new Set(['bilbo', 'ultron']));
+  });
+
+  // --- T1-02: @claude loop prevention ---
+
+  it('never returns claude as a mention', () => {
+    const result = extractMentions('@claude help me');
+    expect(result).toEqual(new Set());
+  });
+
+  it('filters claude but keeps other valid mentions', () => {
+    const result = extractMentions('@claude @bilbo check this');
+    expect(result).toEqual(new Set(['bilbo']));
   });
 
   // --- Email false positive filter ---
 
   it('ignores email-like patterns', () => {
-    const result = extractMentions('email me at user@bilbo.com for details', 'human');
+    const result = extractMentions('email me at user@bilbo.com for details');
     expect(result).toEqual(new Set());
   });
 
   it('handles mixed valid mention and email', () => {
-    const result = extractMentions('@bilbo check user@bilbo.com', 'human');
+    const result = extractMentions('@bilbo check user@bilbo.com');
     expect(result).toEqual(new Set(['bilbo']));
   });
 
   // --- Unknown agent filter ---
 
   it('ignores mentions of unknown agents', () => {
-    const result = extractMentions('@unknown @nobody hello', 'human');
+    const result = extractMentions('@unknown @nobody hello');
     expect(result).toEqual(new Set());
   });
 
   it('ignores unknown agents but keeps known ones', () => {
-    const result = extractMentions('@bilbo @unknown works', 'human');
+    const result = extractMentions('@bilbo @unknown works');
     expect(result).toEqual(new Set(['bilbo']));
   });
 
   // --- Case insensitivity ---
 
   it('is case-insensitive for known agents', () => {
-    const result = extractMentions('@Bilbo @ULTRON check this', 'human');
+    const result = extractMentions('@Bilbo @ULTRON check this');
     expect(result).toEqual(new Set(['bilbo', 'ultron']));
   });
 
   it('normalizes mention names to lowercase', () => {
-    const result = extractMentions('@BILBO', 'human');
+    const result = extractMentions('@BILBO');
     const [first] = result;
     expect(first).toBe('bilbo');
   });
@@ -85,22 +92,22 @@ describe('extractMentions', () => {
   // --- Edge cases ---
 
   it('returns empty set for empty content', () => {
-    const result = extractMentions('', 'human');
+    const result = extractMentions('');
     expect(result).toEqual(new Set());
   });
 
   it('returns empty set for content with no mentions', () => {
-    const result = extractMentions('hello world no mentions here', 'human');
+    const result = extractMentions('hello world no mentions here');
     expect(result).toEqual(new Set());
   });
 
   it('handles mention at end of string without trailing char', () => {
-    const result = extractMentions('check it @bilbo', 'human');
+    const result = extractMentions('check it @bilbo');
     expect(result).toEqual(new Set(['bilbo']));
   });
 
   it('handles multiple distinct known agents', () => {
-    const result = extractMentions('@cerberus review and @bilbo explore', 'human');
+    const result = extractMentions('@cerberus review and @bilbo explore');
     expect(result).toEqual(new Set(['cerberus', 'bilbo']));
   });
 });

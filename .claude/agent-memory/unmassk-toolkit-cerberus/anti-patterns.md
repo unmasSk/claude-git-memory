@@ -1,6 +1,6 @@
 ---
-name: Anti-patterns found in ops scripts and hooks
-description: Recurring shell and Python scripting anti-patterns found in ops-containers, ops-scripting/ops-observability skills, and unmassk-crew hooks (2026-03-14, 2026-03-16)
+name: Anti-patterns found in ops scripts, hooks, and chatroom bridge plans
+description: Recurring shell, Python, and TypeScript/Bun anti-patterns found in ops-containers, ops-scripting/ops-observability skills, unmassk-crew hooks (2026-03-14, 2026-03-16), chatroom bridge plan (2026-03-18), and chatroom @mention depth feature (2026-03-18)
 type: project
 ---
 
@@ -185,3 +185,33 @@ Found in: `unmassk-crew/agents/cerberus.md` commit-review mode (2026-03-16).
 When an agent has multiple modes and one mode prohibits an action (e.g., "do NOT touch memory in merge mode"), any MANDATORY section below it that covers the same action without a mode guard creates a direct instruction conflict. Always add an explicit mode conditional to MANDATORY sections, or move them above the mode definitions.
 
 Found in: `unmassk-crew/agents/alexandria.md` — merge mode says "do NOT touch memory", Shutdown section says MANDATORY save (2026-03-16).
+
+## IPC via /tmp files in a security-hardened WS codebase
+
+Using `/tmp` flat files as IPC for a bridge component that connects to a hardened WebSocket server creates a perimeter mismatch: all the server-side guards (origin check, rate limit, Zod validation, author enforcement) are bypassed because the bridge holds a trusted long-lived connection and forwards anything placed in the file. This pattern appeared in the chatroom claude-bridge plan (2026-03-18).
+
+Correct pattern: keep the IPC file under `$XDG_RUNTIME_DIR` (user-private), `chmod 600` immediately, validate owning UID before reading, enforce per-send rate limit and message length cap in the bridge itself before forwarding to WS.
+
+## Polling a file with setInterval when Bun.watch() is available
+
+Using a 500ms `setInterval` to poll an outbox file for new content is a patch when the runtime already provides `Bun.watch()` for zero-latency change detection. Pattern seen in claude-bridge plan (2026-03-18). Always use `Bun.watch()` first; fall back to polling only on platforms where it is unavailable (document explicitly).
+
+## Reserved name set with explicit exclusions that create identity collision
+
+A `RESERVED_AGENT_NAMES` Set that filters OUT certain names (e.g., `!== 'claude'`) to allow them as WS client names creates an identity collision when a bridge script connects with that exact name. If the server sets `authorType='human'` for all WS client messages, the excluded name appears as a human in the DB and triggers @mention agent invocations. Found in chatroom ws.ts + bridge plan (2026-03-18) and confirmed again in claude-bridge.ts implementation audit (2026-03-18). Either: (a) do not exclude names from the reserved set without a corresponding authorType distinction, or (b) introduce a dedicated `authorType='orchestrator'` that bypasses mention parsing.
+
+## Dead parameter in multi-argument guard function (TypeScript)
+
+A function that accepts a parameter (e.g. `authorType: AuthorType`) and uses it in neither the guard condition nor the body creates a false contract. Callers believe the function is author-aware; tests pass for the wrong reason. Found in `mention-parser.ts:extractMentions` (2026-03-18): `authorType` was accepted but unused — the depth guard fired unconditionally for all author types.
+
+Pattern to watch for: functions with a discriminant parameter (`authorType`, `role`, `mode`) whose body contains only one branch. Verify the parameter is read somewhere in the body before approving.
+
+## Bridge singleton check defeated by auth on health endpoint
+
+When a bridge process checks for an existing instance by probing `GET /health` unauthenticated, applying an auth guard to ALL routes (including `/health`) causes the probe to receive `401` instead of `200`. The singleton check only treats `200` as "already running", so `401` is silently interpreted as "no bridge present". Two instances start up. Found in `claude-bridge.ts:checkSingleton + handleRequest` (2026-03-18).
+
+Rule: health/liveness endpoints MUST be exempt from auth if they are used for singleton detection or readiness probing.
+
+## `inFlight` lock keyed by agent name only (not agent:room)
+
+Using a `Set<string>` keyed by agent name alone for a per-agent in-flight lock blocks the agent across ALL rooms when the desired scope is per-agent-per-room. The `activeInvocations` map uses `${agentName}:${roomId}` — the `inFlight` lock must use the same compound key for consistency. Found in `agent-invoker.ts:inFlight` (2026-03-18). Check that all concurrency primitives in the same module use the same key scope.

@@ -1,7 +1,7 @@
 import { useAgentStore } from '../stores/agent-store';
 import { AgentState } from '@agent-chatroom/shared';
 import { ParticipantItem } from './ParticipantItem';
-import { User } from 'lucide-react';
+import { User, Bot } from 'lucide-react';
 
 export function ParticipantPanel() {
   // T1-01 fix: select the agents Map directly, derive online list in render
@@ -22,15 +22,15 @@ export function ParticipantPanel() {
             humans
           </div>
           {connectedUsers.map((u) => (
-            <div key={u.name} className="participant">
-              <div className="agent-avatar av-user">
-                <User size={15} />
+            <div key={u.name + '-' + u.connectedAt} className="participant">
+              <div className={`agent-avatar ${u.name.toLowerCase() === 'claude' ? 'av-claude' : 'av-user'}`}>
+                {u.name.toLowerCase() === 'claude' ? <Bot size={15} /> : <User size={15} />}
                 <div className="status-indicator status-idle" />
               </div>
               <div className="participant-info">
                 <div className="participant-name c-user">{u.name}</div>
                 <div className="participant-meta">
-                  <span className="participant-role">human</span>
+                  <span className="participant-role">{u.name.toLowerCase() === 'claude' ? 'orchestrator' : 'human'}</span>
                 </div>
               </div>
             </div>

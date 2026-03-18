@@ -1,5 +1,10 @@
-import type { AuthorType } from '@agent-chatroom/shared';
 import { getAgentConfig } from './agent-registry.js';
+
+// ---------------------------------------------------------------------------
+// Debug logger — all output to stderr
+// ---------------------------------------------------------------------------
+
+function log(...args: unknown[]) { console.error('[mention-parser]', new Date().toISOString(), ...args); }
 
 // ---------------------------------------------------------------------------
 // Mention extraction
@@ -8,20 +13,27 @@ import { getAgentConfig } from './agent-registry.js';
 const MENTION_RE = /@([a-zA-Z]+)\b/g;
 
 /**
+ * Names that are never actionable mentions regardless of registry.
+ * - 'user' / 'system' — reserved by the server, never invokable
+ * - 'claude' — the orchestrator identity; invoking it as a subprocess would
+ *   create a loop (T1-02: prevent @claude loop)
+ */
+const NEVER_INVOKE = new Set(['user', 'system', 'claude', 'everyone']);
+
+/**
  * Extract @mentions from a message.
  *
  * Rules:
- * - FIX 5: If authorType is 'agent', return empty set (blocks agent→agent chains).
  * - FIX 9: Returns Set<string> — deduplication is automatic.
  * - Ignores email-like patterns (preceding char is alphanumeric, e.g. "user@bilbo.com").
  * - Only returns mentions matching known agent names in the registry.
+ * - Never returns 'user', 'system', or 'claude' (T1-01, T1-02).
  * - Returned names are lowercase.
+ *
+ * Per-agent turn limits are enforced in agent-invoker.ts, not here.
  */
-export function extractMentions(content: string, authorType: AuthorType): Set<string> {
-  // FIX 5: Agent-authored messages must never trigger further agent invocations
-  if (authorType === 'agent') {
-    return new Set();
-  }
+export function extractMentions(content: string): Set<string> {
+  log('extractMentions content length:', content.length);
 
   const mentions = new Set<string>();
 
@@ -40,6 +52,11 @@ export function extractMentions(content: string, authorType: AuthorType): Set<st
       }
     }
 
+    // T1-01/T1-02: Never invoke reserved names
+    if (NEVER_INVOKE.has(name)) {
+      continue;
+    }
+
     // Only include known agents
     const config = getAgentConfig(name);
     if (config === null) {
@@ -49,5 +66,6 @@ export function extractMentions(content: string, authorType: AuthorType): Set<st
     mentions.add(name);
   }
 
+  log('extractMentions result:', [...mentions]);
   return mentions;
 }

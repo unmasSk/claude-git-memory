@@ -8,16 +8,23 @@
  *   FIX 1  — Stream parser whitelist (see stream-parser.ts)
  *   FIX 2  — Stale --resume session retry
  *   FIX 14 — Queue with consumer (semaphore pattern)
- *   FIX 15 — Per-agent in-flight lock
- *   FIX 16 — Orphan subprocess cleanup via process group kill
+ *   FIX 15 — Per-agent in-flight lock (now scoped per room: agentName:roomId)
+ *   FIX 16 — Orphan subprocess cleanup via process group kill (Unix only)
  *   SEC-FIX 1  — Prompt injection structural defense
  *   SEC-FIX 3  — Fail-closed on missing/banned tools
  *   SEC-FIX 4  — Session ID UUID format validation
  *   SEC-FIX 7  — Context poisoning: agent history labeled as prior output
  */
 
+// ---------------------------------------------------------------------------
+// Debug logger — all output to stderr to avoid mixing with stdout
+// ---------------------------------------------------------------------------
+
+function log(...args: unknown[]) { console.error('[agent-invoker]', new Date().toISOString(), ...args); }
+
 import { parseStreamLine } from './stream-parser.js';
 import { getAgentConfig } from './agent-registry.js';
+import { extractMentions } from './mention-parser.js';
 import { broadcast } from './message-bus.js';
 import {
   getAgentSession,
@@ -56,8 +63,9 @@ export function validateSessionId(id: string | null | undefined): string | null 
 /** Currently running invocations keyed by "${agentName}:${roomId}" */
 const activeInvocations = new Map<string, Promise<void>>();
 
-/** FIX 15: Agents currently being invoked (blocks duplicate concurrent runs) */
+/** FIX 15: In-flight lock keyed by "${agentName}:${roomId}" (per-room scope) */
 const inFlight = new Set<string>();
+
 
 interface QueueEntry {
   roomId: string;
@@ -80,6 +88,14 @@ const MAX_QUEUE_SIZE = 10;
 interface InvocationContext {
   /** The message content that triggered this invocation (for prompt building) */
   triggerContent: string;
+  /** Per-agent turn count in this chain — blocks an agent after 5 turns */
+  agentTurns: Map<string, number>;
+  /**
+   * RACE-002: Set to true when a stale session retry is scheduled from within
+   * doInvoke. Signals the .finally() in runInvocation NOT to delete from inFlight
+   * or activeInvocations, because the retry entry is already in place.
+   */
+  retryScheduled?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -96,9 +112,10 @@ export function invokeAgents(
   roomId: string,
   agentNames: Set<string>,
   triggerContent: string,
+  agentTurns: Map<string, number> = new Map(),
 ): void {
   for (const agentName of agentNames) {
-    scheduleInvocation(roomId, agentName, { triggerContent }, false);
+    scheduleInvocation(roomId, agentName, { triggerContent, agentTurns }, false);
   }
 }
 
@@ -111,7 +128,7 @@ export function invokeAgent(
   agentName: string,
   prompt: string,
 ): void {
-  scheduleInvocation(roomId, agentName, { triggerContent: prompt }, false);
+  scheduleInvocation(roomId, agentName, { triggerContent: prompt, agentTurns: new Map() }, false);
 }
 
 // ---------------------------------------------------------------------------
@@ -124,11 +141,25 @@ function scheduleInvocation(
   context: InvocationContext,
   isRetry: boolean,
 ): void {
-  // FIX 15: Per-agent in-flight lock — skip if already running
-  if (inFlight.has(agentName)) {
+  // T2-05: inFlight key is per-room so the same agent can run in parallel in different rooms
+  const flightKey = `${agentName}:${roomId}`;
+
+  log('scheduleInvocation', agentName, roomId, 'turns:', Object.fromEntries(context.agentTurns), 'isRetry:', isRetry, 'inFlight:', inFlight.has(flightKey), 'queueSize:', pendingQueue.length);
+
+  // FIX 15: Per-agent-per-room in-flight lock — queue if already running
+  if (inFlight.has(flightKey)) {
+    if (pendingQueue.length >= MAX_QUEUE_SIZE) {
+      void postSystemMessage(
+        roomId,
+        `Agent ${agentName} cannot be queued — too many pending invocations.`,
+      );
+      return;
+    }
+    pendingQueue.push({ roomId, agentName, context, isRetry });
+    log('scheduleInvocation', agentName, 'in-flight, queued. Queue size:', pendingQueue.length);
     void postSystemMessage(
       roomId,
-      `Agent ${agentName} is already working. Message queued once it finishes.`,
+      `Agent ${agentName} is busy. Message queued (${pendingQueue.length} pending).`,
     );
     return;
   }
@@ -160,12 +191,19 @@ function runInvocation(
   isRetry: boolean,
 ): void {
   const key = `${agentName}:${roomId}`;
-  inFlight.add(agentName);
+  // T2-05: use composite key so same agent can run in different rooms simultaneously
+  inFlight.add(key);
+
+  log('runInvocation starting', agentName, roomId);
 
   const promise = doInvoke(roomId, agentName, context, isRetry)
     .finally(() => {
-      inFlight.delete(agentName);
-      activeInvocations.delete(key);
+      // RACE-002: If a retry was scheduled from within doInvoke, the retry already
+      // set up the new inFlight/activeInvocations entries. Do NOT delete them here.
+      if (!context.retryScheduled) {
+        inFlight.delete(key);
+        activeInvocations.delete(key);
+      }
       drainQueue();
     });
 
@@ -177,11 +215,12 @@ function drainQueue(): void {
   if (pendingQueue.length === 0) return;
   if (activeInvocations.size >= MAX_CONCURRENT_AGENTS) return;
 
-  // SEC-OPEN-004 fix: find first entry not in-flight (skip blocked entries)
-  const idx = pendingQueue.findIndex((e) => !inFlight.has(e.agentName));
+  // T2-05: skip entries whose composite key is already in-flight
+  const idx = pendingQueue.findIndex((e) => !inFlight.has(`${e.agentName}:${e.roomId}`));
   if (idx === -1) return;
 
   const [next] = pendingQueue.splice(idx, 1);
+  log('drainQueue dequeuing', next.agentName, next.roomId);
   runInvocation(next.roomId, next.agentName, next.context, next.isRetry);
 }
 
@@ -197,6 +236,9 @@ async function doInvoke(
 ): Promise<void> {
   // SEC-FIX 3: Fail-closed — validate agent config and tools
   const agentConfig = getAgentConfig(agentName);
+
+  log('doInvoke', agentName, 'config:', agentConfig ? 'found' : 'missing', 'isRetry:', isRetry);
+
   if (!agentConfig) {
     await postSystemMessage(roomId, `Unknown agent: ${agentName}`);
     return;
@@ -215,6 +257,8 @@ async function doInvoke(
   const allowedTools = agentConfig.allowedTools.filter(
     (t) => !BANNED_TOOLS.includes(t),
   );
+
+  log('doInvoke', agentName, 'allowedTools:', allowedTools, 'prompt length:', context.triggerContent.length);
 
   if (allowedTools.length === 0) {
     await postSystemMessage(
@@ -255,6 +299,7 @@ async function doInvoke(
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    log('error in doInvoke', agentName, message);
     await updateStatusAndBroadcast(agentName, roomId, 'error', message);
     await postSystemMessage(roomId, `Agent ${agentName} error: ${message}`);
   }
@@ -291,18 +336,33 @@ async function spawnAndParse(
     args.push('--resume', sessionId);
   }
 
-  // FIX 16: Spawn detached to create a new process group for group kill
+  log('spawnAndParse', agentName, 'args:', args, 'sessionId:', sessionId);
+
+  // FIX 16 / House diagnostic: On Unix, detached creates a process group for
+  // group kill on timeout. On Windows, both detached AND windowsHide are broken
+  // in Bun 1.3.11 — windowsHide is INVERTED (creates windows), detached creates
+  // console windows, and process.kill(-pid) fails with ESRCH. Piped stdio alone
+  // suppresses console windows on Windows.
+  const isUnix = process.platform !== 'win32';
   const proc = Bun.spawn(args, {
     stdout: 'pipe',
     stderr: 'pipe',
-    detached: true,
-  } as any); // Bun types may not expose detached yet, but it's supported at runtime
+    ...(isUnix ? { detached: true } : {}),
+  } as any);
 
-  // FIX 16: Orphan cleanup — kill entire process group on timeout
+  log('spawnAndParse', agentName, 'PID:', proc.pid);
+
+  // FIX 16: Orphan cleanup on timeout
   const timeoutHandle = setTimeout(() => {
+    log('timeout reached for', agentName, 'PID:', proc.pid, '— killing');
     try {
-      // Negative PID = process group kill
-      process.kill(-(proc.pid as number), 'SIGTERM');
+      if (process.platform !== 'win32') {
+        // Negative PID = process group kill on Unix
+        process.kill(-(proc.pid as number), 'SIGTERM');
+      } else {
+        // On Windows, kill the process directly (no process groups via detached)
+        proc.kill();
+      }
     } catch {
       // Fallback to direct kill if process group kill fails
       proc.kill();
@@ -339,6 +399,7 @@ async function spawnAndParse(
         const events = parseStreamLine(line);
         for (const event of events) {
           if (event.type === 'tool_use') {
+            log('tool_use', agentName, 'tool:', event.name);
             // Broadcast tool event (throttle to avoid render storm — FIX 17)
             const now = Date.now();
             if (now - lastToolBroadcastTime > 500) {
@@ -358,6 +419,7 @@ async function spawnAndParse(
             resultSessionId = validateSessionId(event.sessionId);
             resultCostUsd = event.costUsd;
             resultSuccess = event.success;
+            log('result', agentName, 'success:', resultSuccess, 'costUsd:', resultCostUsd, 'sessionId:', resultSessionId);
           }
           // text events are collected implicitly via resultText from the result event
         }
@@ -393,18 +455,17 @@ async function spawnAndParse(
     if (isStaleSession) {
       // Clear stale session and retry without --resume (one retry only)
       clearAgentSession(agentName, roomId);
+      log('stale session detected for', agentName, 'roomId:', roomId, 'scheduling retry');
       await postSystemMessage(
         roomId,
         `Agent ${agentName}: stale session detected, retrying fresh...`,
       );
 
-      // FIX: Remove from inFlight BEFORE scheduling retry,
-      // otherwise scheduleInvocation rejects due to per-agent lock (FIX 15)
-      inFlight.delete(agentName);
-      const retryKey = `${agentName}:${roomId}`;
-      activeInvocations.delete(retryKey);
+      // RACE-002: Set flag so the .finally() in runInvocation does NOT delete
+      // from inFlight/activeInvocations — the retry call below will overwrite them.
+      context.retryScheduled = true;
 
-      // Schedule the retry — note isRetry=true prevents another retry loop
+      // Schedule the retry — isRetry=true prevents another retry loop
       scheduleInvocation(roomId, agentName, context, true);
       return;
     }
@@ -461,6 +522,35 @@ async function spawnAndParse(
   };
 
   await broadcast(roomId, { type: 'new_message', message: agentMessage });
+
+  // Agent→agent chained @mentions: per-agent turn limit (5 per agent per chain)
+  const updatedTurns = new Map(context.agentTurns);
+  updatedTurns.set(agentName, (updatedTurns.get(agentName) ?? 0) + 1);
+
+  const rawMentions = extractMentions(resultText);
+  // Filter out agents that have reached their 5-turn limit
+  const chainedMentions = new Set<string>();
+  const blockedAgents: string[] = [];
+  for (const name of rawMentions) {
+    if ((updatedTurns.get(name) ?? 0) >= 5) {
+      blockedAgents.push(name);
+    } else {
+      chainedMentions.add(name);
+    }
+  }
+
+  log('chain mentions', agentName, 'turns:', Object.fromEntries(updatedTurns), 'allowed:', [...chainedMentions], 'blocked:', blockedAgents);
+
+  if (blockedAgents.length > 0) {
+    await postSystemMessage(
+      roomId,
+      `Agent(s) ${blockedAgents.join(', ')} reached max turns (5). Mentions not invoked.`,
+    );
+  }
+
+  if (chainedMentions.size > 0) {
+    invokeAgents(roomId, chainedMentions, resultText, updatedTurns);
+  }
 
   // Update session state
   upsertAgentSession({

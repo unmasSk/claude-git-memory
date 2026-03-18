@@ -129,10 +129,16 @@ export interface ServerError {
   code: string;
 }
 
+export interface ServerUserListUpdate {
+  type: 'user_list_update';
+  connectedUsers: ConnectedUser[];
+}
+
 export type ServerMessage =
   | ServerRoomState
   | ServerNewMessage
   | ServerAgentStatus
   | ServerToolEvent
   | ServerHistoryPage
-  | ServerError;
+  | ServerError
+  | ServerUserListUpdate;

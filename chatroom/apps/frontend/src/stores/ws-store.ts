@@ -100,6 +100,10 @@ function handleServerMessage(event: MessageEvent) {
       chatStore.prependHistory(parsed.messages, parsed.hasMore);
       break;
 
+    case 'user_list_update':
+      agentStore.setConnectedUsers(parsed.connectedUsers);
+      break;
+
     case 'error':
       console.error('[ws-store] Server error:', parsed.code, parsed.message);
       break;

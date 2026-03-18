@@ -1,3 +1,9 @@
+// ---------------------------------------------------------------------------
+// Debug logger — all output to stderr
+// ---------------------------------------------------------------------------
+
+function log(...args: unknown[]) { console.error('[ws]', new Date().toISOString(), ...args); }
+
 import { Elysia, t } from 'elysia';
 import {
   getRoomById,
@@ -184,6 +190,7 @@ export const wsRoutes = new Elysia()
       // Assign a unique connId for rate limiting and store it in the module map.
       const connId = nextConnId();
       wsConnIds.set(ws.raw ?? ws, connId);
+      log('open', resolvedName, 'room:', roomId, 'connId:', connId);
 
       const connectedAt = nowIso();
       connStates.set(connId, { name: resolvedName, roomId, connectedAt });
@@ -194,6 +201,11 @@ export const wsRoutes = new Elysia()
 
       // Subscribe to room pub/sub topic
       ws.subscribe(topic);
+
+      // Broadcast updated user list to all room subscribers (including self)
+      const userListMsg = JSON.stringify({ type: 'user_list_update', connectedUsers: getConnectedUsers(roomId) });
+      ws.publish(topic, userListMsg);
+      ws.send(userListMsg);
 
       const room = getRoomById(roomId);
       if (!room) {
@@ -231,6 +243,7 @@ export const wsRoutes = new Elysia()
 
       // SEC-FIX 6: Rate limit check
       if (!connId || !checkRateLimit(connId)) {
+        log('rate limit hit connId:', connId);
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Rate limit exceeded. Max 5 messages per 10 seconds.',
@@ -313,12 +326,31 @@ export const wsRoutes = new Elysia()
           // Self-deliver: Elysia 1.4.28 does not implement publishToSelf
           ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(newMsg) }));
 
-          // FIX 5: authorType='human' — agents never trigger other agents
-          const mentions = extractMentions(msg.content, 'human');
+          // @everyone: post as a high-priority system directive that agents
+          // must obey when they read it in their history context
+          if (/@everyone\b/i.test(msg.content)) {
+            const directive = msg.content.replace(/@everyone\b/gi, '').trim();
+            log('send_message', authorName, '@everyone directive:', directive);
+            const sysId = generateId();
+            const sysCreatedAt = nowIso();
+            insertMessage({
+              id: sysId, roomId, author: 'system', authorType: 'system',
+              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${directive}`,
+              msgType: 'system', parentId: null, metadata: '{}',
+            });
+            const sysMsg: Message = {
+              id: sysId, roomId, author: 'system', authorType: 'system',
+              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${directive}`,
+              msgType: 'system', parentId: null, metadata: {}, createdAt: sysCreatedAt,
+            };
+            broadcastSync(roomId, { type: 'new_message', message: sysMsg }, ws);
+            ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(sysMsg) }));
+          }
+
+          const mentions = extractMentions(msg.content);
+          log('send_message', authorName, 'contentLength:', msg.content.length, 'mentions:', [...mentions]);
 
           if (mentions.size > 0) {
-            // Phase 3: fire-and-forget agent invocations
-            // invokeAgents handles concurrency, queueing, and per-agent locking
             invokeAgents(roomId, mentions, msg.content);
           }
 
@@ -378,6 +410,7 @@ export const wsRoutes = new Elysia()
           // Self-deliver: Elysia 1.4.28 does not implement publishToSelf
           ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(invokeUserMsg) }));
 
+          log('invoke_agent', msg.agent, 'room:', roomId);
           invokeAgent(roomId, msg.agent, msg.prompt);
           break;
         }
@@ -418,6 +451,8 @@ export const wsRoutes = new Elysia()
       const { roomId } = (ws.data as WsData).params;
       const key = ws.raw ?? ws;
       const connId = wsConnIds.get(key);
+      const closedName = connId ? connStates.get(connId)?.name : 'unknown';
+      log('close', closedName, 'room:', roomId, 'connId:', connId);
 
       // Clean up rate limit bucket, connected user state, and connId map
       if (connId) {
@@ -431,6 +466,10 @@ export const wsRoutes = new Elysia()
       }
       wsConnIds.delete(key);
 
-      ws.unsubscribe(`room:${roomId}`);
+      // Broadcast updated user list before unsubscribing so this connection still receives it
+      const topic = `room:${roomId}`;
+      ws.publish(topic, JSON.stringify({ type: 'user_list_update', connectedUsers: getConnectedUsers(roomId) }));
+
+      ws.unsubscribe(topic);
     },
   });

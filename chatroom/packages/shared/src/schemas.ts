@@ -132,6 +132,11 @@ export const ServerErrorSchema = z.object({
   code: z.string(),
 });
 
+export const ServerUserListUpdateSchema = z.object({
+  type: z.literal('user_list_update'),
+  connectedUsers: z.array(ConnectedUserSchema),
+});
+
 export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerRoomStateSchema,
   ServerNewMessageSchema,
@@ -139,6 +144,7 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerToolEventSchema,
   ServerHistoryPageSchema,
   ServerErrorSchema,
+  ServerUserListUpdateSchema,
 ]);
 
 // Inferred types (for convenience — prefer the types from protocol.ts)
