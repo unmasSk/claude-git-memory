@@ -66,6 +66,13 @@ Server-side enforcement for `@everyone stop` directives.
 - `issueToken` returns `null` when `tokens.size >= 10_000`
 - Caller in `api.ts` returns HTTP 503 with `{ error, code: 'TOKEN_STORE_FULL' }`
 
+### auth-tokens.ts reserved names — SEC-AUTH-002 (2026-03-18)
+- "claude" and "user" MUST be in RESERVED_AGENT_NAMES (in addition to AGENT_BY_NAME keys)
+- "claude" = orchestrator bridge identity — impersonation via public token endpoint is a security hole
+- "user" = default fallback name — block explicit claim, allow implicit (empty rawName → returns 'user' directly, bypasses the reserved check)
+- Pattern: `const EXTRA_RESERVED = new Set(['claude', 'user']); const RESERVED_AGENT_NAMES = new Set([...AGENT_BY_NAME.keys(), ...EXTRA_RESERVED]);`
+- Bridge authenticates with a pre-shared token (BRIDGE_TOKEN), not via this endpoint
+
 ### useMentionAutocomplete.ts — everyone special entry (2026-03-18)
 - `EVERYONE_ENTRY: AgentDefinition` — synthetic entry with `invokable: false`, name='everyone'
 - `ALL_AUTOCOMPLETE = [...INVOKABLE_AGENTS, EVERYONE_ENTRY]`

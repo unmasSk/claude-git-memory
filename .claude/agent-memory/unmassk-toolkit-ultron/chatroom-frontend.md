@@ -29,7 +29,7 @@ Root chatroom/.gitignore covers all plan requirements: node_modules/, dist/, *.d
 ## Build commands (from chatroom root)
 - Backend start: `bun run --cwd apps/backend src/index.ts` — binds to 127.0.0.1:3001
 - Frontend build: `bunx vite build` from apps/frontend — outputs to dist/
-- All tests: `bun test` — 450 pass / 8 fail (pre-existing, Windows path + source-scan env issues) as of 2026-03-18
+- All tests: `bun test` — 460 pass / 0 fail as of 2026-03-18 (after bug fixes)
 
 ## user_list_update broadcast pattern (2026-03-18)
 When a WS connection opens or closes, broadcast the updated user list to all room subscribers:
@@ -55,6 +55,22 @@ Production code correctly uses `context.set.status = 403; return 'Forbidden'` (E
 This test fails when run in the full suite alongside other files — passes in isolation.
 Root cause: bun test isolation issue with mock.module across files; both test files pass individually.
 Do NOT change production ws.ts to match the test expectation — the Elysia pattern is correct.
+
+## react-markdown in MessageLine (Issue #26, 2026-03-18)
+`bun add react-markdown` (v10) in `apps/frontend`.
+Custom components: `p` → `<span className="md-para">` (inline, not block), `code` → inline or block by `className` presence, `pre` → `<pre className="md-pre">`, `ul/ol/li` with md- prefixed classes.
+Timestamp and author spans are NOT inside ReactMarkdown — only `msg-content` wraps it.
+CSS classes: `.md-para`, `.md-code-inline`, `.md-pre`, `.md-code-block`, `.md-ul`, `.md-ol`, `.md-li` in globals.css.
+
+## @mention highlighting in ReactMarkdown (2026-03-18)
+`splitMentions(text)` was disconnected — MdParagraph was not calling it.
+Fix: add `highlightMentionsInNode(node, keyPrefix)` that recursively walks React node tree:
+- string leaf with `@` → calls `splitMentions(text)` → highlighted spans
+- array → recurse each child
+- ReactElement → recurse props.children, spread-clone only if changed
+MdParagraph calls `Children.map(children, (child, i) => highlightMentionsInNode(child, \`mp-\${i}\`))`.
+This correctly handles mentions inside bold/italic sibling nodes too.
+Imports needed: `Children, isValidElement` from 'react'.
 
 ## Lessons
 - Memory writes must use `$GIT_ROOT` = `/Users/unmassk/Workspace/claude-toolkit`, not the cwd subdirectory.

@@ -57,8 +57,13 @@ In `chatroom/apps/backend/src/services/agent-invoker.ts`:
 - On Windows, kill is direct: `proc.kill()`. On Unix, kill is process-group: `process.kill(-(proc.pid), 'SIGTERM')`.
 - `windowsHide: true` remains for both platforms.
 
-## Singleton check must send auth token (DECEPTION-002, 2026-03-18)
-The `/health` probe at startup must include `Authorization: Bearer ${BRIDGE_TOKEN}` — without it, the probe always gets 401 and the singleton guard never triggers. Pattern: always auth the probe.
+## /health is now unauthenticated (Issue #30, 2026-03-18)
+`/health` was moved before `checkAuth` in `handleRequest` so it responds without a token.
+All other endpoints (`/messages`, `/send`) still require `Authorization: Bearer <token>`.
+Consequence: the singleton probe no longer needs to send the token — the plain `fetch(url)` works.
+
+## Singleton check must send auth token (DECEPTION-002, 2026-03-18) — SUPERSEDED
+Previously `/health` was protected and the probe needed auth. Now it is open. See above.
 
 ## Token to stderr (SEC-HIGH-002, 2026-03-18)
 `BRIDGE_TOKEN=...` must be printed to `console.error` (stderr), not `console.log` (stdout). Stdout may be captured by callers expecting structured output.
@@ -77,3 +82,21 @@ The `/health` probe at startup must include `Authorization: Bearer ${BRIDGE_TOKE
 
 ## WS_URL undefined bug (auto-fix, 2026-03-18)
 Boot log used `WS_URL` which was never defined (only `WS_BASE` exists). Fixed to `WS_BASE`. If this const is renamed, update the boot log line too.
+
+## Ring buffer dedup set (Issue #32, 2026-03-18)
+`ringBufferIds: Set<string>` mirrors the IDs in `ringBuffer` for O(1) dedup.
+`pushToBuffer` checks the set before pushing — skips duplicates silently.
+`room_state` handler: `ringBufferIds.clear()` before re-seeding from server state.
+Evictions from `ringBuffer.shift()` also call `ringBufferIds.delete(evicted.id)`.
+
+## WS_ALLOWED_ORIGINS in config.ts (Issue #27, 2026-03-18)
+`WS_ALLOWED_ORIGINS` exported from `config.ts` — reads `process.env.WS_ALLOWED_ORIGINS` (comma-separated), adds `''` in non-production for wscat/curl.
+`ws.ts` imports it and builds `const ALLOWED_ORIGINS = new Set(WS_ALLOWED_ORIGINS)`. Never hardcode origins in ws.ts.
+
+IMPORTANT (2026-03-18 fix): Filter empty entries from the comma-split before adding them to the list.
+Trailing commas in the env var (e.g. `WS_ALLOWED_ORIGINS=http://localhost:4201,`) produce `''` which acts as an accidental wildcard. Pattern:
+```ts
+const _rawOrigins = (process.env.WS_ALLOWED_ORIGINS ?? 'defaults')
+  .split(',').map(s => s.trim()).filter(s => s.length > 0);
+```
+Also: log `console.warn(...)` at boot when `NODE_ENV !== 'production'` so operators notice the permissive mode.

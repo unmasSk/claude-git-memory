@@ -233,3 +233,27 @@ Asymmetry pattern: `ws.onclose` → retry; token fetch error → no retry. Alway
 ## Token in WS query string without documenting the access-log risk
 
 Passing a short-lived auth token as `?token=<uuid>` in the WS upgrade URL is the only standard option when the `Authorization` header cannot be set (browser WebSocket). However, the token appears in server access logs if logging is enabled. This is acceptable for localhost dev tools, but the trade-off must be documented in a code comment. Found in `claude-bridge.ts:247` and `ws-store.ts` (2026-03-18).
+
+## Dead function after render-path migration (React)
+
+When a React component is migrated from a manual render path (e.g., splitting text with a helper function) to a declarative renderer (e.g., ReactMarkdown), the helper function is often left defined but not wired into the new renderer. The component compiles and renders without errors, but the feature silently stops working.
+
+Pattern to detect: a named function that returns `React.ReactNode[]` or similar, defined in the same file as a component, but never called in the JSX. Always verify that helper functions from the old render path are either deleted or re-wired into the new one.
+
+Found in: `MessageLine.tsx:splitMentions` (2026-03-18) — function defined, ReactMarkdown migration did not wire it in, @mention CSS highlighting silently broken.
+
+## Fenced code block `isBlock` heuristic via `className` presence
+
+In ReactMarkdown, the `code` component prop receives `className="language-xyz"` for fenced code blocks with a language specifier, and `className={undefined}` for both inline code AND fenced code blocks with no language tag. The pattern `const isBlock = !!className` incorrectly renders unlabeled fenced blocks as inline code.
+
+Correct pattern — use the `node` AST prop (available in react-markdown v9+) to check whether the parent is a `pre` element, or check `node.position.start.line !== node.position.end.line` as a multiline heuristic.
+
+Found in: `MessageLine.tsx:65` (2026-03-18).
+
+## NODE_ENV bypass comment says "dev" but applies to all non-production environments
+
+A guard `process.env.NODE_ENV !== 'production'` activates in staging, test, and undefined environments — not just "dev". Documenting it as "In dev, ..." misleads operators who run staging without NODE_ENV=production and believe they are protected.
+
+Always say "non-production environments (NODE_ENV !== 'production')" and add an explicit NOTE that staging operators must set NODE_ENV=production.
+
+Found in: `config.ts:78` (chatroom WS_ALLOWED_ORIGINS dev bypass, 2026-03-18).
