@@ -74,6 +74,7 @@ export const QueueGroup = memo(function QueueGroup({ messages }: QueueGroupProps
         })}
         <div className="system-pill">
           <button
+            type="button"
             className="system-pill-inner queue-toggle"
             onClick={() => setExpanded(false)}
           >
@@ -88,6 +89,7 @@ export const QueueGroup = memo(function QueueGroup({ messages }: QueueGroupProps
   return (
     <div className="system-pill">
       <button
+        type="button"
         className="system-pill-inner queue-toggle"
         onClick={() => setExpanded(true)}
       >

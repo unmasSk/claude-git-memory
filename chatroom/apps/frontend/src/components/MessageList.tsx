@@ -77,7 +77,7 @@ export const MessageList = memo(function MessageList() {
     setIsScrollLocked(distanceFromBottom > 50);
   }
 
-  const grouped = groupMessages(messages.filter((m) => m.authorType !== 'user'));
+  const grouped = groupMessages(messages.filter((m) => m.authorType !== 'human'));
 
   return (
     <div

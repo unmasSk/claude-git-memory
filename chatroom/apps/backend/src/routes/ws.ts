@@ -19,21 +19,16 @@ import { broadcastSync } from '../services/message-bus.js';
 import { invokeAgents, invokeAgent, clearQueue, pauseInvocations, resumeInvocations, isPaused } from '../services/agent-invoker.js';
 import { getAgentConfig } from '../services/agent-registry.js';
 import { mapMessageRow, mapRoomRow, mapAgentSessionRow, generateId, nowIso, safeMessage } from '../utils.js';
-import { ROOM_STATE_MESSAGE_LIMIT } from '../config.js';
+import { ROOM_STATE_MESSAGE_LIMIT, WS_ALLOWED_ORIGINS } from '../config.js';
 import { validateToken } from '../services/auth-tokens.js';
 import { ClientMessageSchema, AGENT_BY_NAME } from '@agent-chatroom/shared';
 import type { ServerMessage, Message, ConnectedUser } from '@agent-chatroom/shared';
 
 // ---------------------------------------------------------------------------
-// SEC-FIX 2: Allowed origins for WebSocket upgrade
+// SEC-FIX 2: Allowed origins for WebSocket upgrade — sourced from config
 // ---------------------------------------------------------------------------
 
-const ALLOWED_ORIGINS = new Set([
-  'http://localhost:4201',
-  'http://127.0.0.1:4201',
-  // Allow requests with no origin (e.g. wscat, curl) in dev
-  ...(process.env.NODE_ENV !== 'production' ? [''] : []),
-]);
+const ALLOWED_ORIGINS = new Set(WS_ALLOWED_ORIGINS);
 
 // ---------------------------------------------------------------------------
 // SEC-FIX 6: Per-connection token bucket rate limiter
