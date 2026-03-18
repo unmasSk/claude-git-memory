@@ -376,7 +376,7 @@ async function spawnAndParse(
     args.push('--resume', sessionId);
   }
 
-  log('spawnAndParse', agentName, 'args:', args, 'sessionId:', sessionId);
+  log('spawnAndParse', agentName, 'model:', model, 'sessionId:', sessionId ?? 'new');
 
   // FIX 16 / House diagnostic: On Unix, detached creates a process group for
   // group kill on timeout. On Windows, both detached AND windowsHide are broken
