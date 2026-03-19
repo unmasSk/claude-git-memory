@@ -22,12 +22,15 @@ const isDev = process.env.NODE_ENV === 'development' || process.env.NODE_ENV ===
 // would create a circular dependency (config.ts imports createLogger from logger.ts).
 // Keep this allowlist in sync with config.ts requireEnumEnv('LOG_LEVEL', ...).
 const LOG_LEVEL_ALLOWED = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const;
-type LogLevel = typeof LOG_LEVEL_ALLOWED[number];
+type LogLevel = (typeof LOG_LEVEL_ALLOWED)[number];
 const _rawLogLevel = process.env.LOG_LEVEL;
 if (_rawLogLevel && !(LOG_LEVEL_ALLOWED as readonly string[]).includes(_rawLogLevel)) {
   // Cannot use the structured logger here — it has not been created yet.
   process.stderr.write(
-    JSON.stringify({ level: 'fatal', msg: 'Invalid LOG_LEVEL: "' + _rawLogLevel + '" — must be one of: ' + LOG_LEVEL_ALLOWED.join(', ') }) + '\n'
+    JSON.stringify({
+      level: 'fatal',
+      msg: 'Invalid LOG_LEVEL: "' + _rawLogLevel + '" — must be one of: ' + LOG_LEVEL_ALLOWED.join(', '),
+    }) + '\n',
   );
   process.exit(1);
 }

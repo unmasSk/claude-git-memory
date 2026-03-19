@@ -24,12 +24,13 @@ loadAgentRegistry();
  * SEC-FIX 2: Bind to 127.0.0.1 only — no external access.
  */
 export const app = new Elysia()
-  .use(cors({
-    origin: (NODE_ENV === 'development' || NODE_ENV === 'test')
-      ? ['http://localhost:4201', 'http://127.0.0.1:4201']
-      : false,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  }))
+  .use(
+    cors({
+      origin:
+        NODE_ENV === 'development' || NODE_ENV === 'test' ? ['http://localhost:4201', 'http://127.0.0.1:4201'] : false,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    }),
+  )
   .onError(({ code, error, set }) => {
     const statusMap: Record<string, number> = { NOT_FOUND: 404, VALIDATION: 422, PARSE: 400 };
     const status = statusMap[code] ?? 500;
@@ -44,16 +45,18 @@ export const app = new Elysia()
 // SEC-OPEN-001: Mount swagger only in development — never in test or production.
 // In test mode swagger adds unnecessary HTTP overhead and leaks API surface.
 if (NODE_ENV === 'development') {
-  app.use(swagger({
-    path: '/docs',
-    documentation: {
-      info: {
-        title: 'Chatroom API',
-        version: '0.1.0',
-        description: 'Multi-agent chatroom backend',
+  app.use(
+    swagger({
+      path: '/docs',
+      documentation: {
+        info: {
+          title: 'Chatroom API',
+          version: '0.1.0',
+          description: 'Multi-agent chatroom backend',
+        },
       },
-    },
-  }));
+    }),
+  );
 }
 
 // FIX 10: Mount static plugin in production only
@@ -106,7 +109,11 @@ async function gracefulShutdown(signal: string): Promise<void> {
   process.exit(0);
 }
 
-process.on('SIGTERM', () => { void gracefulShutdown('SIGTERM'); });
-process.on('SIGINT', () => { void gracefulShutdown('SIGINT'); });
+process.on('SIGTERM', () => {
+  void gracefulShutdown('SIGTERM');
+});
+process.on('SIGINT', () => {
+  void gracefulShutdown('SIGINT');
+});
 
 export type App = typeof app;

@@ -38,12 +38,12 @@ export function extractMentions(content: string): Set<string> {
   MENTION_RE.lastIndex = 0; // reset stateful regex
 
   while ((match = MENTION_RE.exec(content)) !== null) {
-    const name = match[1].toLowerCase();
+    const name = match[1]!.toLowerCase();
     const matchStart = match.index;
 
     // Filter email-like patterns: if the char before '@' is alphanumeric, skip
     if (matchStart > 0) {
-      const before = content[matchStart - 1];
+      const before = content[matchStart - 1]!;
       if (/[a-zA-Z0-9]/.test(before)) {
         continue;
       }

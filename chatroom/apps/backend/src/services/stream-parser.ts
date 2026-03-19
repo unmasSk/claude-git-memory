@@ -178,20 +178,33 @@ function parseResultEvent(event: ResultEventRaw): ResultEvent | null {
   const numTurns = typeof event.num_turns === 'number' ? event.num_turns : 0;
   const inputTokens = typeof event.usage?.input_tokens === 'number' ? event.usage.input_tokens : 0;
   const outputTokens = typeof event.usage?.output_tokens === 'number' ? event.usage.output_tokens : 0;
-  const cacheReadTokens = typeof event.usage?.cache_read_input_tokens === 'number' ? event.usage.cache_read_input_tokens : 0;
+  const cacheReadTokens =
+    typeof event.usage?.cache_read_input_tokens === 'number' ? event.usage.cache_read_input_tokens : 0;
   const permissionDenials: PermissionDenial[] = Array.isArray(event.permission_denials)
-    ? event.permission_denials.map(d => ({ toolName: d.tool_name ?? 'unknown', input: d.input }))
+    ? event.permission_denials.map((d) => ({ toolName: d.tool_name ?? 'unknown', input: d.input }))
     : [];
   // contextWindow lives under modelUsage[<modelId>].contextWindow — pick the first entry
   const modelUsageValues = event.modelUsage ? Object.values(event.modelUsage) : [];
-  const rawContextWindow = modelUsageValues.length > 0 && typeof modelUsageValues[0]?.contextWindow === 'number'
-    ? modelUsageValues[0].contextWindow
-    : 0;
+  const rawContextWindow =
+    modelUsageValues.length > 0 && typeof modelUsageValues[0]?.contextWindow === 'number'
+      ? modelUsageValues[0].contextWindow
+      : 0;
   // Fallback: when the CLI reports 0, infer from the model name in the modelUsage key.
   // This covers cases where the CLI omits contextWindow for known model families.
-  const contextWindow = rawContextWindow > 0
-    ? rawContextWindow
-    : inferContextWindow(event.modelUsage);
+  const contextWindow = rawContextWindow > 0 ? rawContextWindow : inferContextWindow(event.modelUsage);
 
-  return { type: 'result', result, sessionId, success, costUsd, durationMs, numTurns, inputTokens, outputTokens, cacheReadTokens, contextWindow, permissionDenials };
+  return {
+    type: 'result',
+    result,
+    sessionId,
+    success,
+    costUsd,
+    durationMs,
+    numTurns,
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    contextWindow,
+    permissionDenials,
+  };
 }

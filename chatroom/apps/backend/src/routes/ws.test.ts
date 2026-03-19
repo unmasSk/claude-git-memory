@@ -61,7 +61,10 @@ function makeDb(): Database {
 // Inline rate-limit helpers (mirrors ws.ts)
 // ---------------------------------------------------------------------------
 
-interface TokenBucket { tokens: number; lastRefill: number; }
+interface TokenBucket {
+  tokens: number;
+  lastRefill: number;
+}
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 10_000;
 const testBuckets = new Map<string, TokenBucket>();
@@ -127,17 +130,21 @@ function wsCheckRateLimit(connId: string): boolean {
 type WsData = { params: { roomId: string } };
 
 // Map socket ID → roomId (for close handler cleanup)
-const wsConnIds = new Map<number, string>();
+const wsConnIds = new Map<string, string>();
 
 beforeAll(async () => {
   testDb = makeDb();
 
   // Insert some messages for history tests
   for (let i = 1; i <= 5; i++) {
-    testDb.query(`
+    testDb
+      .query(
+        `
       INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
       VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
-    `).run(`hist-msg-00${i}`, `history message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+    `,
+      )
+      .run(`hist-msg-00${i}`, `history message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
   }
 
   const testApp = new Elysia()
@@ -150,9 +157,12 @@ beforeAll(async () => {
         ws.subscribe(`room:${roomId}`);
         wsConnIds.set(ws.id, roomId);
 
-        const room = testDb.query<{ id: string; name: string; topic: string; created_at: string }, [string]>(
-          'SELECT * FROM rooms WHERE id = ?'
-        ).get(roomId);
+        const room = testDb
+          .query<
+            { id: string; name: string; topic: string; created_at: string },
+            [string]
+          >('SELECT * FROM rooms WHERE id = ?')
+          .get(roomId);
 
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', message: `Room '${roomId}' not found`, code: 'ROOM_NOT_FOUND' }));
@@ -160,24 +170,45 @@ beforeAll(async () => {
           return;
         }
 
-        const messageRows = testDb.query<{
-          id: string; room_id: string; author: string; author_type: string;
-          content: string; msg_type: string; parent_id: string | null;
-          metadata: string; created_at: string;
-        }, [string, number]>(`
+        const messageRows = testDb
+          .query<
+            {
+              id: string;
+              room_id: string;
+              author: string;
+              author_type: string;
+              content: string;
+              msg_type: string;
+              parent_id: string | null;
+              metadata: string;
+              created_at: string;
+            },
+            [string, number]
+          >(
+            `
           SELECT * FROM (SELECT * FROM messages WHERE room_id = ? ORDER BY created_at DESC LIMIT ?) ORDER BY created_at ASC
-        `).all(roomId, 50);
+        `,
+          )
+          .all(roomId, 50);
 
-        ws.send(JSON.stringify({
-          type: 'room_state',
-          room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
-          messages: messageRows.map((r) => ({
-            id: r.id, roomId: r.room_id, author: r.author, authorType: r.author_type,
-            content: r.content, msgType: r.msg_type, parentId: r.parent_id,
-            metadata: JSON.parse(r.metadata || '{}'), createdAt: r.created_at,
-          })),
-          agents: [],
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'room_state',
+            room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
+            messages: messageRows.map((r) => ({
+              id: r.id,
+              roomId: r.room_id,
+              author: r.author,
+              authorType: r.author_type,
+              content: r.content,
+              msgType: r.msg_type,
+              parentId: r.parent_id,
+              metadata: JSON.parse(r.metadata || '{}'),
+              createdAt: r.created_at,
+            })),
+            agents: [],
+          }),
+        );
       },
 
       message(ws, rawMessage) {
@@ -188,7 +219,13 @@ beforeAll(async () => {
 
         // Rate limit check
         if (!wsCheckRateLimit(connId)) {
-          ws.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Max 5 messages per 10 seconds.', code: 'RATE_LIMIT' }));
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message: 'Rate limit exceeded. Max 5 messages per 10 seconds.',
+              code: 'RATE_LIMIT',
+            }),
+          );
           return;
         }
 
@@ -217,15 +254,25 @@ beforeAll(async () => {
           const id = `ws-test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
           const createdAt = new Date().toISOString();
 
-          testDb.query(`
+          testDb
+            .query(
+              `
             INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
             VALUES (?, ?, 'user', 'human', ?, 'message', NULL, '{}', ?)
-          `).run(id, roomId, content, createdAt);
+          `,
+            )
+            .run(id, roomId, content, createdAt);
 
           const newMsg = {
-            id, roomId, author: 'user', authorType: 'human' as const,
-            content, msgType: 'message' as const, parentId: null,
-            metadata: {}, createdAt,
+            id,
+            roomId,
+            author: 'user',
+            authorType: 'human' as const,
+            content,
+            msgType: 'message' as const,
+            parentId: null,
+            metadata: {},
+            createdAt,
           };
 
           const serialized = JSON.stringify({ type: 'new_message', message: newMsg });
@@ -239,29 +286,53 @@ beforeAll(async () => {
           const beforeId = msg.before as string;
           const limit = Math.min(Number(msg.limit ?? 20), 100);
 
-          const rows = testDb.query<{
-            id: string; room_id: string; author: string; author_type: string;
-            content: string; msg_type: string; parent_id: string | null;
-            metadata: string; created_at: string;
-          }, [string, string, number]>(`
+          const rows = testDb
+            .query<
+              {
+                id: string;
+                room_id: string;
+                author: string;
+                author_type: string;
+                content: string;
+                msg_type: string;
+                parent_id: string | null;
+                metadata: string;
+                created_at: string;
+              },
+              [string, string, number]
+            >(
+              `
             SELECT * FROM messages
             WHERE room_id = ?
               AND created_at < (SELECT created_at FROM messages WHERE id = ?)
             ORDER BY created_at DESC LIMIT ?
-          `).all(roomId, beforeId, limit);
+          `,
+            )
+            .all(roomId, beforeId, limit);
 
-          const pivotRow = testDb.query<{ created_at: string }, [string]>(
-            'SELECT created_at FROM messages WHERE id = ?'
-          ).get(beforeId);
+          const pivotRow = testDb
+            .query<{ created_at: string }, [string]>('SELECT created_at FROM messages WHERE id = ?')
+            .get(beforeId);
 
-          const hasMore = pivotRow ? (testDb.query<{ count: number }, [string, string]>(
-            'SELECT COUNT(*) as count FROM messages WHERE room_id = ? AND created_at < ?'
-          ).get(roomId, pivotRow.created_at)?.count ?? 0) > 0 : false;
+          const hasMore = pivotRow
+            ? (testDb
+                .query<
+                  { count: number },
+                  [string, string]
+                >('SELECT COUNT(*) as count FROM messages WHERE room_id = ? AND created_at < ?')
+                .get(roomId, pivotRow.created_at)?.count ?? 0) > 0
+            : false;
 
           const messages = rows.reverse().map((r) => ({
-            id: r.id, roomId: r.room_id, author: r.author, authorType: r.author_type,
-            content: r.content, msgType: r.msg_type, parentId: r.parent_id,
-            metadata: JSON.parse(r.metadata || '{}'), createdAt: r.created_at,
+            id: r.id,
+            roomId: r.room_id,
+            author: r.author,
+            authorType: r.author_type,
+            content: r.content,
+            msgType: r.msg_type,
+            parentId: r.parent_id,
+            metadata: JSON.parse(r.metadata || '{}'),
+            createdAt: r.created_at,
           }));
 
           ws.send(JSON.stringify({ type: 'history_page', messages, hasMore }));
@@ -297,7 +368,9 @@ afterAll(() => {
   testDb?.close();
   try {
     (app as unknown as { server: { stop: () => void } })?.server?.stop();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -325,7 +398,10 @@ function waitForMessages(url: string, count: number, timeoutMs = 3000): Promise<
         resolve(messages);
       }
     };
-    ws.onerror = () => { clearTimeout(timer); reject(new Error('WS error')); };
+    ws.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error('WS error'));
+    };
   });
 }
 
@@ -345,7 +421,10 @@ function openWs(url: string, timeoutMs = 3000): Promise<{ ws: WebSocket; firstMe
         resolve({ ws, firstMessage: event.data });
       }
     };
-    ws.onerror = () => { clearTimeout(timer); reject(new Error('WS error')); };
+    ws.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error('WS error'));
+    };
   });
 }
 
@@ -410,11 +489,7 @@ describe('WS connect /ws/nonexistent', () => {
 // The WS must already be open (past the room_state first message).
 // ---------------------------------------------------------------------------
 
-function waitForMessageType(
-  ws: WebSocket,
-  targetType: string,
-  timeoutMs = 3000,
-): Promise<unknown> {
+function waitForMessageType(ws: WebSocket, targetType: string, timeoutMs = 3000): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       ws.removeEventListener('message', handler);
@@ -434,7 +509,9 @@ function waitForMessageType(
           ws.removeEventListener('message', handler);
           reject(new Error(`unexpected error response: ${JSON.stringify(msg)} (while waiting for "${targetType}")`));
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     ws.addEventListener('message', handler);
   });
@@ -458,9 +535,16 @@ function openWsReady(url: string, timeoutMs = 3000): Promise<WebSocket> {
           clearTimeout(timer);
           resolve(ws);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     });
-    ws.onerror = () => { if (!resolved) { clearTimeout(timer); reject(new Error('WS error')); } };
+    ws.onerror = () => {
+      if (!resolved) {
+        clearTimeout(timer);
+        reject(new Error('WS error'));
+      }
+    };
   });
 }
 
@@ -474,7 +558,7 @@ describe('WS send_message', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const newMsgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content }));
-    const newMsg = await newMsgPromise as { message: { content: string; author: string; authorType: string } };
+    const newMsg = (await newMsgPromise) as { message: { content: string; author: string; authorType: string } };
     ws.close();
 
     expect(newMsg.message.content).toBe(content);
@@ -491,9 +575,9 @@ describe('WS send_message', () => {
     ws.close();
 
     // Verify it's in the DB
-    const row = testDb.query<{ content: string }, [string]>(
-      'SELECT content FROM messages WHERE content = ?'
-    ).get(content);
+    const row = testDb
+      .query<{ content: string }, [string]>('SELECT content FROM messages WHERE content = ?')
+      .get(content);
     expect(row).not.toBeNull();
     expect(row!.content).toBe(content);
   });
@@ -504,7 +588,7 @@ describe('WS send_message', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const newMsgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content }));
-    const newMsg = await newMsgPromise as { message: { author: string } };
+    const newMsg = (await newMsgPromise) as { message: { author: string } };
     ws.close();
 
     expect(newMsg.message.author).toBe('user');
@@ -520,7 +604,7 @@ describe('WS load_history', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const histPagePromise = waitForMessageType(ws, 'history_page');
     ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 10 }));
-    const histPage = await histPagePromise as { messages: unknown[]; hasMore: boolean };
+    const histPage = (await histPagePromise) as { messages: unknown[]; hasMore: boolean };
     ws.close();
 
     expect(Array.isArray(histPage.messages)).toBe(true);
@@ -531,7 +615,7 @@ describe('WS load_history', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const histPagePromise = waitForMessageType(ws, 'history_page');
     ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 10 }));
-    const histPage = await histPagePromise as {
+    const histPage = (await histPagePromise) as {
       messages: Array<{ id: string; createdAt: string }>;
       hasMore: boolean;
     };
@@ -545,7 +629,7 @@ describe('WS load_history', () => {
 
     // Verify ascending order
     for (let i = 1; i < histPage.messages.length; i++) {
-      expect(histPage.messages[i - 1].createdAt <= histPage.messages[i].createdAt).toBe(true);
+      expect(histPage.messages[i - 1]!.createdAt <= histPage.messages[i]!.createdAt).toBe(true);
     }
   });
 
@@ -557,7 +641,7 @@ describe('WS load_history', () => {
     // Small yield to ensure listener is registered
     await new Promise<void>((r) => setTimeout(r, 10));
     ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 2 }));
-    const histPage = await histPagePromise as { messages: unknown[]; hasMore: boolean };
+    const histPage = (await histPagePromise) as { messages: unknown[]; hasMore: boolean };
     ws.close();
 
     // Only 2 messages returned but msgs 1-3 exist before msg-005 → hasMore=true
@@ -629,11 +713,11 @@ describe('Rate limit — token bucket logic', () => {
     const connId = 'partial-refill';
     const now = Date.now();
     // Use up 3 tokens (first message uses 0 tokens in the "first message" path, then next 3)
-    checkRateLimit(connId, now);             // first: creates bucket with 4 tokens
-    checkRateLimit(connId, now);             // uses token: 3 left
-    checkRateLimit(connId, now);             // uses token: 2 left
-    checkRateLimit(connId, now);             // uses token: 1 left
-    checkRateLimit(connId, now);             // uses token: 0 left
+    checkRateLimit(connId, now); // first: creates bucket with 4 tokens
+    checkRateLimit(connId, now); // uses token: 3 left
+    checkRateLimit(connId, now); // uses token: 2 left
+    checkRateLimit(connId, now); // uses token: 1 left
+    checkRateLimit(connId, now); // uses token: 0 left
     // All 5 used
     expect(checkRateLimit(connId, now)).toBe(false); // 6th denied
 
@@ -703,7 +787,7 @@ describe('WS message validation', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const errPromise = waitForMessageType(ws, 'error');
     ws.send('{ invalid json }}}');
-    const err = await errPromise as { type: string; code: string };
+    const err = (await errPromise) as { type: string; code: string };
     ws.close();
 
     expect(err.type).toBe('error');
@@ -714,7 +798,7 @@ describe('WS message validation', () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const errPromise = waitForMessageType(ws, 'error');
     ws.send(JSON.stringify({ type: 'unknown_command', payload: 'test' }));
-    const err = await errPromise as { code: string };
+    const err = (await errPromise) as { code: string };
     ws.close();
 
     expect(err.code).toBe('VALIDATION_ERROR');
@@ -742,7 +826,9 @@ describe('WS rate limit — real connection', () => {
             clearTimeout(timer);
             resolve();
           }
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
       });
     });
 
@@ -778,7 +864,7 @@ import { AGENT_BY_NAME } from '@agent-chatroom/shared';
 const NAME_RE_TEST = /^[a-zA-Z0-9_-]{1,32}$/;
 
 const RESERVED_AGENT_NAMES_TEST = new Set(
-  Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude')
+  Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude'),
 );
 
 function resolveConnectionName(rawName: string | undefined): string | null {
@@ -905,10 +991,14 @@ describe('resolveConnectionName — identity resolution', () => {
 
 type WsData2 = { params: { roomId: string }; query: { name?: string } };
 
-interface ConnState2 { name: string; roomId: string; connectedAt: string; }
+interface ConnState2 {
+  name: string;
+  roomId: string;
+  connectedAt: string;
+}
 
 // Per-server state for the identity integration server
-const identityWsConnIds = new Map<number, string>();
+const identityWsConnIds = new Map<string, string>();
 const identityConnStates = new Map<string, ConnState2>();
 const identityRoomConns = new Map<string, Set<string>>();
 let identityConnCounter = 0;
@@ -949,11 +1039,13 @@ beforeAll(async () => {
 
         if (resolvedName === null) {
           // Name is reserved — send error and close
-          ws.send(JSON.stringify({
-            type: 'error',
-            message: `Name '${rawName}' is reserved for agents. Choose a different name.`,
-            code: 'NAME_RESERVED',
-          }));
+          ws.send(
+            JSON.stringify({
+              type: 'error',
+              message: `Name '${rawName}' is reserved for agents. Choose a different name.`,
+              code: 'NAME_RESERVED',
+            }),
+          );
           ws.close();
           return;
         }
@@ -969,10 +1061,12 @@ beforeAll(async () => {
         const topic = `id-room:${roomId}`;
         ws.subscribe(topic);
 
-        const room = identityDb.query<
-          { id: string; name: string; topic: string; created_at: string },
-          [string]
-        >('SELECT * FROM rooms WHERE id = ?').get(roomId);
+        const room = identityDb
+          .query<
+            { id: string; name: string; topic: string; created_at: string },
+            [string]
+          >('SELECT * FROM rooms WHERE id = ?')
+          .get(roomId);
 
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', message: `Room '${roomId}' not found`, code: 'ROOM_NOT_FOUND' }));
@@ -982,22 +1076,27 @@ beforeAll(async () => {
 
         const connectedUsers = getIdentityConnectedUsers(roomId);
 
-        ws.send(JSON.stringify({
-          type: 'room_state',
-          room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
-          messages: [],
-          agents: [],
-          connectedUsers,
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'room_state',
+            room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
+            messages: [],
+            agents: [],
+            connectedUsers,
+          }),
+        );
 
         // Broadcast updated connectedUsers list to all other subscribers
-        ws.publish(topic, JSON.stringify({
-          type: 'room_state',
-          room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
-          messages: [],
-          agents: [],
-          connectedUsers,
-        }));
+        ws.publish(
+          topic,
+          JSON.stringify({
+            type: 'room_state',
+            room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
+            messages: [],
+            agents: [],
+            connectedUsers,
+          }),
+        );
       },
 
       message(ws, rawMessage) {
@@ -1062,7 +1161,9 @@ afterAll(() => {
   identityDb?.close();
   try {
     (identityApp as unknown as { server: { stop: () => void } })?.server?.stop();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -1074,7 +1175,7 @@ describe('WS identity — ?name= integration', () => {
     const ws = await openWsReady(`${identityWsUrl}/ws/default`);
     const msgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content: 'hello no name' }));
-    const msg = await msgPromise as { message: { author: string } };
+    const msg = (await msgPromise) as { message: { author: string } };
     ws.close();
 
     expect(msg.message.author).toBe('user');
@@ -1084,7 +1185,7 @@ describe('WS identity — ?name= integration', () => {
     const ws = await openWsReady(`${identityWsUrl}/ws/default?name=Claude`);
     const msgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content: 'hello from Claude' }));
-    const msg = await msgPromise as { message: { author: string } };
+    const msg = (await msgPromise) as { message: { author: string } };
     ws.close();
 
     expect(msg.message.author).toBe('Claude');
@@ -1111,7 +1212,7 @@ describe('WS identity — ?name= integration', () => {
     const ws = await openWsReady(`${identityWsUrl}/ws/default?name=`);
     const msgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content: 'hello empty name' }));
-    const msg = await msgPromise as { message: { author: string } };
+    const msg = (await msgPromise) as { message: { author: string } };
     ws.close();
 
     expect(msg.message.author).toBe('user');
@@ -1121,7 +1222,7 @@ describe('WS identity — ?name= integration', () => {
     const ws = await openWsReady(`${identityWsUrl}/ws/default?name=MiNombre`);
     const msgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content: 'hello MiNombre' }));
-    const msg = await msgPromise as { message: { author: string } };
+    const msg = (await msgPromise) as { message: { author: string } };
     ws.close();
 
     expect(msg.message.author).toBe('MiNombre');
@@ -1131,7 +1232,7 @@ describe('WS identity — ?name= integration', () => {
     const ws = await openWsReady(`${identityWsUrl}/ws/default?name=admin`);
     const msgPromise = waitForMessageType(ws, 'new_message');
     ws.send(JSON.stringify({ type: 'send_message', content: 'hello admin' }));
-    const msg = await msgPromise as { message: { author: string } };
+    const msg = (await msgPromise) as { message: { author: string } };
     ws.close();
 
     expect(msg.message.author).toBe('admin');

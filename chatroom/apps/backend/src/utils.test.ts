@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { generateId, nowIso, mapMessageRow, mapAgentSessionRow, mapRoomRow, safeMessage } from './utils.js';
 import type { MessageRow, AgentSessionRow, RoomRow } from './types.js';
+import { AgentState } from '@agent-chatroom/shared';
 import type { Message, ServerToolEvent } from '@agent-chatroom/shared';
 
 // ---------------------------------------------------------------------------
@@ -221,7 +222,7 @@ describe('mapAgentSessionRow', () => {
   it('maps status correctly', () => {
     const row: AgentSessionRow = { ...baseRow, status: 'thinking' };
     const session = mapAgentSessionRow(row);
-    expect(session.status).toBe('thinking');
+    expect(session.status).toBe(AgentState.Thinking);
   });
 
   it('maps last_active to lastActive (null case)', () => {
@@ -258,7 +259,7 @@ describe('mapAgentSessionRow', () => {
       model: 'claude-sonnet-4-6',
       status: 'done',
       last_active: '2026-03-17T12:00:00',
-      total_cost: 0.1500,
+      total_cost: 0.15,
       turn_count: 3,
     };
     const session = mapAgentSessionRow(row);
@@ -267,9 +268,9 @@ describe('mapAgentSessionRow', () => {
       roomId: 'default',
       sessionId: 'be8a0f12-1234-5678-abcd-ef0123456789',
       model: 'claude-sonnet-4-6',
-      status: 'done',
+      status: AgentState.Done,
       lastActive: '2026-03-17T12:00:00',
-      totalCost: 0.1500,
+      totalCost: 0.15,
       turnCount: 3,
     });
   });
@@ -433,8 +434,20 @@ describe('ServerToolEvent — id field is non-optional string', () => {
 
   it('two events with the same id are deduplicated by a Set', () => {
     const sharedId = generateId();
-    const event1: ServerToolEvent = { type: 'tool_event', id: sharedId, agent: 'bilbo', tool: 'Read', description: 'foo' };
-    const event2: ServerToolEvent = { type: 'tool_event', id: sharedId, agent: 'bilbo', tool: 'Read', description: 'foo' };
+    const event1: ServerToolEvent = {
+      type: 'tool_event',
+      id: sharedId,
+      agent: 'bilbo',
+      tool: 'Read',
+      description: 'foo',
+    };
+    const event2: ServerToolEvent = {
+      type: 'tool_event',
+      id: sharedId,
+      agent: 'bilbo',
+      tool: 'Read',
+      description: 'foo',
+    };
 
     const seenIds = new Set<string>();
     const deduplicated: ServerToolEvent[] = [];
@@ -451,8 +464,20 @@ describe('ServerToolEvent — id field is non-optional string', () => {
   });
 
   it('two events with different ids are both kept (not over-deduplicated)', () => {
-    const event1: ServerToolEvent = { type: 'tool_event', id: generateId(), agent: 'bilbo', tool: 'Read', description: 'foo' };
-    const event2: ServerToolEvent = { type: 'tool_event', id: generateId(), agent: 'ultron', tool: 'Edit', description: 'bar' };
+    const event1: ServerToolEvent = {
+      type: 'tool_event',
+      id: generateId(),
+      agent: 'bilbo',
+      tool: 'Read',
+      description: 'foo',
+    };
+    const event2: ServerToolEvent = {
+      type: 'tool_event',
+      id: generateId(),
+      agent: 'ultron',
+      tool: 'Edit',
+      description: 'bar',
+    };
 
     const seenIds = new Set<string>();
     const deduplicated: ServerToolEvent[] = [];

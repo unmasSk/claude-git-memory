@@ -100,38 +100,61 @@ type LocalRoomRow = {
 };
 
 // Thin query helpers operating on a given db instance.
-function insertMessage(db: Database, row: {
-  id: string; roomId: string; author: string; authorType: string;
-  content: string; msgType: string; parentId: string | null; metadata: string;
-}): void {
-  db.query(`
+function insertMessage(
+  db: Database,
+  row: {
+    id: string;
+    roomId: string;
+    author: string;
+    authorType: string;
+    content: string;
+    msgType: string;
+    parentId: string | null;
+    metadata: string;
+  },
+): void {
+  db.query(
+    `
     INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(row.id, row.roomId, row.author, row.authorType, row.content, row.msgType, row.parentId, row.metadata);
+  `,
+  ).run(row.id, row.roomId, row.author, row.authorType, row.content, row.msgType, row.parentId, row.metadata);
 }
 
 function getRecentMessages(db: Database, roomId: string, limit: number): LocalMessageRow[] {
-  return db.query<LocalMessageRow, [string, number]>(`
+  return db
+    .query<LocalMessageRow, [string, number]>(
+      `
     SELECT * FROM (
       SELECT * FROM messages WHERE room_id = ?
       ORDER BY created_at DESC LIMIT ?
     ) ORDER BY created_at ASC
-  `).all(roomId, limit);
+  `,
+    )
+    .all(roomId, limit);
 }
 
 function getMessagesBefore(db: Database, roomId: string, beforeId: string, limit: number): LocalMessageRow[] {
-  return db.query<LocalMessageRow, [string, string, number]>(`
+  return db
+    .query<LocalMessageRow, [string, string, number]>(
+      `
     SELECT * FROM messages
     WHERE room_id = ?
       AND created_at < (SELECT created_at FROM messages WHERE id = ?)
     ORDER BY created_at DESC LIMIT ?
-  `).all(roomId, beforeId, limit);
+  `,
+    )
+    .all(roomId, beforeId, limit);
 }
 
 function hasMoreMessagesBefore(db: Database, roomId: string, beforeCreatedAt: string): boolean {
-  const row = db.query<{ count: number }, [string, string]>(`
+  const row = db
+    .query<{ count: number }, [string, string]>(
+      `
     SELECT COUNT(*) as count FROM messages WHERE room_id = ? AND created_at < ?
-  `).get(roomId, beforeCreatedAt);
+  `,
+    )
+    .get(roomId, beforeCreatedAt);
   return (row?.count ?? 0) > 0;
 }
 
@@ -140,10 +163,18 @@ function getMessageCreatedAt(db: Database, id: string): string | null {
   return row?.created_at ?? null;
 }
 
-function upsertAgentSession(db: Database, row: {
-  agentName: string; roomId: string; sessionId: string | null; model: string; status: string;
-}): void {
-  db.query(`
+function upsertAgentSession(
+  db: Database,
+  row: {
+    agentName: string;
+    roomId: string;
+    sessionId: string | null;
+    model: string;
+    status: string;
+  },
+): void {
+  db.query(
+    `
     INSERT INTO agent_sessions (agent_name, room_id, session_id, model, status, last_active)
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT (agent_name, room_id) DO UPDATE SET
@@ -151,33 +182,46 @@ function upsertAgentSession(db: Database, row: {
       model       = excluded.model,
       status      = excluded.status,
       last_active = datetime('now')
-  `).run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
+  `,
+  ).run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
 }
 
 function getAgentSession(db: Database, agentName: string, roomId: string): LocalAgentSessionRow | null {
-  return db.query<LocalAgentSessionRow, [string, string]>(`
+  return (
+    db
+      .query<LocalAgentSessionRow, [string, string]>(
+        `
     SELECT * FROM agent_sessions WHERE agent_name = ? AND room_id = ?
-  `).get(agentName, roomId) ?? null;
+  `,
+      )
+      .get(agentName, roomId) ?? null
+  );
 }
 
 function incrementAgentCost(db: Database, agentName: string, roomId: string, delta: number): void {
-  db.query(`
+  db.query(
+    `
     UPDATE agent_sessions SET total_cost = total_cost + ?, last_active = datetime('now')
     WHERE agent_name = ? AND room_id = ?
-  `).run(delta, agentName, roomId);
+  `,
+  ).run(delta, agentName, roomId);
 }
 
 function clearAgentSession(db: Database, agentName: string, roomId: string): void {
-  db.query(`
+  db.query(
+    `
     UPDATE agent_sessions SET session_id = NULL WHERE agent_name = ? AND room_id = ?
-  `).run(agentName, roomId);
+  `,
+  ).run(agentName, roomId);
 }
 
 function incrementAgentTurnCount(db: Database, agentName: string, roomId: string): void {
-  db.query(`
+  db.query(
+    `
     UPDATE agent_sessions SET turn_count = turn_count + 1, last_active = datetime('now')
     WHERE agent_name = ? AND room_id = ?
-  `).run(agentName, roomId);
+  `,
+  ).run(agentName, roomId);
 }
 
 function listRooms(db: Database): LocalRoomRow[] {
@@ -213,29 +257,31 @@ describe('DB queries — messages', () => {
 
     const rows = getRecentMessages(db, 'default', 50);
     expect(rows.length).toBe(1);
-    expect(rows[0].id).toBe('msg-001');
-    expect(rows[0].content).toBe('hello');
-    expect(rows[0].author).toBe('user');
+    expect(rows[0]!.id).toBe('msg-001');
+    expect(rows[0]!.content).toBe('hello');
+    expect(rows[0]!.author).toBe('user');
   });
 
   it('getRecentMessages returns last N messages in ASC order', () => {
     // Insert 5 messages with explicit different timestamps
     for (let i = 1; i <= 5; i++) {
-      db.query(`
+      db.query(
+        `
         INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
         VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
-      `).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+      `,
+      ).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
     }
 
     // Request last 3 — should be messages 3, 4, 5 in ASC order
     const rows = getRecentMessages(db, 'default', 3);
     expect(rows.length).toBe(3);
-    expect(rows[0].id).toBe('msg-003');
-    expect(rows[1].id).toBe('msg-004');
-    expect(rows[2].id).toBe('msg-005');
+    expect(rows[0]!.id).toBe('msg-003');
+    expect(rows[1]!.id).toBe('msg-004');
+    expect(rows[2]!.id).toBe('msg-005');
     // Verify ASC order
-    expect(rows[0].created_at < rows[1].created_at).toBe(true);
-    expect(rows[1].created_at < rows[2].created_at).toBe(true);
+    expect(rows[0]!.created_at < rows[1]!.created_at).toBe(true);
+    expect(rows[1]!.created_at < rows[2]!.created_at).toBe(true);
   });
 
   it('getRecentMessages returns empty array when no messages', () => {
@@ -245,10 +291,12 @@ describe('DB queries — messages', () => {
 
   it('getMessagesBefore returns correct page of older messages', () => {
     for (let i = 1; i <= 5; i++) {
-      db.query(`
+      db.query(
+        `
         INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
         VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
-      `).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+      `,
+      ).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
     }
 
     // Get messages before msg-004 (created at 10:04)
@@ -264,10 +312,12 @@ describe('DB queries — messages', () => {
 
   it('getMessagesBefore respects the limit', () => {
     for (let i = 1; i <= 5; i++) {
-      db.query(`
+      db.query(
+        `
         INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
         VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
-      `).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+      `,
+      ).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
     }
 
     const rows = getMessagesBefore(db, 'default', 'msg-005', 2);
@@ -276,10 +326,12 @@ describe('DB queries — messages', () => {
 
   it('hasMoreMessagesBefore returns true when older messages exist', () => {
     for (let i = 1; i <= 5; i++) {
-      db.query(`
+      db.query(
+        `
         INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
         VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
-      `).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+      `,
+      ).run(`msg-00${i}`, `message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
     }
 
     // Pivot on message 3 — messages 1 and 2 are older
@@ -290,10 +342,12 @@ describe('DB queries — messages', () => {
   });
 
   it('hasMoreMessagesBefore returns false when no older messages exist', () => {
-    db.query(`
+    db.query(
+      `
       INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
       VALUES ('msg-001', 'default', 'user', 'human', 'only message', 'message', NULL, '{}', '2026-03-17T10:01:00.000Z')
-    `).run();
+    `,
+    ).run();
 
     const pivotCreatedAt = getMessageCreatedAt(db, 'msg-001');
     const result = hasMoreMessagesBefore(db, 'default', pivotCreatedAt!);
@@ -373,15 +427,33 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('upsertAgentSession only creates one row per (agent, room) pair', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'done' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'done',
+    });
 
     const rows = db.query<{ count: number }, []>('SELECT COUNT(*) as count FROM agent_sessions').get();
     expect(rows!.count).toBe(1);
   });
 
   it('incrementAgentCost is atomic — two deltas sum correctly', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
 
     incrementAgentCost(db, 'bilbo', 'default', 0.001);
     incrementAgentCost(db, 'bilbo', 'default', 0.002);
@@ -391,7 +463,13 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('incrementAgentCost handles multiple cost increments', () => {
-    upsertAgentSession(db, { agentName: 'ultron', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
+    upsertAgentSession(db, {
+      agentName: 'ultron',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
 
     for (let i = 0; i < 5; i++) {
       incrementAgentCost(db, 'ultron', 'default', 0.01);
@@ -402,7 +480,13 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('clearAgentSession sets session_id to null', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: 'sess-abc', model: 'claude-sonnet-4-6', status: 'done' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: 'sess-abc',
+      model: 'claude-sonnet-4-6',
+      status: 'done',
+    });
 
     const before = getAgentSession(db, 'bilbo', 'default');
     expect(before!.session_id).toBe('sess-abc');
@@ -414,7 +498,13 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('clearAgentSession preserves other fields', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: 'sess-abc', model: 'claude-sonnet-4-6', status: 'done' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: 'sess-abc',
+      model: 'claude-sonnet-4-6',
+      status: 'done',
+    });
     incrementAgentCost(db, 'bilbo', 'default', 0.05);
 
     clearAgentSession(db, 'bilbo', 'default');
@@ -426,7 +516,13 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('incrementAgentTurnCount increments by 1 each call', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
 
     incrementAgentTurnCount(db, 'bilbo', 'default');
     incrementAgentTurnCount(db, 'bilbo', 'default');
@@ -437,15 +533,33 @@ describe('DB queries — agent sessions', () => {
   });
 
   it('incrementAgentTurnCount starts from 0 (default)', () => {
-    upsertAgentSession(db, { agentName: 'cerberus', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
+    upsertAgentSession(db, {
+      agentName: 'cerberus',
+      roomId: 'default',
+      sessionId: null,
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
     incrementAgentTurnCount(db, 'cerberus', 'default');
     const session = getAgentSession(db, 'cerberus', 'default');
     expect(session!.turn_count).toBe(1);
   });
 
   it('multiple agents can have independent sessions in the same room', () => {
-    upsertAgentSession(db, { agentName: 'bilbo', roomId: 'default', sessionId: 'sess-b', model: 'claude-sonnet-4-6', status: 'thinking' });
-    upsertAgentSession(db, { agentName: 'ultron', roomId: 'default', sessionId: 'sess-u', model: 'claude-sonnet-4-6', status: 'idle' });
+    upsertAgentSession(db, {
+      agentName: 'bilbo',
+      roomId: 'default',
+      sessionId: 'sess-b',
+      model: 'claude-sonnet-4-6',
+      status: 'thinking',
+    });
+    upsertAgentSession(db, {
+      agentName: 'ultron',
+      roomId: 'default',
+      sessionId: 'sess-u',
+      model: 'claude-sonnet-4-6',
+      status: 'idle',
+    });
 
     const bilbo = getAgentSession(db, 'bilbo', 'default');
     const ultron = getAgentSession(db, 'ultron', 'default');
@@ -475,19 +589,23 @@ describe('DB queries — rooms', () => {
   it('default room is seeded on schema creation', () => {
     const rooms = listRooms(db);
     expect(rooms.length).toBe(1);
-    expect(rooms[0].id).toBe('default');
-    expect(rooms[0].name).toBe('general');
+    expect(rooms[0]!.id).toBe('default');
+    expect(rooms[0]!.name).toBe('general');
   });
 
   it('rooms are returned in ASC created_at order', () => {
-    db.query(`INSERT INTO rooms (id, name, topic, created_at) VALUES ('room-a', 'Alpha', '', '2026-01-01T00:00:00')`).run();
-    db.query(`INSERT INTO rooms (id, name, topic, created_at) VALUES ('room-b', 'Beta', '', '2025-01-01T00:00:00')`).run();
+    db.query(
+      `INSERT INTO rooms (id, name, topic, created_at) VALUES ('room-a', 'Alpha', '', '2026-01-01T00:00:00')`,
+    ).run();
+    db.query(
+      `INSERT INTO rooms (id, name, topic, created_at) VALUES ('room-b', 'Beta', '', '2025-01-01T00:00:00')`,
+    ).run();
 
     const rooms = listRooms(db);
     // default + room-b (2025) + room-a (2026) — but default was created with datetime('now') ~ 2026
     // Just verify ordering is ascending
     for (let i = 1; i < rooms.length; i++) {
-      expect(rooms[i - 1].created_at <= rooms[i].created_at).toBe(true);
+      expect(rooms[i - 1]!.created_at <= rooms[i]!.created_at).toBe(true);
     }
   });
 });

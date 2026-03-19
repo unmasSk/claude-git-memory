@@ -31,7 +31,7 @@ describe('extractMentions', () => {
   // --- Agent @mentions with depth tracking ---
 
   it('allows agent mentions at depth 0', () => {
-    const result = extractMentions('@bilbo hello', 0);
+    const result = extractMentions('@bilbo hello');
     expect(result).toEqual(new Set(['bilbo']));
   });
 

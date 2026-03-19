@@ -55,57 +55,106 @@ function makeTestDb(): Database {
 type Row<T> = T;
 
 function dbListRooms() {
-  return testDb.query<{ id: string; name: string; topic: string; created_at: string }, []>(
-    'SELECT * FROM rooms ORDER BY created_at ASC'
-  ).all();
+  return testDb
+    .query<
+      { id: string; name: string; topic: string; created_at: string },
+      []
+    >('SELECT * FROM rooms ORDER BY created_at ASC')
+    .all();
 }
 
 function dbGetRoomById(id: string) {
-  return testDb.query<{ id: string; name: string; topic: string; created_at: string }, [string]>(
-    'SELECT * FROM rooms WHERE id = ?'
-  ).get(id) ?? null;
+  return (
+    testDb
+      .query<
+        { id: string; name: string; topic: string; created_at: string },
+        [string]
+      >('SELECT * FROM rooms WHERE id = ?')
+      .get(id) ?? null
+  );
 }
 
 function dbListAgentSessions(roomId: string) {
-  return testDb.query<{
-    agent_name: string; room_id: string; session_id: string | null;
-    model: string; status: string; last_active: string | null;
-    total_cost: number; turn_count: number;
-  }, [string]>(`SELECT * FROM agent_sessions WHERE room_id = ? ORDER BY agent_name ASC`).all(roomId);
+  return testDb
+    .query<
+      {
+        agent_name: string;
+        room_id: string;
+        session_id: string | null;
+        model: string;
+        status: string;
+        last_active: string | null;
+        total_cost: number;
+        turn_count: number;
+      },
+      [string]
+    >(`SELECT * FROM agent_sessions WHERE room_id = ? ORDER BY agent_name ASC`)
+    .all(roomId);
 }
 
 function dbGetRecentMessages(roomId: string, limit: number) {
-  return testDb.query<{
-    id: string; room_id: string; author: string; author_type: string;
-    content: string; msg_type: string; parent_id: string | null;
-    metadata: string; created_at: string;
-  }, [string, number]>(`
+  return testDb
+    .query<
+      {
+        id: string;
+        room_id: string;
+        author: string;
+        author_type: string;
+        content: string;
+        msg_type: string;
+        parent_id: string | null;
+        metadata: string;
+        created_at: string;
+      },
+      [string, number]
+    >(
+      `
     SELECT * FROM (
       SELECT * FROM messages WHERE room_id = ? ORDER BY created_at DESC LIMIT ?
     ) ORDER BY created_at ASC
-  `).all(roomId, limit);
+  `,
+    )
+    .all(roomId, limit);
 }
 
 function dbInsertMessage(row: {
-  id: string; roomId: string; author: string; authorType: string;
-  content: string; msgType: string; parentId: string | null; metadata: string;
+  id: string;
+  roomId: string;
+  author: string;
+  authorType: string;
+  content: string;
+  msgType: string;
+  parentId: string | null;
+  metadata: string;
 }) {
-  testDb.query(`
+  testDb
+    .query(
+      `
     INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(row.id, row.roomId, row.author, row.authorType, row.content, row.msgType, row.parentId, row.metadata);
+  `,
+    )
+    .run(row.id, row.roomId, row.author, row.authorType, row.content, row.msgType, row.parentId, row.metadata);
 }
 
 function dbUpsertAgentSession(row: {
-  agentName: string; roomId: string; sessionId: string | null; model: string; status: string;
+  agentName: string;
+  roomId: string;
+  sessionId: string | null;
+  model: string;
+  status: string;
 }) {
-  testDb.query(`
+  testDb
+    .query(
+      `
     INSERT INTO agent_sessions (agent_name, room_id, session_id, model, status, last_active)
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT (agent_name, room_id) DO UPDATE SET
       session_id = excluded.session_id, model = excluded.model,
       status = excluded.status, last_active = datetime('now')
-  `).run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
+  `,
+    )
+    .run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
 }
 
 // ---------------------------------------------------------------------------
@@ -117,27 +166,48 @@ function mapRoom(r: { id: string; name: string; topic: string; created_at: strin
 }
 
 function mapMessage(r: {
-  id: string; room_id: string; author: string; author_type: string;
-  content: string; msg_type: string; parent_id: string | null;
-  metadata: string; created_at: string;
+  id: string;
+  room_id: string;
+  author: string;
+  author_type: string;
+  content: string;
+  msg_type: string;
+  parent_id: string | null;
+  metadata: string;
+  created_at: string;
 }) {
   return {
-    id: r.id, roomId: r.room_id, author: r.author, authorType: r.author_type,
-    content: r.content, msgType: r.msg_type, parentId: r.parent_id,
+    id: r.id,
+    roomId: r.room_id,
+    author: r.author,
+    authorType: r.author_type,
+    content: r.content,
+    msgType: r.msg_type,
+    parentId: r.parent_id,
     metadata: JSON.parse(r.metadata || '{}'),
     createdAt: r.created_at,
   };
 }
 
 function mapSession(r: {
-  agent_name: string; room_id: string; session_id: string | null;
-  model: string; status: string; last_active: string | null;
-  total_cost: number; turn_count: number;
+  agent_name: string;
+  room_id: string;
+  session_id: string | null;
+  model: string;
+  status: string;
+  last_active: string | null;
+  total_cost: number;
+  turn_count: number;
 }) {
   return {
-    agentName: r.agent_name, roomId: r.room_id, sessionId: r.session_id,
-    model: r.model, status: r.status, lastActive: r.last_active,
-    totalCost: r.total_cost, turnCount: r.turn_count,
+    agentName: r.agent_name,
+    roomId: r.room_id,
+    sessionId: r.session_id,
+    model: r.model,
+    status: r.status,
+    lastActive: r.last_active,
+    totalCost: r.total_cost,
+    turnCount: r.turn_count,
   };
 }
 
@@ -154,7 +224,13 @@ beforeAll(async () => {
   testDb = makeTestDb();
 
   // Insert a bilbo agent session for the default room
-  dbUpsertAgentSession({ agentName: 'bilbo', roomId: 'default', sessionId: null, model: 'claude-sonnet-4-6', status: 'idle' });
+  dbUpsertAgentSession({
+    agentName: 'bilbo',
+    roomId: 'default',
+    sessionId: null,
+    model: 'claude-sonnet-4-6',
+    status: 'idle',
+  });
   // Insert a test message
   dbInsertMessage({
     id: 'test-msg-001',
@@ -179,33 +255,41 @@ beforeAll(async () => {
     })
 
     // GET /api/rooms/:id
-    .get('/rooms/:id', ({ params, set }) => {
-      const room = dbGetRoomById(params.id);
-      if (!room) {
-        set.status = 404;
-        return { error: 'Room not found', code: 'NOT_FOUND' };
-      }
-      const sessions = dbListAgentSessions(params.id);
-      return {
-        room: mapRoom(room),
-        participants: sessions.map(mapSession),
-      };
-    }, { params: t.Object({ id: t.String() }) })
+    .get(
+      '/rooms/:id',
+      ({ params, set }) => {
+        const room = dbGetRoomById(params.id);
+        if (!room) {
+          set.status = 404;
+          return { error: 'Room not found', code: 'NOT_FOUND' };
+        }
+        const sessions = dbListAgentSessions(params.id);
+        return {
+          room: mapRoom(room),
+          participants: sessions.map(mapSession),
+        };
+      },
+      { params: t.Object({ id: t.String() }) },
+    )
 
     // GET /api/rooms/:id/messages
-    .get('/rooms/:id/messages', ({ params, query, set }) => {
-      const room = dbGetRoomById(params.id);
-      if (!room) {
-        set.status = 404;
-        return { error: 'Room not found', code: 'NOT_FOUND' };
-      }
-      const limit = Math.min(Number(query.limit ?? ROOM_STATE_MESSAGE_LIMIT), 100);
-      const rows = dbGetRecentMessages(params.id, limit);
-      return { messages: rows.map(mapMessage), hasMore: false };
-    }, {
-      params: t.Object({ id: t.String() }),
-      query: t.Object({ limit: t.Optional(t.Numeric()), before: t.Optional(t.String()) }),
-    })
+    .get(
+      '/rooms/:id/messages',
+      ({ params, query, set }) => {
+        const room = dbGetRoomById(params.id);
+        if (!room) {
+          set.status = 404;
+          return { error: 'Room not found', code: 'NOT_FOUND' };
+        }
+        const limit = Math.min(Number(query.limit ?? ROOM_STATE_MESSAGE_LIMIT), 100);
+        const rows = dbGetRecentMessages(params.id, limit);
+        return { messages: rows.map(mapMessage), hasMore: false };
+      },
+      {
+        params: t.Object({ id: t.String() }),
+        query: t.Object({ limit: t.Optional(t.Numeric()), before: t.Optional(t.String()) }),
+      },
+    )
 
     // GET /api/agents — mirrors production: strip allowedTools (SEC-MED-001)
     .get('/agents', () => getAllAgents().map(({ allowedTools: _omit, ...safe }) => safe))
@@ -223,7 +307,9 @@ afterAll(() => {
   testDb?.close();
   try {
     (app as unknown as { server: { stop: () => void } })?.server?.stop();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -238,13 +324,13 @@ describe('GET /api/rooms', () => {
 
   it('returns an array', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const body = await res.json() as unknown[];
+    const body = (await res.json()) as unknown[];
     expect(Array.isArray(body)).toBe(true);
   });
 
   it('includes the default room in the array', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const rooms = await res.json() as Array<{ id: string; name: string }>;
+    const rooms = (await res.json()) as Array<{ id: string; name: string }>;
     const found = rooms.find((r) => r.id === 'default');
     expect(found).toBeDefined();
     expect(found!.name).toBe('general');
@@ -252,7 +338,7 @@ describe('GET /api/rooms', () => {
 
   it('maps created_at → createdAt (camelCase)', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const rooms = await res.json() as Array<Record<string, unknown>>;
+    const rooms = (await res.json()) as Array<Record<string, unknown>>;
     const defaultRoom = rooms.find((r) => r.id === 'default');
     expect(defaultRoom).toBeDefined();
     expect('createdAt' in defaultRoom!).toBe(true);
@@ -261,7 +347,7 @@ describe('GET /api/rooms', () => {
 
   it('returns at least 1 room', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const rooms = await res.json() as unknown[];
+    const rooms = (await res.json()) as unknown[];
     expect(rooms.length).toBeGreaterThanOrEqual(1);
   });
 });
@@ -278,29 +364,29 @@ describe('GET /api/rooms/:id', () => {
 
   it('returns a room object with correct id', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default`);
-    const body = await res.json() as { room: { id: string; name: string }; participants: unknown[] };
+    const body = (await res.json()) as { room: { id: string; name: string }; participants: unknown[] };
     expect(body.room.id).toBe('default');
     expect(body.room.name).toBe('general');
   });
 
   it('returns a participants array', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default`);
-    const body = await res.json() as { room: unknown; participants: unknown[] };
+    const body = (await res.json()) as { room: unknown; participants: unknown[] };
     expect(Array.isArray(body.participants)).toBe(true);
   });
 
   it('participants array includes bilbo agent session', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default`);
-    const body = await res.json() as { participants: Array<{ agentName: string }> };
+    const body = (await res.json()) as { participants: Array<{ agentName: string }> };
     const bilbo = body.participants.find((p) => p.agentName === 'bilbo');
     expect(bilbo).toBeDefined();
   });
 
   it('participants have camelCase fields (agentName, roomId, etc.)', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default`);
-    const body = await res.json() as { participants: Array<Record<string, unknown>> };
+    const body = (await res.json()) as { participants: Array<Record<string, unknown>> };
     if (body.participants.length > 0) {
-      const p = body.participants[0];
+      const p = body.participants[0]!;
       expect('agentName' in p).toBe(true);
       expect('agent_name' in p).toBe(false);
     }
@@ -313,7 +399,7 @@ describe('GET /api/rooms/:id', () => {
 
   it('returns error body with code NOT_FOUND for missing room', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/nonexistent-room-xyz`);
-    const body = await res.json() as { error: string; code: string };
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.code).toBe('NOT_FOUND');
     expect(typeof body.error).toBe('string');
   });
@@ -331,14 +417,14 @@ describe('GET /api/rooms/:id/messages', () => {
 
   it('returns messages array and hasMore flag', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default/messages`);
-    const body = await res.json() as { messages: unknown[]; hasMore: boolean };
+    const body = (await res.json()) as { messages: unknown[]; hasMore: boolean };
     expect(Array.isArray(body.messages)).toBe(true);
     expect(typeof body.hasMore).toBe('boolean');
   });
 
   it('messages array contains the seeded test message', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default/messages`);
-    const body = await res.json() as { messages: Array<{ id: string; content: string }> };
+    const body = (await res.json()) as { messages: Array<{ id: string; content: string }> };
     const found = body.messages.find((m) => m.id === 'test-msg-001');
     expect(found).toBeDefined();
     expect(found!.content).toBe('hello chatroom');
@@ -346,9 +432,9 @@ describe('GET /api/rooms/:id/messages', () => {
 
   it('message objects have camelCase fields (roomId, authorType, msgType)', async () => {
     const res = await fetch(`${baseUrl}/api/rooms/default/messages`);
-    const body = await res.json() as { messages: Array<Record<string, unknown>> };
+    const body = (await res.json()) as { messages: Array<Record<string, unknown>> };
     if (body.messages.length > 0) {
-      const msg = body.messages[0];
+      const msg = body.messages[0]!;
       expect('roomId' in msg).toBe(true);
       expect('authorType' in msg).toBe(true);
       expect('msgType' in msg).toBe(true);
@@ -376,7 +462,7 @@ describe('GET /api/rooms/:id/messages', () => {
       });
     }
     const res = await fetch(`${baseUrl}/api/rooms/default/messages?limit=3`);
-    const body = await res.json() as { messages: unknown[] };
+    const body = (await res.json()) as { messages: unknown[] };
     expect(body.messages.length).toBeLessThanOrEqual(3);
   });
 });
@@ -393,14 +479,14 @@ describe('GET /api/agents', () => {
 
   it('returns an array with all 12 agents', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as unknown[];
+    const agents = (await res.json()) as unknown[];
     expect(Array.isArray(agents)).toBe(true);
     expect(agents.length).toBe(12);
   });
 
   it('each agent has a name field', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ name: string }>;
+    const agents = (await res.json()) as Array<{ name: string }>;
     for (const agent of agents) {
       expect(typeof agent.name).toBe('string');
       expect(agent.name.length).toBeGreaterThan(0);
@@ -409,7 +495,7 @@ describe('GET /api/agents', () => {
 
   it('each agent has an invokable field (boolean)', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ invokable: unknown }>;
+    const agents = (await res.json()) as Array<{ invokable: unknown }>;
     for (const agent of agents) {
       expect(typeof agent.invokable).toBe('boolean');
     }
@@ -417,7 +503,7 @@ describe('GET /api/agents', () => {
 
   it('user agent is not invokable', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ name: string; invokable: boolean }>;
+    const agents = (await res.json()) as Array<{ name: string; invokable: boolean }>;
     const user = agents.find((a) => a.name === 'user');
     expect(user).toBeDefined();
     expect(user!.invokable).toBe(false);
@@ -425,7 +511,7 @@ describe('GET /api/agents', () => {
 
   it('includes bilbo, ultron, cerberus, dante in the list', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ name: string }>;
+    const agents = (await res.json()) as Array<{ name: string }>;
     const names = agents.map((a) => a.name);
     for (const expected of ['bilbo', 'ultron', 'cerberus', 'dante']) {
       expect(names).toContain(expected);
@@ -434,7 +520,7 @@ describe('GET /api/agents', () => {
 
   it('allowedTools is stripped from every agent in the production route (SEC-MED-001)', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<Record<string, unknown>>;
+    const agents = (await res.json()) as Array<Record<string, unknown>>;
     for (const agent of agents) {
       expect('allowedTools' in agent).toBe(false);
     }

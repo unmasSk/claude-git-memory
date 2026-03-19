@@ -100,21 +100,34 @@ function exhaustBucket(key: string): void {
 // ---------------------------------------------------------------------------
 
 function dbGetRoomById(id: string) {
-  return _inviteDb.query<{ id: string; name: string; topic: string; created_at: string }, [string]>(
-    'SELECT * FROM rooms WHERE id = ?'
-  ).get(id) ?? null;
+  return (
+    _inviteDb
+      .query<
+        { id: string; name: string; topic: string; created_at: string },
+        [string]
+      >('SELECT * FROM rooms WHERE id = ?')
+      .get(id) ?? null
+  );
 }
 
 function dbUpsertAgentSession(row: {
-  agentName: string; roomId: string; sessionId: string | null; model: string; status: string;
+  agentName: string;
+  roomId: string;
+  sessionId: string | null;
+  model: string;
+  status: string;
 }) {
-  _inviteDb.query(`
+  _inviteDb
+    .query(
+      `
     INSERT INTO agent_sessions (agent_name, room_id, session_id, model, status, last_active)
     VALUES (?, ?, ?, ?, ?, datetime('now'))
     ON CONFLICT (agent_name, room_id) DO UPDATE SET
       session_id = excluded.session_id, model = excluded.model,
       status = excluded.status, last_active = datetime('now')
-  `).run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
+  `,
+    )
+    .run(row.agentName, row.roomId, row.sessionId, row.model, row.status);
 }
 
 // ---------------------------------------------------------------------------
@@ -144,7 +157,10 @@ beforeAll(async () => {
         const bearerToken = rawAuth.startsWith('Bearer ') ? rawAuth.slice(7).trim() : undefined;
         if (!peekToken(bearerToken)) {
           set.status = 401;
-          return { error: 'Unauthorized. Provide a valid token via Authorization: Bearer <token>', code: 'UNAUTHORIZED' };
+          return {
+            error: 'Unauthorized. Provide a valid token via Authorization: Bearer <token>',
+            code: 'UNAUTHORIZED',
+          };
         }
 
         const room = dbGetRoomById(params.id);
@@ -181,7 +197,7 @@ beforeAll(async () => {
           agents: t.Array(t.String(), { minItems: 1 }),
         }),
         headers: t.Object({ authorization: t.Optional(t.String()) }),
-      }
+      },
     )
     .listen({ port: 0, hostname: '127.0.0.1' });
 
@@ -196,18 +212,16 @@ afterAll(() => {
   _inviteDb.close();
   try {
     (app as unknown as { server: { stop: () => void } })?.server?.stop();
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 });
 
 // ---------------------------------------------------------------------------
 // Helper: POST /api/rooms/:id/invite with a given auth header
 // ---------------------------------------------------------------------------
 
-async function postInvite(
-  roomId: string,
-  agents: string[],
-  authHeader?: string,
-): Promise<Response> {
+async function postInvite(roomId: string, agents: string[], authHeader?: string): Promise<Response> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
@@ -233,7 +247,7 @@ describe('POST /api/rooms/:id/invite — Authorization header', () => {
 
   it('returns 401 error body with UNAUTHORIZED code when header is missing', async () => {
     const res = await postInvite('default', ['bilbo']);
-    const body = await res.json() as { error: string; code: string };
+    const body = (await res.json()) as { error: string; code: string };
     expect(body.code).toBe('UNAUTHORIZED');
     expect(typeof body.error).toBe('string');
   });
@@ -266,7 +280,7 @@ describe('POST /api/rooms/:id/invite — Authorization header', () => {
   it('returns added/skipped arrays on success', async () => {
     const issued = issueToken('user');
     const res = await postInvite('default', ['bilbo', 'nonexistent-xyz'], `Bearer ${issued!.token}`);
-    const body = await res.json() as { added: string[]; skipped: string[] };
+    const body = (await res.json()) as { added: string[]; skipped: string[] };
     expect(Array.isArray(body.added)).toBe(true);
     expect(Array.isArray(body.skipped)).toBe(true);
   });
@@ -298,7 +312,7 @@ describe('POST /api/rooms/:id/invite — room validation', () => {
   it('returns NOT_FOUND code in body when room missing', async () => {
     const issued = issueToken('user');
     const res = await postInvite('nonexistent-room-xyz', ['bilbo'], `Bearer ${issued!.token}`);
-    const body = await res.json() as { code: string };
+    const body = (await res.json()) as { code: string };
     expect(body.code).toBe('NOT_FOUND');
   });
 });
@@ -323,7 +337,7 @@ describe('POST /api/rooms/:id/invite — rate limit (429)', () => {
 
     const issued = issueToken('user');
     const res = await postInvite('default', ['bilbo'], `Bearer ${issued!.token}`);
-    const body = await res.json() as { code: string; error: string };
+    const body = (await res.json()) as { code: string; error: string };
 
     expect(body.code).toBe('RATE_LIMIT');
     expect(typeof body.error).toBe('string');

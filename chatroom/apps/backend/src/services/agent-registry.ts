@@ -47,7 +47,7 @@ function parseFrontmatter(content: string): ParsedFrontmatter {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!match) return {};
 
-  const yaml = match[1];
+  const yaml = match[1]!;
   const result: ParsedFrontmatter = {};
 
   for (const line of yaml.split(/\r?\n/)) {

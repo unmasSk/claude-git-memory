@@ -9,6 +9,7 @@
  */
 import { describe, it, expect, mock } from 'bun:test';
 import { broadcastSync } from './message-bus.js';
+import { AgentState } from '@agent-chatroom/shared';
 import type { ServerMessage, Message } from '@agent-chatroom/shared';
 
 // ---------------------------------------------------------------------------
@@ -58,7 +59,7 @@ describe('stripSessionId via broadcastSync', () => {
     broadcastSync('default', event, mockServer);
 
     expect(publishedPayloads.length).toBe(1);
-    const parsed = JSON.parse(publishedPayloads[0]);
+    const parsed = JSON.parse(publishedPayloads[0]!);
     expect(parsed.message.metadata.sessionId).toBeUndefined();
   });
 
@@ -83,7 +84,7 @@ describe('stripSessionId via broadcastSync', () => {
     };
 
     broadcastSync('default', event, mockServer);
-    const parsed = JSON.parse(publishedPayloads[0]);
+    const parsed = JSON.parse(publishedPayloads[0]!);
 
     expect(parsed.message.metadata.costUsd).toBe(0.005);
     expect(parsed.message.metadata.tool).toBe('Edit');
@@ -105,7 +106,7 @@ describe('stripSessionId via broadcastSync', () => {
     };
 
     broadcastSync('default', event, mockServer);
-    const parsed = JSON.parse(publishedPayloads[0]);
+    const parsed = JSON.parse(publishedPayloads[0]!);
     expect(parsed.message.metadata.costUsd).toBe(0.001);
     expect(parsed.message.metadata.sessionId).toBeUndefined();
   });
@@ -127,10 +128,11 @@ describe('stripSessionId via broadcastSync', () => {
         makeMessage({ id: 'msg-3', metadata: {} }),
       ],
       agents: [],
+      connectedUsers: [],
     };
 
     broadcastSync('default', event, mockServer);
-    const parsed = JSON.parse(publishedPayloads[0]);
+    const parsed = JSON.parse(publishedPayloads[0]!);
 
     for (const msg of parsed.messages) {
       expect(msg.metadata.sessionId).toBeUndefined();
@@ -150,11 +152,11 @@ describe('stripSessionId via broadcastSync', () => {
     const event: ServerMessage = {
       type: 'agent_status',
       agent: 'bilbo',
-      status: 'thinking',
+      status: AgentState.Thinking,
     };
 
     broadcastSync('default', event, mockServer);
-    const parsed = JSON.parse(publishedPayloads[0]);
+    const parsed = JSON.parse(publishedPayloads[0]!);
     expect(parsed.type).toBe('agent_status');
     expect(parsed.agent).toBe('bilbo');
     expect(parsed.status).toBe('thinking');
@@ -177,13 +179,13 @@ describe('broadcastSync', () => {
     const event: ServerMessage = {
       type: 'agent_status',
       agent: 'bilbo',
-      status: 'idle',
+      status: AgentState.Idle,
     };
 
     broadcastSync('my-room', event, mockServer);
 
     expect(calls.length).toBe(1);
-    expect(calls[0].topic).toBe('room:my-room');
+    expect(calls[0]!.topic).toBe('room:my-room');
   });
 
   it('serializes the event as JSON string', () => {

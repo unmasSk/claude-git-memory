@@ -30,6 +30,7 @@ mock.module('../index.js', () => ({
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { broadcast } from './message-bus.js';
+import { AgentState } from '@agent-chatroom/shared';
 import type { ServerMessage } from '@agent-chatroom/shared';
 
 // ---------------------------------------------------------------------------
@@ -45,13 +46,13 @@ describe('broadcast (async)', () => {
     const event: ServerMessage = {
       type: 'agent_status',
       agent: 'bilbo',
-      status: 'thinking',
+      status: AgentState.Thinking,
     };
 
     await broadcast('default', event);
 
     expect(_publishCalls.length).toBe(1);
-    expect(_publishCalls[0].topic).toBe('room:default');
+    expect(_publishCalls[0]!.topic).toBe('room:default');
   });
 
   it('serializes the event as JSON', async () => {
@@ -63,7 +64,7 @@ describe('broadcast (async)', () => {
 
     await broadcast('my-room', event);
 
-    const parsed = JSON.parse(_publishCalls[0].data);
+    const parsed = JSON.parse(_publishCalls[0]!.data);
     expect(parsed.type).toBe('error');
     expect(parsed.message).toBe('Something failed');
     expect(parsed.code).toBe('INTERNAL_ERROR');
@@ -87,7 +88,7 @@ describe('broadcast (async)', () => {
 
     await broadcast('default', event);
 
-    const parsed = JSON.parse(_publishCalls[0].data);
+    const parsed = JSON.parse(_publishCalls[0]!.data);
     expect(parsed.message.metadata.sessionId).toBeUndefined();
     expect(parsed.message.metadata.costUsd).toBe(0.003);
   });
@@ -101,7 +102,7 @@ describe('broadcast (async)', () => {
     const event: ServerMessage = {
       type: 'agent_status',
       agent: 'argus',
-      status: 'idle',
+      status: AgentState.Idle,
     };
 
     await broadcast('default', event);

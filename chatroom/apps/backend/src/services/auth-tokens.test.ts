@@ -42,9 +42,9 @@ describe('validateName', () => {
   });
 
   it('returns null for names with invalid characters', () => {
-    expect(validateName('bad name')).toBeNull();   // space
-    expect(validateName('bad@name')).toBeNull();   // @
-    expect(validateName('bad/name')).toBeNull();   // /
+    expect(validateName('bad name')).toBeNull(); // space
+    expect(validateName('bad@name')).toBeNull(); // @
+    expect(validateName('bad/name')).toBeNull(); // /
   });
 
   it('returns null for names exceeding 32 characters', () => {

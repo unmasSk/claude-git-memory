@@ -35,15 +35,12 @@ function resolveAgentDir(env?: Record<string, string | undefined>): string {
   const agentDirEnv = env?.AGENT_DIR ?? process.env.AGENT_DIR;
   if (agentDirEnv) return agentDirEnv;
 
-  const globPattern = join(
-    homedir(),
-    '.claude/plugins/cache/unmassk-claude-toolkit/unmassk-toolkit/*/agents'
-  );
+  const globPattern = join(homedir(), '.claude/plugins/cache/unmassk-claude-toolkit/unmassk-toolkit/*/agents');
   try {
     const matches = globSync(globPattern);
     if (matches.length > 0) {
       matches.sort().reverse();
-      return matches[0];
+      return matches[0]!;
     }
   } catch {
     // globSync not available or no match — fall through to default

@@ -6,7 +6,9 @@
     "dev": "bun run --hot src/index.ts",
     "start": "NODE_ENV=production bun run src/index.ts",
     "build": "tsc --noEmit",
-    "audit": "bun audit"
+    "audit": "bun audit",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "@agent-chatroom/shared": "workspace:*",

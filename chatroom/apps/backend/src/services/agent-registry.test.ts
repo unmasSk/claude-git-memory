@@ -1,11 +1,6 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
 import { AGENT_REGISTRY, AGENT_BY_NAME } from '@agent-chatroom/shared';
-import {
-  loadAgentRegistry,
-  getAgentConfig,
-  getAllAgents,
-  BANNED_TOOLS,
-} from './agent-registry.js';
+import { loadAgentRegistry, getAgentConfig, getAllAgents, BANNED_TOOLS } from './agent-registry.js';
 
 // ---------------------------------------------------------------------------
 // Boot: build the registry once for this entire suite.

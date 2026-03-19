@@ -16,7 +16,8 @@
     "build:frontend": "cd apps/frontend && bun run build"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "prettier": "^3.8.1"
   },
   "dependencies": {
     "helmet": "^8.1.0"

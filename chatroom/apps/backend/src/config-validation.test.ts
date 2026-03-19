@@ -17,12 +17,7 @@ import { describe, it, expect } from 'bun:test';
 /**
  * Mirror of requireIntEnv — raises instead of calling process.exit(1) so we can assert on errors.
  */
-function requireIntEnvMirror(
-  raw: string | undefined,
-  defaultValue: number,
-  min: number,
-  max: number
-): number {
+function requireIntEnvMirror(raw: string | undefined, defaultValue: number, min: number, max: number): number {
   if (raw === undefined || raw === '') return defaultValue;
   const n = Number(raw);
   if (!Number.isInteger(n) || n < min || n > max) {
@@ -34,11 +29,7 @@ function requireIntEnvMirror(
 /**
  * Mirror of requireEnumEnv.
  */
-function requireEnumEnvMirror<T extends string>(
-  raw: string | undefined,
-  defaultValue: T,
-  allowed: readonly T[]
-): T {
+function requireEnumEnvMirror<T extends string>(raw: string | undefined, defaultValue: T, allowed: readonly T[]): T {
   if (raw === undefined || raw === '') return defaultValue;
   if (!(allowed as readonly string[]).includes(raw)) {
     throw new Error(`invalid enum: ${raw} must be one of: ${allowed.join(', ')}`);
@@ -383,10 +374,21 @@ describe('config.ts — exported constant shapes', () => {
 
   it('AGENT_VOICE has entries for all 10 expected agents', async () => {
     const { AGENT_VOICE } = await import('./config.js');
-    const expectedAgents = ['bilbo', 'ultron', 'cerberus', 'moriarty', 'house', 'yoda', 'argus', 'dante', 'alexandria', 'gitto'];
+    const expectedAgents = [
+      'bilbo',
+      'ultron',
+      'cerberus',
+      'moriarty',
+      'house',
+      'yoda',
+      'argus',
+      'dante',
+      'alexandria',
+      'gitto',
+    ];
     for (const name of expectedAgents) {
       expect(AGENT_VOICE[name]).toBeDefined();
-      expect(AGENT_VOICE[name].length).toBeGreaterThan(0);
+      expect(AGENT_VOICE[name]!.length).toBeGreaterThan(0);
     }
   });
 

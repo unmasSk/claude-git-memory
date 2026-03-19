@@ -18,7 +18,10 @@ function requireIntEnv(name: string, defaultValue: number, min: number, max: num
   if (raw === undefined || raw === '') return defaultValue;
   const n = Number(raw);
   if (!Number.isInteger(n) || n < min || n > max) {
-    logger.error({ name, value: raw, min, max }, `Invalid env var: ${name} must be an integer between ${min} and ${max}`);
+    logger.error(
+      { name, value: raw, min, max },
+      `Invalid env var: ${name} must be an integer between ${min} and ${max}`,
+    );
     process.exit(1);
   }
   return n;
@@ -80,16 +83,13 @@ function resolveAgentDir(): string {
     return realpathSync(dir);
   }
 
-  const globPattern = join(
-    homedir(),
-    '.claude/plugins/cache/unmassk-claude-toolkit/unmassk-toolkit/*/agents'
-  );
+  const globPattern = join(homedir(), '.claude/plugins/cache/unmassk-claude-toolkit/unmassk-toolkit/*/agents');
   try {
     const matches = globSync(globPattern);
     if (matches.length > 0) {
       // Sort descending to pick the highest version (e.g. 2.0.0 > 1.0.0)
       matches.sort().reverse();
-      return realpathSync(matches[0]);
+      return realpathSync(matches[0]!);
     }
   } catch {
     // globSync not available or no match — fall through to default
@@ -142,7 +142,10 @@ function parseWsAllowedOrigins(): readonly string[] {
         throw new Error(`protocol must be http or https`);
       }
     } catch {
-      logger.error({ WS_ALLOWED_ORIGINS: entry }, 'Invalid env var: WS_ALLOWED_ORIGINS entry is not a valid http/https origin');
+      logger.error(
+        { WS_ALLOWED_ORIGINS: entry },
+        'Invalid env var: WS_ALLOWED_ORIGINS entry is not a valid http/https origin',
+      );
       process.exit(1);
     }
   }
@@ -158,13 +161,13 @@ const _rawOrigins = parseWsAllowedOrigins();
 // no-Origin bypass in a non-development environment.
 const _isDev = NODE_ENV === 'development' || NODE_ENV === 'test';
 
-export const WS_ALLOWED_ORIGINS: readonly string[] = [
-  ..._rawOrigins,
-  ...(_isDev ? [''] : []),
-];
+export const WS_ALLOWED_ORIGINS: readonly string[] = [..._rawOrigins, ...(_isDev ? [''] : [])];
 
 if (_isDev) {
-  logger.warn({ nodeEnv: NODE_ENV }, 'WS upgrade accepts connections with no Origin header — set NODE_ENV=production to enforce origin checking');
+  logger.warn(
+    { nodeEnv: NODE_ENV },
+    'WS upgrade accepts connections with no Origin header — set NODE_ENV=production to enforce origin checking',
+  );
 }
 
 /**
@@ -172,14 +175,14 @@ if (_isDev) {
  * Moved from agent-invoker.ts to keep config centralized and testable.
  */
 export const AGENT_VOICE: Readonly<Record<string, string>> = {
-  bilbo:      'Curioso, metódico. "¿Qué hay aquí?" antes de "¿qué debería haber?"',
-  ultron:     'Directo, eficiente. Anuncia qué hará, lo hace, reporta. Sin filosofía.',
-  cerberus:   'Estructurado, con opinión. Veredictos claros: "LGTM" o "no mergeable".',
-  moriarty:   'Provocador, afilado. "¿Qué pasa si mando 10.000 de estos?"',
-  house:      'Impaciente con las adivinanzas. Elimina teorías rápido, demuestra la correcta.',
-  yoda:       'Deliberado, final. Un veredicto claro con el razonamiento. No se repite.',
-  argus:      'Clínico, enfocado en riesgo. Cada finding tiene impacto, no teoría.',
-  dante:      'Escéptico, preciso. "Funciona en mi máquina" no es un test.',
+  bilbo: 'Curioso, metódico. "¿Qué hay aquí?" antes de "¿qué debería haber?"',
+  ultron: 'Directo, eficiente. Anuncia qué hará, lo hace, reporta. Sin filosofía.',
+  cerberus: 'Estructurado, con opinión. Veredictos claros: "LGTM" o "no mergeable".',
+  moriarty: 'Provocador, afilado. "¿Qué pasa si mando 10.000 de estos?"',
+  house: 'Impaciente con las adivinanzas. Elimina teorías rápido, demuestra la correcta.',
+  yoda: 'Deliberado, final. Un veredicto claro con el razonamiento. No se repite.',
+  argus: 'Clínico, enfocado en riesgo. Cada finding tiene impacto, no teoría.',
+  dante: 'Escéptico, preciso. "Funciona en mi máquina" no es un test.',
   alexandria: 'Clara, organizada. Documenta hechos, no aspiraciones.',
-  gitto:      'Factual. Cita commits y diffs, no opiniones.',
+  gitto: 'Factual. Cita commits y diffs, no opiniones.',
 };

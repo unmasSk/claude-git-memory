@@ -74,7 +74,7 @@ beforeAll(async () => {
     .get('/api/rooms', () => {
       return smokeDb
         .query<{ id: string; name: string; topic: string; created_at: string }, []>(
-          'SELECT * FROM rooms ORDER BY created_at ASC'
+          'SELECT * FROM rooms ORDER BY created_at ASC',
         )
         .all()
         .map((r) => ({ id: r.id, name: r.name, topic: r.topic, createdAt: r.created_at }));
@@ -88,9 +88,10 @@ beforeAll(async () => {
       open(ws) {
         const roomId = (ws.data as { params: { roomId: string } }).params.roomId;
         const room = smokeDb
-          .query<{ id: string; name: string; topic: string; created_at: string }, [string]>(
-            'SELECT * FROM rooms WHERE id = ?'
-          )
+          .query<
+            { id: string; name: string; topic: string; created_at: string },
+            [string]
+          >('SELECT * FROM rooms WHERE id = ?')
           .get(roomId);
 
         if (!room) {
@@ -99,12 +100,14 @@ beforeAll(async () => {
           return;
         }
 
-        ws.send(JSON.stringify({
-          type: 'room_state',
-          room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
-          messages: [],
-          agents: [],
-        }));
+        ws.send(
+          JSON.stringify({
+            type: 'room_state',
+            room: { id: room.id, name: room.name, topic: room.topic, createdAt: room.created_at },
+            messages: [],
+            agents: [],
+          }),
+        );
       },
       message(_ws, _msg) {},
       close(_ws) {},
@@ -139,14 +142,14 @@ describe('smoke — HTTP endpoints', () => {
   it('GET /health returns 200 with status ok', async () => {
     const res = await fetch(`${baseUrl}/health`);
     expect(res.status).toBe(200);
-    const body = await res.json() as { status: string; timestamp: string };
+    const body = (await res.json()) as { status: string; timestamp: string };
     expect(body.status).toBe('ok');
     expect(typeof body.timestamp).toBe('string');
   });
 
   it('GET /health response includes a timestamp', async () => {
     const res = await fetch(`${baseUrl}/health`);
-    const body = await res.json() as { status: string; timestamp: string };
+    const body = (await res.json()) as { status: string; timestamp: string };
     const parsed = new Date(body.timestamp);
     expect(isNaN(parsed.getTime())).toBe(false);
   });
@@ -158,13 +161,13 @@ describe('smoke — HTTP endpoints', () => {
 
   it('GET /api/rooms returns an array', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const body = await res.json() as unknown[];
+    const body = (await res.json()) as unknown[];
     expect(Array.isArray(body)).toBe(true);
   });
 
   it('GET /api/rooms contains the default room', async () => {
     const res = await fetch(`${baseUrl}/api/rooms`);
-    const rooms = await res.json() as Array<{ id: string; name: string }>;
+    const rooms = (await res.json()) as Array<{ id: string; name: string }>;
     const defaultRoom = rooms.find((r) => r.id === 'default');
     expect(defaultRoom).toBeDefined();
     expect(defaultRoom!.name).toBe('general');
@@ -177,21 +180,21 @@ describe('smoke — HTTP endpoints', () => {
 
   it('GET /api/agents returns an array', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const body = await res.json() as unknown[];
+    const body = (await res.json()) as unknown[];
     expect(Array.isArray(body)).toBe(true);
     expect(body.length).toBeGreaterThan(0);
   });
 
   it('GET /api/agents list includes bilbo', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ name: string }>;
+    const agents = (await res.json()) as Array<{ name: string }>;
     const bilbo = agents.find((a) => a.name === 'bilbo');
     expect(bilbo).toBeDefined();
   });
 
   it('GET /api/agents list includes all 12 expected agents', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ name: string }>;
+    const agents = (await res.json()) as Array<{ name: string }>;
     expect(agents.length).toBe(12);
   });
 });
@@ -275,21 +278,22 @@ describe('smoke — WebSocket', () => {
 
   it('multiple simultaneous WS connections can receive room_state', async () => {
     const connections = await Promise.all(
-      [1, 2, 3].map(() =>
-        new Promise<{ type: string }>((resolve, reject) => {
-          const ws = new WebSocket(`${wsUrl}/ws/default`);
-          ws.onmessage = (event) => {
-            ws.close();
-            try {
-              resolve(JSON.parse(event.data as string));
-            } catch {
-              reject(new Error('Parse error'));
-            }
-          };
-          ws.onerror = () => reject(new Error('WS error'));
-          setTimeout(() => reject(new Error('Timeout')), 3000);
-        })
-      )
+      [1, 2, 3].map(
+        () =>
+          new Promise<{ type: string }>((resolve, reject) => {
+            const ws = new WebSocket(`${wsUrl}/ws/default`);
+            ws.onmessage = (event) => {
+              ws.close();
+              try {
+                resolve(JSON.parse(event.data as string));
+              } catch {
+                reject(new Error('Parse error'));
+              }
+            };
+            ws.onerror = () => reject(new Error('WS error'));
+            setTimeout(() => reject(new Error('Timeout')), 3000);
+          }),
+      ),
     );
 
     for (const msg of connections) {

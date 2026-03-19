@@ -92,9 +92,7 @@ describe('parseStreamLine — assistant text content', () => {
 
 describe('parseStreamLine — assistant tool_use content', () => {
   it('extracts tool name and input from a tool_use block', () => {
-    const line = makeAssistantLine([
-      { type: 'tool_use', name: 'Read', input: { file_path: '/src/index.ts' } },
-    ]);
+    const line = makeAssistantLine([{ type: 'tool_use', name: 'Read', input: { file_path: '/src/index.ts' } }]);
     const events = parseStreamLine(line);
     expect(events.length).toBe(1);
     const ev = events[0] as ToolUseEvent;
@@ -104,9 +102,7 @@ describe('parseStreamLine — assistant tool_use content', () => {
   });
 
   it('extracts tool_use with null input (no input field on block)', () => {
-    const line = makeAssistantLine([
-      { type: 'tool_use', name: 'SomeTool' },
-    ]);
+    const line = makeAssistantLine([{ type: 'tool_use', name: 'SomeTool' }]);
     const events = parseStreamLine(line);
     expect(events.length).toBe(1);
     const ev = events[0] as ToolUseEvent;
@@ -147,10 +143,10 @@ describe('parseStreamLine — mixed text and tool_use blocks', () => {
     ]);
     const events = parseStreamLine(line);
     expect(events.length).toBe(2);
-    expect(events[0].type).toBe('text');
-    expect(events[1].type).toBe('tool_use');
-    expect((events[0] as TextEvent).text).toBe('Reading file now...');
-    expect((events[1] as ToolUseEvent).name).toBe('Read');
+    expect(events[0]!.type).toBe('text');
+    expect(events[1]!.type).toBe('tool_use');
+    expect((events[0]! as TextEvent).text).toBe('Reading file now...');
+    expect((events[1]! as ToolUseEvent).name).toBe('Read');
   });
 
   it('preserves order of text and tool_use blocks', () => {
@@ -161,12 +157,12 @@ describe('parseStreamLine — mixed text and tool_use blocks', () => {
     ]);
     const events = parseStreamLine(line);
     expect(events.length).toBe(3);
-    expect(events[0].type).toBe('tool_use');
-    expect(events[1].type).toBe('text');
-    expect(events[2].type).toBe('tool_use');
-    expect((events[0] as ToolUseEvent).name).toBe('Grep');
-    expect((events[1] as TextEvent).text).toBe('After the grep');
-    expect((events[2] as ToolUseEvent).name).toBe('Read');
+    expect(events[0]!.type).toBe('tool_use');
+    expect(events[1]!.type).toBe('text');
+    expect(events[2]!.type).toBe('tool_use');
+    expect((events[0]! as ToolUseEvent).name).toBe('Grep');
+    expect((events[1]! as TextEvent).text).toBe('After the grep');
+    expect((events[2]! as ToolUseEvent).name).toBe('Read');
   });
 });
 

@@ -66,7 +66,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
     },
     {
       params: t.Object({ id: t.String() }),
-    }
+    },
   )
 
   // GET /api/rooms/:id/messages?limit=50&before=<id> — paginated messages
@@ -85,9 +85,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
         const rows = getMessagesBefore(params.id, query.before, limit);
         // hasMoreMessagesBefore needs a created_at timestamp, not a message ID
         const pivotCreatedAt = getMessageCreatedAt(query.before);
-        const hasMore = pivotCreatedAt
-          ? hasMoreMessagesBefore(params.id, pivotCreatedAt)
-          : false;
+        const hasMore = pivotCreatedAt ? hasMoreMessagesBefore(params.id, pivotCreatedAt) : false;
         // getMessagesBefore returns DESC — reverse to chronological order
         return {
           messages: rows.reverse().map(mapMessageRow).map(safeMessage),
@@ -107,7 +105,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
         limit: t.Optional(t.Numeric()),
         before: t.Optional(t.String()),
       }),
-    }
+    },
   )
 
   // GET /api/agents — public agent registry (SEC-MED-001: strip allowedTools)
@@ -142,7 +140,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
     },
     {
       body: t.Object({ name: t.Optional(t.String()) }),
-    }
+    },
   )
 
   // POST /api/rooms/:id/invite — add agents to a room (create agent_session rows)
@@ -204,5 +202,5 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
       // FIX 2: Typed header schema so Elysia provides headers.authorization as string | undefined
       // instead of requiring an unsafe cast to Record<string, string | undefined>.
       headers: t.Object({ authorization: t.Optional(t.String()) }),
-    }
+    },
   );

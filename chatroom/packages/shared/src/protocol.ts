@@ -16,11 +16,18 @@ export interface Room {
  * FIX 13: documented metadata keys.
  */
 export interface MessageMetadata {
-  tool?: string;       // for tool_use messages — the tool name (Read, Edit, Grep, etc.)
-  filePath?: string;   // for tool_use messages — file path argument
-  sessionId?: string;  // for agent messages — the claude session_id for --resume
-  costUsd?: number;    // for agent messages — total_cost_usd from stream-json result event
-  error?: string;      // for error system messages — error description
+  tool?: string; // for tool_use messages — the tool name (Read, Edit, Grep, etc.)
+  filePath?: string; // for tool_use messages — file path argument
+  sessionId?: string; // for agent messages — the claude session_id for --resume
+  costUsd?: number; // for agent messages — total_cost_usd from stream-json result event
+  error?: string; // for error system messages — error description
+  /** Extended metrics from the result event */
+  model?: string;
+  durationMs?: number;
+  numTurns?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  contextWindow?: number;
 }
 
 /**

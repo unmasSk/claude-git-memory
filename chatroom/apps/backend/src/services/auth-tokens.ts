@@ -105,7 +105,10 @@ export function issueToken(name: string): { token: string; expiresAt: string } |
  * pass mismatched-length Buffers to timingSafeEqual (which throws on length mismatch).
  */
 export function peekToken(token: string | undefined): string | null {
-  if (!token) { recordAuthFailure(token); return null; }
+  if (!token) {
+    recordAuthFailure(token);
+    return null;
+  }
   const entry = tokens.get(token);
   if (!entry) {
     log.warn('peekToken failed: unknown token');
@@ -136,9 +139,16 @@ export function peekToken(token: string | undefined): string | null {
  * SEC-AUTH-005: Constant-time comparison — see peekToken for rationale.
  */
 export function validateToken(token: string | undefined): string | null {
-  if (!token) { recordAuthFailure(token); return null; }
+  if (!token) {
+    recordAuthFailure(token);
+    return null;
+  }
   const entry = tokens.get(token);
-  if (!entry) { log.warn('token validation failed: unknown token'); recordAuthFailure(token); return null; }
+  if (!entry) {
+    log.warn('token validation failed: unknown token');
+    recordAuthFailure(token);
+    return null;
+  }
   // SEC-AUTH-005: Constant-time comparison — defense-in-depth after Map.get.
   const givenBuf = Buffer.from(token);
   if (entry.tokenBuf.length !== givenBuf.length || !crypto.timingSafeEqual(entry.tokenBuf, givenBuf)) {
@@ -168,7 +178,7 @@ export function validateToken(token: string | undefined): string | null {
 // ---------------------------------------------------------------------------
 
 const AUTH_FAILURE_WINDOW_MS = 60_000; // 60-second sliding window
-const AUTH_FAILURE_THRESHOLD = 10;     // alert after this many failures per source in the window
+const AUTH_FAILURE_THRESHOLD = 10; // alert after this many failures per source in the window
 
 interface FailureWindow {
   count: number;
@@ -205,28 +215,37 @@ function recordAuthFailure(token?: string | undefined): void {
   } else {
     window.count += 1;
     if (window.count === AUTH_FAILURE_THRESHOLD) {
-      log.error({ failCount: window.count, sourcePrefix: key }, 'Repeated auth failures from single source — possible brute force');
+      log.error(
+        { failCount: window.count, sourcePrefix: key },
+        'Repeated auth failures from single source — possible brute force',
+      );
     }
   }
 }
 
 // Periodic GC — remove expired tokens every 10 minutes + stale failure windows.
 // .unref() prevents this timer from keeping the process alive after all real work is done.
-setInterval(() => {
-  const now = Date.now();
-  let removed = 0;
-  for (const [tok, entry] of tokens) {
-    if (now > entry.expiresAt) { tokens.delete(tok); removed++; }
-  }
-  if (removed > 0) log.info({ removed, remaining: tokens.size }, 'token GC completed');
-
-  // GC stale failure windows (older than 2x the window duration)
-  let failWindowsRemoved = 0;
-  for (const [key, window] of authFailureBySource) {
-    if (now - window.windowStart > AUTH_FAILURE_WINDOW_MS * 2) {
-      authFailureBySource.delete(key);
-      failWindowsRemoved++;
+setInterval(
+  () => {
+    const now = Date.now();
+    let removed = 0;
+    for (const [tok, entry] of tokens) {
+      if (now > entry.expiresAt) {
+        tokens.delete(tok);
+        removed++;
+      }
     }
-  }
-  if (failWindowsRemoved > 0) log.info({ failWindowsRemoved }, 'failure window GC completed');
-}, 10 * 60 * 1000).unref();
+    if (removed > 0) log.info({ removed, remaining: tokens.size }, 'token GC completed');
+
+    // GC stale failure windows (older than 2x the window duration)
+    let failWindowsRemoved = 0;
+    for (const [key, window] of authFailureBySource) {
+      if (now - window.windowStart > AUTH_FAILURE_WINDOW_MS * 2) {
+        authFailureBySource.delete(key);
+        failWindowsRemoved++;
+      }
+    }
+    if (failWindowsRemoved > 0) log.info({ failWindowsRemoved }, 'failure window GC completed');
+  },
+  10 * 60 * 1000,
+).unref();

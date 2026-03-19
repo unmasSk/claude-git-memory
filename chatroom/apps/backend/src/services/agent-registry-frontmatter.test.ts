@@ -24,7 +24,9 @@ beforeAll(() => {
   tempDir = mkdtempSync(join(tmpdir(), 'agent-reg-test-'));
 
   // Write a valid agent .md file for bilbo with tools
-  writeFileSync(join(tempDir, 'bilbo.md'), `---
+  writeFileSync(
+    join(tempDir, 'bilbo.md'),
+    `---
 model: claude-sonnet-4-6
 color: oklch(65% 0.14 195)
 tools: Read, Grep, Glob
@@ -33,52 +35,71 @@ tools: Read, Grep, Glob
 # Bilbo the Explorer
 
 This is the agent description.
-`);
+`,
+  );
 
   // Write an agent with a banned tool (Bash) — should be filtered out
-  writeFileSync(join(tempDir, 'ultron.md'), `---
+  writeFileSync(
+    join(tempDir, 'ultron.md'),
+    `---
 model: claude-sonnet-4-6
 tools: Read, Edit, Bash, computer
 ---
 
 # Ultron the Implementer
-`);
+`,
+  );
 
   // Write an agent with no tools — should be not invokable
-  writeFileSync(join(tempDir, 'claude.md'), `---
+  writeFileSync(
+    join(tempDir, 'claude.md'),
+    `---
 model: claude-opus-4-6
 ---
 
 # Claude the Orchestrator
-`);
+`,
+  );
 
   // Write an agent with empty tools string
-  writeFileSync(join(tempDir, 'dante.md'), `---
+  writeFileSync(
+    join(tempDir, 'dante.md'),
+    `---
 model: claude-sonnet-4-6
 tools:
 ---
 
 # Dante the Tester
-`);
+`,
+  );
 
   // Write a file for an unknown agent (not in shared registry) — should be skipped
-  writeFileSync(join(tempDir, 'unknown-agent.md'), `---
+  writeFileSync(
+    join(tempDir, 'unknown-agent.md'),
+    `---
 tools: Read
 ---
 # Unknown
-`);
+`,
+  );
 
   // Write a file with no frontmatter at all
-  writeFileSync(join(tempDir, 'argus.md'), `# Argus - no frontmatter
+  writeFileSync(
+    join(tempDir, 'argus.md'),
+    `# Argus - no frontmatter
 
 Just some content.
-`);
+`,
+  );
 
   // Write a file with malformed frontmatter (missing closing ---)
-  writeFileSync(join(tempDir, 'moriarty.md'), `---
+  writeFileSync(
+    join(tempDir, 'moriarty.md'),
+    `---
 tools: Read, Grep
 # missing closing ---
-`);
+`,
+  );
 });
 
 // We test the registry behavior with our temp AGENT_DIR by dynamically
@@ -306,7 +327,7 @@ tools: Read, Grep
 # Agent body`;
     const match = content.match(/^---\n([\s\S]*?)\n---/);
     expect(match).not.toBeNull();
-    const yaml = match![1];
+    const yaml = match![1]!;
     const lines = yaml.split('\n');
     const parsed: Record<string, string> = {};
     for (const line of lines) {

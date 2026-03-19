@@ -69,7 +69,11 @@ export async function broadcast(roomId: string, event: ServerMessage): Promise<v
  * Synchronous broadcast variant for use within WS handlers where the server
  * is guaranteed to be live. Avoids async overhead in hot path.
  */
-export function broadcastSync(roomId: string, event: ServerMessage, server: { publish: (topic: string, data: string) => void }): void {
+export function broadcastSync(
+  roomId: string,
+  event: ServerMessage,
+  server: { publish: (topic: string, data: string) => void },
+): void {
   const safeEvent = stripSessionId(event);
   const topic = `room:${roomId}`;
   server.publish(topic, JSON.stringify(safeEvent));
