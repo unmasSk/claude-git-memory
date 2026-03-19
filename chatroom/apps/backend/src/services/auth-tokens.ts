@@ -46,11 +46,9 @@ const NAME_RE = /^[a-zA-Z0-9_-]{1,32}$/;
  * Exported so ws.ts can derive its RESERVED_AGENT_NAMES from a single authoritative source
  * instead of duplicating the construction logic.
  */
-export function getReservedAgentNames(): Set<string> {
-  return new Set([
-    ...Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude'),
-    'system',
-  ]);
+/** Returns the set of reserved agent names for use in other modules (e.g. ws.ts). */
+export function getReservedAgentNames(): ReadonlySet<string> {
+  return RESERVED_AGENT_NAMES;
 }
 
 /**
@@ -59,10 +57,6 @@ export function getReservedAgentNames(): Set<string> {
  * name. The previous default of 'user' allowed anonymous tokens to silently
  * assume the default human identity.
  */
-/** Returns the set of reserved agent names for use in other modules (e.g. ws.ts). */
-export function getReservedAgentNames(): ReadonlySet<string> {
-  return RESERVED_AGENT_NAMES;
-}
 
 export function validateName(rawName: string | undefined): string | null {
   if (!rawName || rawName.trim() === '') return null;
