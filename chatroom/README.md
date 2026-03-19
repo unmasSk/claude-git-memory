@@ -18,7 +18,7 @@ bun run dev
 ```
 
 Frontend: http://localhost:4201
-API docs: http://localhost:3001/docs
+API docs: http://localhost:3000/docs
 
 ## Architecture
 
@@ -53,4 +53,4 @@ Agent invocation flow: WS message → auth check → mention extraction → `Bun
 
 ## Environment Variables
 
-See `apps/backend/.env.example` for the full list. Required keys: `BRIDGE_TOKEN`, `DATABASE_URL`.
+See `apps/backend/.env.example` for the full list. All variables have safe defaults — none are strictly required for local development.

@@ -40,9 +40,11 @@ export const app = new Elysia()
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   }))
   .onError(({ code, error, set }) => {
-    logger.error({ code, err: error }, 'Unhandled error');
-    set.status = code === 'NOT_FOUND' ? 404 : 500;
-    return { error: code === 'NOT_FOUND' ? 'Not found' : 'Internal server error', code };
+    const statusMap: Record<string, number> = { NOT_FOUND: 404, VALIDATION: 422, PARSE: 400 };
+    const status = statusMap[code] ?? 500;
+    logger.error({ code, err: error, status }, 'Unhandled error');
+    set.status = status;
+    return { error: status < 500 ? String(error) : 'Internal server error', code };
   })
   .use(apiRoutes)
   .use(wsRoutes)
