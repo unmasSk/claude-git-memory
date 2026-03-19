@@ -83,6 +83,7 @@ const MAX_TRIGGER_CONTENT_BYTES = 16_000;
  */
 function enqueue(entry: QueueEntry): void {
   if (entry.priority) {
+    // O(n) with current MAX_QUEUE_SIZE=10 — acceptable. If cap increases significantly, replace with a deque.
     pendingQueue.unshift(entry);
   } else {
     pendingQueue.push(entry);

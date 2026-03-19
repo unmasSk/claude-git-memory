@@ -125,7 +125,8 @@ export function peekToken(token: string | undefined): string | null {
     recordAuthFailure(token);
     return null;
   }
-  // SEC-AUTH-005: Constant-time comparison — defense-in-depth after Map.get.
+  // SEC-AUTH-005: Constant-time comparison — cosmetic: Map.get already leaks timing.
+  // Kept as code-quality signal, not a real defense.
   // Compare lengths first; timingSafeEqual throws if Buffers differ in length.
   const givenBuf = Buffer.from(token);
   if (entry.tokenBuf.length !== givenBuf.length || !crypto.timingSafeEqual(entry.tokenBuf, givenBuf)) {
@@ -220,8 +221,8 @@ function recordAuthFailure(token?: string | undefined): void {
   const key = sourceKey(token);
   const window = authFailureBySource.get(key);
   if (!window || now - window.windowStart > AUTH_FAILURE_WINDOW_MS) {
-    // Evict oldest entry when the map is at capacity (prevents unbounded growth
-    // under a distributed attack that uses many distinct token prefixes).
+    // Evict earliest-inserted key (FIFO, not LRU) when the map is at capacity
+    // (prevents unbounded growth under a distributed attack that uses many distinct token prefixes).
     if (!window && authFailureBySource.size >= AUTH_FAILURE_MAX_ENTRIES) {
       const oldestKey = authFailureBySource.keys().next().value;
       if (oldestKey !== undefined) authFailureBySource.delete(oldestKey);

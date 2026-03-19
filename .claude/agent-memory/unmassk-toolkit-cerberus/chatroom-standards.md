@@ -25,13 +25,13 @@ These rules were mandated by the user for permanent enforcement on every review 
 **Why:** User explicitly stated "Save these rules to your memory — they apply ALWAYS from now on."
 **How to apply:** Apply all 15 rules on every audit, commit-review, or any touch to chatroom/apps/backend/src/ without exception.
 
-## Known violations as of 2026-03-19 (reference baseline)
+## Known violations as of 2026-03-19 (pre-refactor baseline — superseded)
 - agent-runner.ts: spawnAndParse 403 LOC (T2), nesting depth 6 in stream parsing loop (T2), `as any` on Bun.spawn (documented inline — Bun 1.3.11 Windows bug)
-- agent-runner.ts: doInvoke 76 LOC (T2), doInvoke/spawnAndParse/postSystemMessage/updateStatusAndBroadcast JSDoc missing @param/@returns (T3)
+- agent-runner.ts: doInvoke 76 LOC (T2), JSDoc missing @param/@returns (T3)
 - ws-handlers.ts: open() 110 LOC (T2)
 - ws-message-handlers.ts: handleEveryoneDirective 64 LOC (T2), handleSendMessage/handleInvokeAgent/handleLoadHistory missing JSDoc (T3)
-- ws-state.ts: 11 exported constants/maps with no JSDoc (T3)
-- config.ts: `throw new Error()` at line 143 — internally caught by its own catch block, exits via process.exit(1); the throw is a sentinel, not a propagated error. Classify T3 (documented).
+- ws-state.ts: 11 exported constants/maps with no JSDoc (T3) — still open
+- config.ts: `throw new Error()` at line 143 — internally caught, exits via process.exit(1); sentinel, not propagated. T3 (documented).
 
 ## Violations after 2026-03-19 refactor of agent-scheduler.ts + agent-prompt.ts
 ### agent-scheduler.ts (post-refactor, still open)
@@ -45,3 +45,25 @@ These rules were mandated by the user for permanent enforcement on every review 
 - buildChatroomRules helper 54 LOC (T2) — extract rule clusters into named const arrays
 - Six exported functions missing @param/@returns in JSDoc: validateSessionId, sanitizePromptContent, buildPrompt, getGitDiffStat, buildSystemPrompt (partial), formatToolDescription (T3)
 - buildSystemPrompt now 7 LOC — RESOLVED (was 95 LOC T2)
+
+## Violations after 2026-03-19 refactor of agent-runner.ts + agent-stream.ts + ws-handlers.ts + ws-message-handlers.ts
+
+### RESOLVED
+- agent-runner.ts: spawnAndParse split into agent-stream.ts — nesting depth 6 RESOLVED, 403 LOC RESOLVED
+- agent-runner.ts: doInvoke 76 LOC → 48 LOC — RESOLVED
+- agent-runner.ts: open() 110 LOC → 9 LOC — RESOLVED (helpers extracted)
+- ws-handlers.ts: open() refactored into validateUpgrade/registerConnection/sendInitialState — each ≤30 LOC — RESOLVED
+- ws-message-handlers.ts: handleSendMessage/handleInvokeAgent/handleLoadHistory JSDoc added — RESOLVED
+- handleEveryoneDirective 64 LOC → 26 LOC — RESOLVED
+
+### Still open after this refactor (T2/T3)
+- agent-runner.ts: duplicate import from '../db/queries.js' (lines 20 and 30) — T3 nitpick (split lines, functionally identical)
+- agent-runner.ts: spawnAndParse has 8 params (>5 limit) — T2 violation; should use object param
+- agent-runner.ts: AGENT_TIMEOUT_MS imported but not used in agent-runner.ts directly (used only in makeTimeoutHandle at line 193 — ok, valid)
+- agent-stream.ts: 386 LOC — T2 file size violation (limit 300). Next split needed.
+- agent-stream.ts: readAgentStream JSDoc missing @param tags for all 4 parameters — T3
+- agent-stream.ts: AgentStreamResult interface has no JSDoc — T3
+- agent-stream.ts: handleAgentResult JSDoc missing @param/@returns tags — T3
+- agent-stream.ts: line 184 is 215 chars — T3 (nitpick)
+- ws-handlers.ts: rejectUpgrade and other helpers have no JSDoc (private helpers — T3 if exported required; these are not exported so T3 at most)
+- ws-state.ts: 11 exported constants/maps with no JSDoc — still open T3

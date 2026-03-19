@@ -71,6 +71,7 @@ export const roomConns = new Map<string, Set<string>>();
  */
 export const MAX_CONNECTIONS_PER_ROOM = 20;
 
+// Wraps at MAX_SAFE_INTEGER after ~285 trillion connections — not reachable in practice.
 let _connCounter = 0;
 
 /**

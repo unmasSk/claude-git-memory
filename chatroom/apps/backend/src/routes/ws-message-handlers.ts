@@ -135,7 +135,9 @@ export function handleSendMessage(ws: any, roomId: string, connId: string, conte
   broadcastSync(roomId, { type: 'new_message', message: newMsg }, ws);
   ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(newMsg) }));
 
-  if (EVERYONE_PATTERN.test(content)) {
+  // Cache once — avoids running the regex twice on the same content.
+  const everyonePresent = EVERYONE_PATTERN.test(content);
+  if (everyonePresent) {
     handleEveryoneDirective(ws, roomId, content, authorName);
   } else if (isPaused(roomId)) {
     resumeInvocations(roomId);
@@ -143,7 +145,6 @@ export function handleSendMessage(ws: any, roomId: string, connId: string, conte
   }
 
   // Skip individual @mentions when @everyone was present (already handled above or was a stop).
-  const everyonePresent = EVERYONE_PATTERN.test(content);
   const mentions = everyonePresent ? new Set<string>() : extractMentions(content);
   logger.debug({ authorName, contentLength: content.length, everyonePresent, mentionCount: mentions.size }, 'WS send_message processed');
 
