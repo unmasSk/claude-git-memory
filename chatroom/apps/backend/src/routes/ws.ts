@@ -117,10 +117,12 @@ function getConnectedUsers(roomId: string): ConnectedUser[] {
  * Names that are reserved and cannot be used by WS clients to prevent impersonation.
  * Excludes 'user' (valid default) and 'claude' (valid orchestrator identity).
  * Only blocks specialized tool-agents that run as subprocesses.
+ * 'system' is explicitly added for defense-in-depth (mirrors auth-tokens.ts EXTRA_RESERVED).
  */
-const RESERVED_AGENT_NAMES = new Set(
-  Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude')
-);
+const RESERVED_AGENT_NAMES = new Set([
+  ...Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude'),
+  'system',
+]);
 
 /**
  * Resolve the author name for a new WS connection.
