@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { existsSync, globSync } from 'node:fs';
+import { existsSync, globSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createLogger } from './logger.js';
 
@@ -60,8 +60,6 @@ export const HOST = stringEnv('HOST', '127.0.0.1');
 /** Path to the SQLite database file */
 export const DB_PATH = stringEnv('DB_PATH', join(import.meta.dir, '../data/chatroom.db'));
 
-export const LOG_LEVEL = requireEnumEnv('LOG_LEVEL', 'debug', ['fatal', 'error', 'warn', 'info', 'debug', 'trace'] as const);
-
 export const NODE_ENV = requireEnumEnv('NODE_ENV', 'development', ['development', 'production', 'test'] as const);
 
 /**
@@ -78,7 +76,8 @@ function resolveAgentDir(): string {
       logger.error({ AGENT_DIR: dir }, 'Invalid env var: AGENT_DIR directory does not exist');
       process.exit(1);
     }
-    return dir;
+    // Canonicalize: resolve symlinks so downstream code always gets the real path.
+    return realpathSync(dir);
   }
 
   const globPattern = join(
@@ -90,14 +89,15 @@ function resolveAgentDir(): string {
     if (matches.length > 0) {
       // Sort descending to pick the highest version (e.g. 2.0.0 > 1.0.0)
       matches.sort().reverse();
-      return matches[0];
+      return realpathSync(matches[0]);
     }
   } catch {
     // globSync not available or no match — fall through to default
   }
 
   const fallback = join(import.meta.dir, '../../../../../../agents');
-  return existsSync(fallback) ? fallback : join(import.meta.dir, '../agents');
+  const resolved = existsSync(fallback) ? fallback : join(import.meta.dir, '../agents');
+  return existsSync(resolved) ? realpathSync(resolved) : resolved;
 }
 
 export const AGENT_DIR = resolveAgentDir();
@@ -117,9 +117,6 @@ export const AGENT_HISTORY_LIMIT = 20;
 
 /** Maximum messages returned in initial room_state */
 export const ROOM_STATE_MESSAGE_LIMIT = 50;
-
-/** WebSocket topic prefix for room pub/sub */
-export const WS_ROOM_TOPIC_PREFIX = 'room:';
 
 /**
  * Allowed origins for WebSocket upgrade.
@@ -169,13 +166,6 @@ export const WS_ALLOWED_ORIGINS: readonly string[] = [
 if (_isDev) {
   logger.warn({ nodeEnv: NODE_ENV }, 'WS upgrade accepts connections with no Origin header — set NODE_ENV=production to enforce origin checking');
 }
-
-/**
- * SEC-FIX 3: Tools that are never allowed in agent invocations,
- * regardless of what the agent's frontmatter says.
- * Bash = arbitrary code execution. computer = desktop automation.
- */
-export const BANNED_TOOLS: readonly string[] = ['Bash', 'computer'];
 
 /**
  * Per-agent voice descriptors injected into each system prompt.

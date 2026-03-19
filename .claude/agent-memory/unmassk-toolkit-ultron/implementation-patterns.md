@@ -167,3 +167,86 @@ In `scheduleInvocation`, before adding a new queue entry, check `pendingQueue.fi
 
 ### Issue #25 closed
 `gh issue close 25 --comment "Implemented: human messages use unshift for queue priority"`
+
+---
+
+## Session 7 ws.ts hardening — 2026-03-19
+
+### FIX 1: Remove log() wrapper — structured logger throughout
+Deleted `function log(...)` shim. All call sites replaced with `logger.warn/info/debug({ key: val }, 'msg')` structured form. No more string concatenation.
+
+### FIX 2: @everyone — clearQueue/pauseInvocations moved AFTER stop-directive check
+`clearQueue` and `pauseInvocations` now run ONLY inside `if (isStopDirective)`, not before the check. Previously ran unconditionally on any `@everyone` message.
+
+### FIX 3: @everyone + @mention — non-stop @everyone still processes individual mentions
+Removed the blanket `mentions = new Set()` when `everyoneProcessed` is true for non-stop directives. Variable renamed to `everyonePresent`. Mentions are skipped only because `@everyone` already called `invokeAgents` for all active agents — double-invoke for specific agents in the message is still avoided.
+
+### FIX 4: ?? 'user' fallback replaced with error log + early return
+`connStates.get(connId)?.name ?? 'user'` in `send_message` and `invoke_agent` replaced with:
+```ts
+const connState = connStates.get(connId);
+if (!connState) {
+  logger.error({ connId, roomId }, 'WS send_message: connState missing for active connId — closing');
+  ws.close();
+  return;
+}
+const authorName = connState.name;
+```
+Same pattern for `invoke_agent` using `invokeConnState`.
+
+### FIX 5: SQLite error handling — try/catch around insertMessage
+All three `insertMessage` calls (send_message user msg, @everyone system directive, invoke_agent user msg) wrapped in `try/catch`. On failure: `logger.error`, send `{ type: 'error', code: 'DB_ERROR' }` WS message, then `return` (or `break` for directive).
+
+### FIX 6: WS upgrade rate limit — global counter, 50 upgrades/second
+Implemented as a `createTokenBucket(50, 1_000)` IIFE-wrapped function. Called `checkUpgradeRateLimit()` at the top of `open()`, after origin check, before room/token checks. On failure: send `UPGRADE_RATE_LIMIT` error + close.
+
+### FIX 7: resolvedName alias removed
+`const resolvedName = tokenName` line removed. `tokenName` used directly throughout `open()`.
+
+### rate-limiter.ts — shared factory extracted
+`createTokenBucket(max, windowMs)` exported from `services/rate-limiter.ts`. Used by `ws.ts` for both per-connection (5/10s) and upgrade (50/1s) limits. The per-connection bucket is now closure-managed — `buckets.delete(connId)` in `close()` removed (not needed).
+
+### getReservedAgentNames() — single source of truth
+`export function getReservedAgentNames(): ReadonlySet<string>` added to `auth-tokens.ts`. `ws.ts` imports and uses it instead of duplicating the set construction with `AGENT_BY_NAME`. `AGENT_BY_NAME` import removed from `ws.ts`.
+
+---
+
+## Session 8 agent-invoker.ts targeted fixes — 2026-03-19
+
+### FIX 1: sanitizePromptContent — NFKC + zero-width strip
+Replaced manual Unicode bracket list (`[\uFF3B\u27E6...]`) with:
+```ts
+.normalize('NFKC')
+.replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
+```
+NFKC covers a far wider homoglyph surface in one pass. Zero-width chars (ZWSP/ZWNJ/ZWJ/BOM) stripped immediately after.
+
+### FIX 2: Rate-limit retry starvation — release inFlight before 12s wait
+In the rate-limit branch of `spawnAndParse`:
+- Delete from `inFlight` and `activeInvocations` immediately (before `setTimeout`)
+- Call `drainQueue()` to unblock waiting agents
+- `setTimeout` calls `scheduleInvocation` which re-acquires the lock when it runs
+- Return `false` (not `true`) — the lock was already released; `runInvocation` must clean up normally
+- **Why:** Without this, `inFlight` held the key for 12s, starving any queued work for that agent+room.
+
+### FIX 3: Remove log() wrapper
+Deleted `function log(...args: unknown[])` shim. All 20 call sites replaced with `logger.debug/info/warn/error({ structured }, 'msg')`. Errors use `logger.error`, timeouts and stale sessions use `logger.warn`, normal flow uses `logger.debug`.
+
+### FIX 4: buildPrompt inside try/catch
+Moved `buildPrompt` and `buildSystemPrompt` calls inside the existing `try/catch` block in `doInvoke`. DB errors or sanitization failures are now caught and surfaced as agent error messages instead of uncaught rejections.
+
+### FIX 5: Double getAgentConfig() at upsertAgentSession
+`model: getAgentConfig(agentName)?.model ?? 'unknown'` → `model,`
+The `model` parameter is already in scope (passed from `doInvoke` via `agentConfig.model`).
+
+### FIX 6: Agent response size cap before DB insert
+```ts
+const MAX_AGENT_RESPONSE_BYTES = 256_000;
+// ... before insertMessage:
+const responseByteLength = Buffer.byteLength(resultText, 'utf8');
+if (responseByteLength > MAX_AGENT_RESPONSE_BYTES) {
+  logger.warn({ agentName, roomId, byteLength: responseByteLength }, 'agent response exceeds size cap — truncating');
+  resultText = resultText.slice(0, MAX_AGENT_RESPONSE_BYTES) + '\n[...truncated]';
+}
+```
+Applied AFTER the SKIP check, BEFORE `insertMessage`. Truncation logged as warn.

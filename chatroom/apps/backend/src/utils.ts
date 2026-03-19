@@ -29,16 +29,6 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-/** Format an ISO timestamp as HH:MM for display */
-export function formatTimeHHMM(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-}
-
 // ---------------------------------------------------------------------------
 // DB row → protocol type mappers
 // ---------------------------------------------------------------------------

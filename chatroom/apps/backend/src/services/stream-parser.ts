@@ -27,7 +27,7 @@ export interface ToolUseEvent {
   input: unknown;
 }
 
-export interface PermissionDenial {
+interface PermissionDenial {
   toolName: string;
   input?: unknown;
 }
@@ -47,7 +47,7 @@ export interface ResultEvent {
   permissionDenials: PermissionDenial[];
 }
 
-export type StreamEvent = TextEvent | ToolUseEvent | ResultEvent;
+type StreamEvent = TextEvent | ToolUseEvent | ResultEvent;
 
 // ---------------------------------------------------------------------------
 // Internal shapes (stream-json wire format)

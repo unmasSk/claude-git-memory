@@ -4,8 +4,8 @@ import {
   loadAgentRegistry,
   getAgentConfig,
   getAllAgents,
+  BANNED_TOOLS,
 } from './agent-registry.js';
-import { BANNED_TOOLS } from '../config.js';
 
 // ---------------------------------------------------------------------------
 // Boot: build the registry once for this entire suite.

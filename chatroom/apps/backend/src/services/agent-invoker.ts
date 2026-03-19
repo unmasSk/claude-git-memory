@@ -19,10 +19,9 @@
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('agent-invoker');
-function log(...args: unknown[]) { logger.info(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 import { parseStreamLine } from './stream-parser.js';
-import { getAgentConfig } from './agent-registry.js';
+import { getAgentConfig, BANNED_TOOLS } from './agent-registry.js';
 import { extractMentions } from './mention-parser.js';
 import { broadcast } from './message-bus.js';
 import {
@@ -40,7 +39,6 @@ import {
   MAX_CONCURRENT_AGENTS,
   AGENT_TIMEOUT_MS,
   AGENT_HISTORY_LIMIT,
-  BANNED_TOOLS,
   AGENT_VOICE,
 } from '../config.js';
 import type { Message } from '@agent-chatroom/shared';
@@ -80,6 +78,17 @@ const activeInvocations = new Map<string, Promise<void>>();
 /** FIX 15: In-flight lock keyed by "${agentName}:${roomId}" (per-room scope) */
 const inFlight = new Set<string>();
 
+/**
+ * Returns a Promise that resolves once all currently active invocations complete.
+ * Used by gracefulShutdown in index.ts to ensure no agents are mid-run when
+ * the DB is closed. If there are no active invocations, resolves immediately.
+ */
+export function drainActiveInvocations(): Promise<void> {
+  const running = Array.from(activeInvocations.values());
+  if (running.length === 0) return Promise.resolve();
+  return Promise.allSettled(running).then(() => undefined);
+}
+
 
 interface QueueEntry {
   roomId: string;
@@ -99,6 +108,10 @@ const MAX_QUEUE_SIZE = 10;
 
 /** FIX 3: Maximum combined triggerContent bytes before a merge is rejected. */
 const MAX_TRIGGER_CONTENT_BYTES = 16_000;
+
+/** Maximum agent response size stored in the DB. Responses exceeding this are truncated
+ *  to prevent SQLite page exhaustion and unbounded broadcast payloads. */
+const MAX_AGENT_RESPONSE_BYTES = 256_000;
 
 /**
  * FIX 8: enqueue at module scope — captures nothing per-call.
@@ -214,14 +227,14 @@ function scheduleInvocation(
   priority = false,
 ): void {
   if (_pausedRooms.has(roomId)) {
-    log('scheduleInvocation PAUSED for room', roomId, '— @everyone stop active');
+    logger.info({ roomId }, 'scheduleInvocation PAUSED — @everyone stop active');
     return;
   }
 
   // T2-05: inFlight key is per-room so the same agent can run in parallel in different rooms
   const flightKey = `${agentName}:${roomId}`;
 
-  log('scheduleInvocation', agentName, roomId, 'turns:', Object.fromEntries(context.agentTurns), 'isRetry:', isRetry, 'priority:', priority, 'inFlight:', inFlight.has(flightKey), 'queueSize:', pendingQueue.length);
+  logger.debug({ agentName, roomId, turns: Object.fromEntries(context.agentTurns), isRetry, priority, inFlight: inFlight.has(flightKey), queueSize: pendingQueue.length }, 'scheduleInvocation');
 
   // FIX 15: Per-agent-per-room in-flight lock — queue if already running
   if (inFlight.has(flightKey)) {
@@ -241,7 +254,7 @@ function scheduleInvocation(
       existing.context.triggerContent = merged;
       // FIX 1: Escalate priority if incoming context has higher priority
       if (priority) existing.priority = true;
-      log('scheduleInvocation', agentName, 'merged into existing queue entry. Queue size:', pendingQueue.length);
+      logger.debug({ agentName, roomId, queueSize: pendingQueue.length }, 'scheduleInvocation: merged into existing queue entry');
       void postSystemMessage(
         roomId,
         `Agent ${agentName} is busy. Message merged into pending invocation.`,
@@ -257,7 +270,7 @@ function scheduleInvocation(
       return;
     }
     enqueue({ roomId, agentName, context, isRetry, priority });
-    log('scheduleInvocation', agentName, 'in-flight, queued. Queue size:', pendingQueue.length);
+    logger.debug({ agentName, roomId, queueSize: pendingQueue.length }, 'scheduleInvocation: in-flight, queued');
     void postSystemMessage(
       roomId,
       `Agent ${agentName} is busy. Message queued (${pendingQueue.length} pending).`,
@@ -281,7 +294,7 @@ function scheduleInvocation(
       existing.context.triggerContent = merged;
       // FIX 1: Escalate priority if incoming context has higher priority
       if (priority) existing.priority = true;
-      log('scheduleInvocation', agentName, 'merged into existing queue entry (cap). Queue size:', pendingQueue.length);
+      logger.debug({ agentName, roomId, queueSize: pendingQueue.length }, 'scheduleInvocation: merged into existing queue entry (cap)');
       void postSystemMessage(
         roomId,
         `Agent ${agentName} queued. Message merged into pending invocation.`,
@@ -317,7 +330,7 @@ function runInvocation(
   // T2-05: use composite key so same agent can run in different rooms simultaneously
   inFlight.add(key);
 
-  log('runInvocation starting', agentName, roomId);
+  logger.debug({ agentName, roomId }, 'runInvocation starting');
 
   // Issue #36: doInvoke returns true when a retry was scheduled from within.
   // RACE-002: When a retry is scheduled, the retry call already inserts new
@@ -351,7 +364,7 @@ function drainQueue(): void {
   if (idx === -1) return;
 
   const [next] = pendingQueue.splice(idx, 1);
-  log('drainQueue dequeuing', next.agentName, next.roomId);
+  logger.debug({ agentName: next.agentName, roomId: next.roomId }, 'drainQueue dequeuing');
   runInvocation(next.roomId, next.agentName, next.context, next.isRetry);
 }
 
@@ -375,7 +388,7 @@ async function doInvoke(
   // SEC-FIX 3: Fail-closed — validate agent config and tools
   const agentConfig = getAgentConfig(agentName);
 
-  log('doInvoke', agentName, 'config:', agentConfig ? 'found' : 'missing', 'isRetry:', isRetry);
+  logger.debug({ agentName, roomId, configFound: !!agentConfig, isRetry }, 'doInvoke');
 
   if (!agentConfig) {
     await postSystemMessage(roomId, `Unknown agent: ${agentName}`);
@@ -396,7 +409,7 @@ async function doInvoke(
     (t) => !BANNED_TOOLS.includes(t),
   );
 
-  log('doInvoke', agentName, 'allowedTools:', allowedTools, 'prompt length:', context.triggerContent.length);
+  logger.debug({ agentName, roomId, allowedTools, triggerBytes: context.triggerContent.length }, 'doInvoke tools');
 
   if (allowedTools.length === 0) {
     await postSystemMessage(
@@ -415,19 +428,20 @@ async function doInvoke(
     sessionId = null;
   }
 
-  // Build prompt with injection defense.
-  // For respawned instances (context overflow), pass a high history limit so
-  // the fresh agent gets the full conversation, not just the recent window.
-  const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
-
-  // Build system prompt with security rules.
-  // For respawned instances, include a self-orientation notice.
-  const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn);
-
   // Broadcast status: thinking
   await updateStatusAndBroadcast(agentName, roomId, 'thinking');
 
   try {
+    // Build prompt with injection defense inside try/catch so DB or sanitization
+    // errors are surfaced as agent errors rather than uncaught promise rejections.
+    // For respawned instances (context overflow), pass a high history limit so
+    // the fresh agent gets the full conversation, not just the recent window.
+    const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
+
+    // Build system prompt with security rules.
+    // For respawned instances, include a self-orientation notice.
+    const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn);
+
     retryScheduled = await spawnAndParse(
       roomId,
       agentName,
@@ -440,7 +454,7 @@ async function doInvoke(
     );
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    log('error in doInvoke', agentName, message);
+    logger.error({ agentName, roomId, err: message }, 'error in doInvoke');
     await updateStatusAndBroadcast(agentName, roomId, 'error', message);
     await postSystemMessage(roomId, `Agent ${agentName} error: ${message}`);
   }
@@ -483,7 +497,7 @@ async function spawnAndParse(
     args.push('--resume', sessionId);
   }
 
-  log('spawnAndParse', agentName, 'model:', model, 'sessionId:', sessionId ?? 'new');
+  logger.debug({ agentName, roomId, model, sessionId: sessionId ?? 'new' }, 'spawnAndParse');
 
   // FIX 16 / House diagnostic: On Unix, detached creates a process group for
   // group kill on timeout. On Windows, both detached AND windowsHide are broken
@@ -497,11 +511,11 @@ async function spawnAndParse(
     ...(isUnix ? { detached: true } : {}),
   } as any);
 
-  log('spawnAndParse', agentName, 'PID:', proc.pid);
+  logger.debug({ agentName, roomId, pid: proc.pid }, 'subprocess spawned');
 
   // FIX 16: Orphan cleanup on timeout
   const timeoutHandle = setTimeout(() => {
-    log('timeout reached for', agentName, 'PID:', proc.pid, '— killing');
+    logger.warn({ agentName, roomId, pid: proc.pid }, 'timeout reached — killing subprocess');
     try {
       if (process.platform !== 'win32') {
         // Negative PID = process group kill on Unix
@@ -566,7 +580,7 @@ async function spawnAndParse(
         const events = parseStreamLine(line);
         for (const event of events) {
           if (event.type === 'tool_use') {
-            log('tool_use', agentName, 'tool:', event.name);
+            logger.debug({ agentName, roomId, tool: event.name }, 'tool_use');
             // Broadcast tool event (throttle to avoid render storm — FIX 17)
             const now = Date.now();
             if (now - lastToolBroadcastTime > 500) {
@@ -637,7 +651,7 @@ async function spawnAndParse(
     // SEC-OPEN-012: Sanitize stderr before logging — subprocess output can contain
     // prompt injection markers that would poison structured log ingestion pipelines.
     const safeStderr = sanitizePromptContent(stderrOutput.trim());
-    log('stderr', agentName, safeStderr);
+    logger.warn({ agentName, roomId, stderr: safeStderr }, 'subprocess stderr');
   }
 
   // FIX 2: Stale session detection (includes context-overflow "Prompt is too long")
@@ -656,7 +670,7 @@ async function spawnAndParse(
       // Clear stale/overflowed session and retry without --resume (one retry only)
       clearAgentSession(agentName, roomId);
       const staleReason = isContextOverflow ? 'context too long' : 'stale session';
-      log(staleReason, 'detected for', agentName, 'roomId:', roomId, 'scheduling retry');
+      logger.warn({ agentName, roomId, staleReason }, 'stale session detected — scheduling retry');
 
       if (isContextOverflow) {
         // Visible announcement: all participants (humans and agents) must know
@@ -701,14 +715,21 @@ async function spawnAndParse(
       stderrOutput.toLowerCase().includes('too many requests');
 
     if (isRateLimit && !context.rateLimitRetry) {
-      log('rate limit detected for', agentName, '— retrying in 12s');
+      logger.warn({ agentName, roomId }, 'rate limit detected — releasing lock and retrying in 12s');
       await postSystemMessage(roomId, `Agent ${agentName}: rate limited, retrying in 12s...`);
       context.rateLimitRetry = true;
+      // Release the in-flight lock immediately so drainQueue can serve other agents
+      // during the 12s wait. The retry re-acquires the lock when it runs.
+      const key = `${agentName}:${roomId}`;
+      inFlight.delete(key);
+      activeInvocations.delete(key);
+      drainQueue();
       setTimeout(() => {
         scheduleInvocation(roomId, agentName, context, false);
       }, 12_000);
-      // Issue #36: return true so runInvocation skips cleanup (retry is pending).
-      return true;
+      // Return false — lock was already released above; runInvocation must NOT
+      // skip cleanup (there is nothing to preserve at this point).
+      return false;
     }
 
     await postSystemMessage(
@@ -721,9 +742,18 @@ async function spawnAndParse(
 
   // SKIP mechanism: agent explicitly opted out — suppress message entirely
   if (/^skip\.?$/i.test(resultText.trim())) {
-    log('SKIP received from', agentName, '— suppressing message');
+    logger.debug({ agentName, roomId }, 'SKIP received — suppressing message');
     await updateStatusAndBroadcast(agentName, roomId, 'done');
     return false;
+  }
+
+  // Cap response size before DB insert to prevent SQLite page exhaustion and
+  // unbounded broadcast payloads. Truncation is logged as a warning.
+  const responseByteLength = Buffer.byteLength(resultText, 'utf8');
+  if (responseByteLength > MAX_AGENT_RESPONSE_BYTES) {
+    logger.warn({ agentName, roomId, byteLength: responseByteLength, cap: MAX_AGENT_RESPONSE_BYTES }, 'agent response exceeds size cap — truncating before DB insert');
+    // Truncate to cap bytes at a character boundary (slice operates on code units, close enough for UTF-8 prose)
+    resultText = resultText.slice(0, MAX_AGENT_RESPONSE_BYTES) + '\n[...truncated]';
   }
 
   // Persist and broadcast the agent's response message
@@ -792,7 +822,7 @@ async function spawnAndParse(
     }
   }
 
-  log('chain mentions', agentName, 'turns:', Object.fromEntries(updatedTurns), 'allowed:', [...chainedMentions], 'blocked:', blockedAgents);
+  logger.debug({ agentName, roomId, turns: Object.fromEntries(updatedTurns), allowed: [...chainedMentions], blocked: blockedAgents }, 'chain mentions');
 
   if (blockedAgents.length > 0) {
     await postSystemMessage(
@@ -810,7 +840,7 @@ async function spawnAndParse(
     agentName,
     roomId,
     sessionId: resultSessionId,
-    model: getAgentConfig(agentName)?.model ?? 'unknown',
+    model,
     status: 'done',
   });
 
@@ -836,11 +866,13 @@ async function spawnAndParse(
  */
 export function sanitizePromptContent(s: string): string {
   return s
-    // SEC-OPEN-006: Neutralize Unicode homoglyphs of [ and ] before bracket-pattern checks.
-    // Fullwidth/math bracket variants are visually indistinguishable from ASCII brackets
-    // and can be used to bypass bracket-based trust-boundary markers.
-    .replace(/[\uFF3B\u27E6\u2E22\u3010]/g, '(')  // fullwidth/math left brackets → (
-    .replace(/[\uFF3D\u27E7\u2E23\u3011]/g, ')')  // fullwidth/math right brackets → )
+    // SEC-OPEN-006: NFKC normalization resolves Unicode homoglyphs (fullwidth letters,
+    // math variants, compatibility forms) to their canonical ASCII equivalents in one pass.
+    // This replaces the manual bracket list and covers a far wider homoglyph surface.
+    .normalize('NFKC')
+    // Strip zero-width characters that can be used to smuggle content past regex checks.
+    // U+200B ZWSP, U+200C ZWNJ, U+200D ZWJ, U+FEFF BOM/ZWNBSP.
+    .replace(/[\u200B\u200C\u200D\uFEFF]/g, '')
     .replace(/\[CHATROOM HISTORY[^\]]*\]/gi, '[CHATROOM-HISTORY-SANITIZED]')
     .replace(/\[END CHATROOM HISTORY\]/gi, '[END-CHATROOM-HISTORY-SANITIZED]')
     .replace(/\[PRIOR AGENT OUTPUT[^\]]*\]/gi, '[PRIOR-AGENT-OUTPUT-SANITIZED]')

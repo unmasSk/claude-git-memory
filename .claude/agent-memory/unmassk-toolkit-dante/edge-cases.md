@@ -101,6 +101,26 @@ Test with spy: verify `extractMentions` is not called when @everyone present.
 Multiple priority entries are LIFO at the front (last unshifted = index 0).
 Test with inline mirror since `enqueue()` and `pendingQueue` are not exported.
 
+## Auth Tokens — Brute-Force Tracking (auth-tokens.ts)
+
+`recordAuthFailure` is internal — test via public API:
+- peekToken / validateToken with unknown tokens call recordAuthFailure internally
+- sourceKey: tokens < 8 chars → sentinel 'unknown'; ≥ 8 chars → first 8 chars
+- After 10 failures from same prefix → error log (does NOT throw, still returns null)
+- Test file: `auth-tokens-brute-force.test.ts`
+- Pattern: use `'brute-tf' + suffix` to get consistent prefix 'brute-tf' across calls
+
+## Config Validation Helpers (config.ts)
+
+`requireIntEnv`, `requireEnumEnv`, `stringEnv` are NOT exported.
+Test pattern: inline mirror that throws instead of calling process.exit(1).
+See `config-validation.test.ts` for complete coverage.
+Key edge cases:
+- Empty string '' → returns default (same as undefined)
+- Float like '3.14' → invalid for requireIntEnv (Number.isInteger check)
+- 'NaN', 'Infinity' → invalid (Number() converts but isInteger fails)
+- Case-sensitive enum matching: 'DEBUG' is not 'debug'
+
 ## WS connectedUsers Tracking
 - Integration test server must track connStates + roomConns maps manually (same as production ws.ts)
 - Use `publishToSelf: true` on test server for echo tests

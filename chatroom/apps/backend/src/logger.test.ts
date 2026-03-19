@@ -12,8 +12,7 @@
  * has the expected shape.
  */
 import { describe, it, expect } from 'bun:test';
-import { createLogger } from './logger.js';
-import rootLogger from './logger.js';
+import { createLogger, rootLogger } from './logger.js';
 
 // ---------------------------------------------------------------------------
 // createLogger — returns a usable child logger

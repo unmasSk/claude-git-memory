@@ -207,8 +207,8 @@ beforeAll(async () => {
       query: t.Object({ limit: t.Optional(t.Numeric()), before: t.Optional(t.String()) }),
     })
 
-    // GET /api/agents
-    .get('/agents', () => getAllAgents())
+    // GET /api/agents — mirrors production: strip allowedTools (SEC-MED-001)
+    .get('/agents', () => getAllAgents().map(({ allowedTools: _omit, ...safe }) => safe))
 
     .listen({ port: 0, hostname: '127.0.0.1' });
 
@@ -432,11 +432,11 @@ describe('GET /api/agents', () => {
     }
   });
 
-  it('each agent has an allowedTools array', async () => {
+  it('allowedTools is stripped from every agent in the production route (SEC-MED-001)', async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
-    const agents = await res.json() as Array<{ allowedTools: unknown }>;
+    const agents = await res.json() as Array<Record<string, unknown>>;
     for (const agent of agents) {
-      expect(Array.isArray(agent.allowedTools)).toBe(true);
+      expect('allowedTools' in agent).toBe(false);
     }
   });
 });

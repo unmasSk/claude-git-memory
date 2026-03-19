@@ -381,26 +381,6 @@ describe('config.ts — exported constant shapes', () => {
     expect(ROOM_STATE_MESSAGE_LIMIT).toBe(50);
   });
 
-  it('WS_ROOM_TOPIC_PREFIX is "room:"', async () => {
-    const { WS_ROOM_TOPIC_PREFIX } = await import('./config.js');
-    expect(WS_ROOM_TOPIC_PREFIX).toBe('room:');
-  });
-
-  it('BANNED_TOOLS includes Bash', async () => {
-    const { BANNED_TOOLS } = await import('./config.js');
-    expect(BANNED_TOOLS).toContain('Bash');
-  });
-
-  it('BANNED_TOOLS includes computer', async () => {
-    const { BANNED_TOOLS } = await import('./config.js');
-    expect(BANNED_TOOLS).toContain('computer');
-  });
-
-  it('BANNED_TOOLS has exactly 2 entries', async () => {
-    const { BANNED_TOOLS } = await import('./config.js');
-    expect(BANNED_TOOLS.length).toBe(2);
-  });
-
   it('AGENT_VOICE has entries for all 10 expected agents', async () => {
     const { AGENT_VOICE } = await import('./config.js');
     const expectedAgents = ['bilbo', 'ultron', 'cerberus', 'moriarty', 'house', 'yoda', 'argus', 'dante', 'alexandria', 'gitto'];

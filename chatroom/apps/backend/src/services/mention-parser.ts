@@ -2,7 +2,6 @@ import { getAgentConfig } from './agent-registry.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('mention-parser');
-function log(...args: unknown[]) { logger.info(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 // ---------------------------------------------------------------------------
 // Mention extraction
@@ -31,7 +30,7 @@ const NEVER_INVOKE = new Set(['user', 'system', 'claude', 'everyone']);
  * Per-agent turn limits are enforced in agent-invoker.ts, not here.
  */
 export function extractMentions(content: string): Set<string> {
-  log('extractMentions content length:', content.length);
+  logger.debug({ contentLength: content.length }, 'extractMentions');
 
   const mentions = new Set<string>();
 
@@ -64,6 +63,6 @@ export function extractMentions(content: string): Set<string> {
     mentions.add(name);
   }
 
-  log('extractMentions result:', [...mentions]);
+  logger.debug({ mentions: [...mentions] }, 'extractMentions result');
   return mentions;
 }

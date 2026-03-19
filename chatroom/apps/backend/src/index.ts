@@ -8,6 +8,7 @@ import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
 import { createLogger } from './logger.js';
 import { getDb } from './db/connection.js';
+import { drainActiveInvocations } from './services/agent-invoker.js';
 
 const logger = createLogger('index');
 
@@ -40,8 +41,9 @@ export const app = new Elysia()
   .use(wsRoutes)
   .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// SEC-OPEN-001: Mount swagger only in non-production environments — never expose docs in prod
-if (NODE_ENV === 'development' || NODE_ENV === 'test') {
+// SEC-OPEN-001: Mount swagger only in development — never in test or production.
+// In test mode swagger adds unnecessary HTTP overhead and leaks API surface.
+if (NODE_ENV === 'development') {
   app.use(swagger({
     path: '/docs',
     documentation: {
@@ -66,11 +68,15 @@ app.listen({ port: PORT, hostname: HOST }, () => {
 
 /**
  * Graceful shutdown handler.
- * Closes all active WebSocket connections, checkpoints the WAL file,
- * closes the database, then exits 0.
+ * 1. Stop accepting new connections (app.server?.stop()).
+ * 2. Await all in-progress agent invocations so no subprocess is mid-run when the DB closes.
+ * 3. Checkpoint the WAL file so all pages are in the main DB file.
+ * 4. Close the database.
+ * 5. Exit 0.
+ *
  * If shutdown takes longer than 5s, force-exits with code 1.
  */
-function gracefulShutdown(signal: string): void {
+async function gracefulShutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Shutting down gracefully...');
 
   const forceTimer = setTimeout(() => {
@@ -84,6 +90,10 @@ function gracefulShutdown(signal: string): void {
     // Close all active WebSocket connections with a close frame
     app.server?.stop();
 
+    // Drain in-progress agent invocations before closing the DB.
+    // Without this, a subprocess writing a result row can race with db.close().
+    await drainActiveInvocations();
+
     // Checkpoint the WAL file so all pages are in the main DB file
     const db = getDb();
     db.exec('PRAGMA wal_checkpoint(TRUNCATE)');
@@ -96,7 +106,7 @@ function gracefulShutdown(signal: string): void {
   process.exit(0);
 }
 
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => { void gracefulShutdown('SIGTERM'); });
+process.on('SIGINT', () => { void gracefulShutdown('SIGINT'); });
 
 export type App = typeof app;

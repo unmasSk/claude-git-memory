@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { generateId, nowIso, mapMessageRow, mapAgentSessionRow, formatTimeHHMM, mapRoomRow, safeMessage } from './utils.js';
+import { generateId, nowIso, mapMessageRow, mapAgentSessionRow, mapRoomRow, safeMessage } from './utils.js';
 import type { MessageRow, AgentSessionRow, RoomRow } from './types.js';
 import type { Message, ServerToolEvent } from '@agent-chatroom/shared';
 
@@ -272,42 +272,6 @@ describe('mapAgentSessionRow', () => {
       totalCost: 0.1500,
       turnCount: 3,
     });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// formatTimeHHMM
-// ---------------------------------------------------------------------------
-
-describe('formatTimeHHMM', () => {
-  it('formats a UTC ISO timestamp to HH:MM string matching pattern', () => {
-    const formatted = formatTimeHHMM('2026-03-17T14:30:00.000Z');
-    expect(formatted).toMatch(/^\d{2}:\d{2}$/);
-  });
-
-  it('returns a string with exactly 5 characters (HH:MM format)', () => {
-    const formatted = formatTimeHHMM('2026-03-17T09:05:00.000Z');
-    expect(formatted.length).toBe(5);
-  });
-
-  it('hours are 0-23 and minutes are 0-59', () => {
-    const formatted = formatTimeHHMM('2026-03-17T23:59:00.000Z');
-    const [hoursStr, minutesStr] = formatted.split(':');
-    expect(Number(hoursStr)).toBeGreaterThanOrEqual(0);
-    expect(Number(hoursStr)).toBeLessThanOrEqual(23);
-    expect(Number(minutesStr)).toBeGreaterThanOrEqual(0);
-    expect(Number(minutesStr)).toBeLessThanOrEqual(59);
-  });
-
-  it('minutes end with :00 for a round-hour input', () => {
-    const formatted = formatTimeHHMM('2026-03-17T10:00:00.000Z');
-    expect(formatted.endsWith(':00')).toBe(true);
-  });
-
-  it('returns a string (not undefined/null)', () => {
-    const formatted = formatTimeHHMM('2026-01-01T00:00:00.000Z');
-    expect(typeof formatted).toBe('string');
-    expect(formatted.length).toBeGreaterThan(0);
   });
 });
 

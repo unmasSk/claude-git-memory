@@ -124,6 +124,26 @@ function exhaustBucket(key: string): void {
 }
 ```
 
+## Windows-safe fs Mock (agent-registry-fs.test.ts)
+
+When mocking `node:fs` and checking paths against a fake dir, normalize separators:
+
+```ts
+existsSync(p: string): boolean {
+  if (p.replace(/\\/g, '/') === FAKE_AGENT_DIR.replace(/\\/g, '/')) return true;
+  return realFs.existsSync(p);
+},
+readFileSync(p: string, enc?: string): string | Buffer {
+  const normalP = p.replace(/\\/g, '/');
+  const normalDir = FAKE_AGENT_DIR.replace(/\\/g, '/');
+  const filename = normalP.replace(normalDir + '/', '');
+  if (normalP.startsWith(normalDir) && fakeFiles[filename] !== undefined) {
+    return fakeFiles[filename];
+  }
+  return realFs.readFileSync(p, enc);
+},
+```
+
 ## Cross-File DB Contamination — historyLimit pattern
 
 Tests that insert rows into `_invokerDb` and assert their presence via `buildPrompt` FAIL in the full test suite run because Bun's `mock.module()` persists: another file's `mock.module('../db/connection.js')` overwrites the closure, so `getDb()` returns a different (empty) DB. Safe workaround: assert only structural envelope (markers, trigger content) — never row content — from tests that don't control the DB mock lifecycle end-to-end.

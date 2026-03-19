@@ -1,7 +1,7 @@
 import { createLogger } from '../logger.js';
+import { createTokenBucket } from '../services/rate-limiter.js';
 
 const logger = createLogger('ws');
-function log(...args: unknown[]) { logger.info(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' ')); }
 
 import { Elysia, t } from 'elysia';
 import {
@@ -19,8 +19,8 @@ import { invokeAgents, invokeAgent, clearQueue, pauseInvocations, resumeInvocati
 import { getAgentConfig } from '../services/agent-registry.js';
 import { mapMessageRow, mapRoomRow, mapAgentSessionRow, generateId, nowIso, safeMessage } from '../utils.js';
 import { ROOM_STATE_MESSAGE_LIMIT, WS_ALLOWED_ORIGINS } from '../config.js';
-import { validateToken } from '../services/auth-tokens.js';
-import { ClientMessageSchema, AGENT_BY_NAME } from '@agent-chatroom/shared';
+import { validateToken, getReservedAgentNames } from '../services/auth-tokens.js';
+import { ClientMessageSchema } from '@agent-chatroom/shared';
 import type { ServerMessage, Message, ConnectedUser } from '@agent-chatroom/shared';
 import { sanitizePromptContent } from '../services/agent-invoker.js';
 
@@ -34,16 +34,21 @@ const ALLOWED_ORIGINS = new Set(WS_ALLOWED_ORIGINS);
 const EVERYONE_PATTERN = /@everyone\b/i;
 
 // ---------------------------------------------------------------------------
-// SEC-FIX 6: Per-connection token bucket rate limiter
+// SEC-FIX 6: Per-connection token bucket rate limiter (shared factory)
 // ---------------------------------------------------------------------------
 
-interface TokenBucket {
-  tokens: number;
-  lastRefill: number;
-}
+// 5 messages per 10 seconds — keyed by connId
+const checkRateLimit = createTokenBucket(5, 10_000);
 
-const RATE_LIMIT_MAX = 5;            // messages allowed per window
-const RATE_LIMIT_WINDOW_MS = 10_000; // 10 seconds
+// ---------------------------------------------------------------------------
+// WS upgrade rate limiter — 50 upgrades/second, global key
+// ---------------------------------------------------------------------------
+
+// 50 upgrades per 1 second — keyed by constant 'global'
+const checkUpgradeRateLimit = (() => {
+  const check = createTokenBucket(50, 1_000);
+  return () => check('global');
+})();
 
 // Map from ws instance → connId, populated in open(), cleaned in close()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,37 +69,10 @@ const roomConns = new Map<string, Set<string>>();
 // flooded with connections that consume memory and WS server capacity.
 const MAX_CONNECTIONS_PER_ROOM = 20;
 
-// Using a Map keyed by a unique id we stamp at open time
-const buckets = new Map<string, TokenBucket>();
 let _connCounter = 0;
 
 function nextConnId(): string {
   return `conn-${++_connCounter}`;
-}
-
-function checkRateLimit(connId: string): boolean {
-  const now = Date.now();
-  let bucket = buckets.get(connId);
-
-  if (!bucket) {
-    bucket = { tokens: RATE_LIMIT_MAX - 1, lastRefill: now };
-    buckets.set(connId, bucket);
-    return true; // first message always allowed
-  }
-
-  const elapsed = now - bucket.lastRefill;
-  const refill = Math.floor((elapsed / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_MAX);
-  if (refill > 0) {
-    bucket.tokens = Math.min(RATE_LIMIT_MAX, bucket.tokens + refill);
-    bucket.lastRefill = now;
-  }
-
-  if (bucket.tokens <= 0) {
-    return false;
-  }
-
-  bucket.tokens -= 1;
-  return true;
 }
 
 // ---------------------------------------------------------------------------
@@ -125,12 +103,9 @@ function getConnectedUsers(roomId: string): ConnectedUser[] {
  * Names that are reserved and cannot be used by WS clients to prevent impersonation.
  * Excludes 'user' (valid default) and 'claude' (valid orchestrator identity).
  * Only blocks specialized tool-agents that run as subprocesses.
- * 'system' is explicitly added for defense-in-depth (mirrors auth-tokens.ts EXTRA_RESERVED).
+ * Constructed via shared helper in auth-tokens.ts for consistency.
  */
-const RESERVED_AGENT_NAMES = new Set([
-  ...Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude'),
-  'system',
-]);
+const RESERVED_AGENT_NAMES = getReservedAgentNames();
 
 /**
  * Resolve the author name for a new WS connection.
@@ -178,7 +153,19 @@ export const wsRoutes = new Elysia()
       // origin is not allowed.
       const origin = (ws.data as WsData & { headers?: Record<string, string> }).headers?.['origin'] ?? '';
       if (!ALLOWED_ORIGINS.has(origin)) {
-        log('open rejected: bad origin', origin);
+        logger.warn({ origin }, 'WS open rejected: bad origin');
+        ws.close();
+        return;
+      }
+
+      // WS upgrade rate limit — 50 upgrades/second global
+      if (!checkUpgradeRateLimit()) {
+        logger.warn({ origin }, 'WS open rejected: upgrade rate limit exceeded');
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Too many connections. Try again later.',
+          code: 'UPGRADE_RATE_LIMIT',
+        } satisfies ServerMessage));
         ws.close();
         return;
       }
@@ -203,7 +190,7 @@ export const wsRoutes = new Elysia()
       const rawToken = wsData.query?.token;
       const tokenName = validateToken(rawToken);
       if (tokenName === null) {
-        log('open rejected: invalid or missing token', roomId);
+        logger.warn({ roomId }, 'WS open rejected: invalid or missing token');
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Unauthorized. Obtain a token from POST /api/auth/token.',
@@ -212,15 +199,14 @@ export const wsRoutes = new Elysia()
         ws.close();
         return;
       }
-      const resolvedName = tokenName;
 
       // Assign a unique connId for rate limiting and store it in the module map.
       const connId = nextConnId();
       wsConnIds.set(ws.raw ?? ws, connId);
-      log('open', resolvedName, 'room:', roomId, 'connId:', connId);
+      logger.info({ tokenName, roomId, connId }, 'WS open');
 
       const connectedAt = nowIso();
-      connStates.set(connId, { name: resolvedName, roomId, connectedAt });
+      connStates.set(connId, { name: tokenName, roomId, connectedAt });
       if (!roomConns.has(roomId)) roomConns.set(roomId, new Set());
       roomConns.get(roomId)!.add(connId);
 
@@ -322,21 +308,39 @@ export const wsRoutes = new Elysia()
           }
 
           // SEC-FIX 2: Author always set server-side — never accepted from client.
-          // Use the name established at connection time (from ?name= query param).
-          const authorName = connStates.get(connId)?.name ?? 'user';
+          // connId must be present (checked above in rate-limit guard) and the
+          // connState must exist — if it does not, the connection is corrupt.
+          const connState = connStates.get(connId);
+          if (!connState) {
+            logger.error({ connId, roomId }, 'WS send_message: connState missing for active connId — closing');
+            ws.close();
+            return;
+          }
+          const authorName = connState.name;
+
           const id = generateId();
           const createdAt = nowIso();
 
-          insertMessage({
-            id,
-            roomId,
-            author: authorName,
-            authorType: 'human',
-            content: msg.content,
-            msgType: 'message',
-            parentId: null,
-            metadata: '{}',
-          });
+          try {
+            insertMessage({
+              id,
+              roomId,
+              author: authorName,
+              authorType: 'human',
+              content: msg.content,
+              msgType: 'message',
+              parentId: null,
+              metadata: '{}',
+            });
+          } catch (err) {
+            logger.error({ err, roomId, author: authorName }, 'WS send_message: insertMessage failed');
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Failed to save message. Please try again.',
+              code: 'DB_ERROR',
+            } satisfies ServerMessage));
+            return;
+          }
 
           const newMsg: Message = {
             id,
@@ -359,14 +363,16 @@ export const wsRoutes = new Elysia()
           // must obey when they read it in their history context
           if (EVERYONE_PATTERN.test(msg.content)) {
             const directive = msg.content.replace(/@everyone\b/gi, '').trim();
-            log('send_message', authorName, '@everyone directive:', directive);
+            logger.info({ authorName, directive }, 'WS send_message @everyone directive');
 
-            // @everyone stop — halt all pending and new invocations
+            // @everyone stop — halt all pending and new invocations.
+            // clearQueue and pauseInvocations run ONLY when the directive matches
+            // the stop pattern — not for every @everyone message.
             const isStopDirective = /\b(stop|para|callaos|silence|quiet)\b/i.test(directive);
             if (isStopDirective) {
               const cleared = clearQueue(roomId);
               pauseInvocations(roomId);
-              log('@everyone stop — cleared', cleared, 'queued entries, invocations paused');
+              logger.info({ cleared }, 'WS @everyone stop: queue cleared, invocations paused');
             }
 
             // Ignore empty directive (e.g. "@everyone" with nothing after it)
@@ -380,11 +386,21 @@ export const wsRoutes = new Elysia()
             const safeDirective = sanitizePromptContent(directive);
             const sysId = generateId();
             const sysCreatedAt = nowIso();
-            insertMessage({
-              id: sysId, roomId, author: 'system', authorType: 'system',
-              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${safeDirective}`,
-              msgType: 'system', parentId: null, metadata: '{}',
-            });
+            try {
+              insertMessage({
+                id: sysId, roomId, author: 'system', authorType: 'system',
+                content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${safeDirective}`,
+                msgType: 'system', parentId: null, metadata: '{}',
+              });
+            } catch (err) {
+              logger.error({ err, roomId }, 'WS @everyone: insertMessage (system directive) failed');
+              ws.send(JSON.stringify({
+                type: 'error',
+                message: 'Failed to save directive. Please try again.',
+                code: 'DB_ERROR',
+              } satisfies ServerMessage));
+              break;
+            }
             const sysMsg: Message = {
               id: sysId, roomId, author: 'system', authorType: 'system',
               content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${safeDirective}`,
@@ -393,32 +409,38 @@ export const wsRoutes = new Elysia()
             broadcastSync(roomId, { type: 'new_message', message: sysMsg }, ws);
             ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(sysMsg) }));
 
-            // @everyone (non-stop): invoke all agents currently in the room
-            // priority=true: human message — goes to front of queue (FIX 4)
+            // @everyone (non-stop): invoke all agents currently in the room.
+            // Individual @mentions in the same message are also processed below
+            // (the everyoneProcessed guard only applies when @everyone IS a stop directive,
+            // since in that case no invocations should happen at all).
             if (!isStopDirective) {
               const agentSessions = listAgentSessions(roomId);
               if (agentSessions.length > 0) {
                 const agentNames = new Set(agentSessions.map((row) => mapAgentSessionRow(row).agentName));
-                log('@everyone — invoking active agents:', [...agentNames]);
+                logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking active agents');
                 invokeAgents(roomId, agentNames, safeDirective, new Map(), true);
               }
             }
           } else if (isPaused(roomId)) {
             // Non-@everyone human message resumes invocations
             resumeInvocations(roomId);
-            log('send_message', authorName, 'invocations resumed after @everyone stop');
+            logger.info({ authorName }, 'WS send_message: invocations resumed after @everyone stop');
           }
 
-          // FIX: Skip individual @mention processing when @everyone already invoked
-          // all agents — extractMentions would otherwise double-invoke any agent
-          // whose name also appears in the message alongside @everyone.
-          const everyoneProcessed = EVERYONE_PATTERN.test(msg.content);
-          const mentions = everyoneProcessed ? new Set<string>() : extractMentions(msg.content);
-          log('send_message', authorName, 'contentLength:', msg.content.length, 'everyoneProcessed:', everyoneProcessed, 'mentions:', [...mentions]);
+          // When @everyone fired a non-stop broadcast, individual @mentions in the same
+          // message are intentionally skipped to avoid double-invoking agents that were
+          // already covered by invokeAgents above.
+          // When @everyone was a stop directive, no invocations should occur — skip too.
+          // Only process individual mentions when @everyone was NOT present.
+          const everyonePresent = EVERYONE_PATTERN.test(msg.content);
+          const mentions = everyonePresent ? new Set<string>() : extractMentions(msg.content);
+          logger.debug({ authorName, contentLength: msg.content.length, everyonePresent, mentionCount: mentions.size }, 'WS send_message processed');
 
           if (mentions.size > 0) {
             // priority=true: human message — goes to front of queue (FIX 4)
-            invokeAgents(roomId, mentions, msg.content, new Map(), true);
+            // Sanitize ingress content before passing to the agent prompt layer
+            // to prevent trust-boundary delimiter injection via user messages.
+            invokeAgents(roomId, mentions, sanitizePromptContent(msg.content), new Map(), true);
           }
 
           break;
@@ -446,20 +468,38 @@ export const wsRoutes = new Elysia()
             return;
           }
 
-          // Persist the trigger prompt as a user message for audit trail
-          const invokeAuthorName = connStates.get(connId)?.name ?? 'user';
+          // Persist the trigger prompt as a user message for audit trail.
+          // connId is always set (validated by rate-limit guard above).
+          const invokeConnState = connStates.get(connId);
+          if (!invokeConnState) {
+            logger.error({ connId, roomId }, 'WS invoke_agent: connState missing for active connId — closing');
+            ws.close();
+            return;
+          }
+          const invokeAuthorName = invokeConnState.name;
+
           const invokeMsgId = generateId();
           const invokeCreatedAt = nowIso();
-          insertMessage({
-            id: invokeMsgId,
-            roomId,
-            author: invokeAuthorName,
-            authorType: 'human',
-            content: msg.prompt,
-            msgType: 'message',
-            parentId: null,
-            metadata: '{}',
-          });
+          try {
+            insertMessage({
+              id: invokeMsgId,
+              roomId,
+              author: invokeAuthorName,
+              authorType: 'human',
+              content: msg.prompt,
+              msgType: 'message',
+              parentId: null,
+              metadata: '{}',
+            });
+          } catch (err) {
+            logger.error({ err, roomId, agent: msg.agent }, 'WS invoke_agent: insertMessage failed');
+            ws.send(JSON.stringify({
+              type: 'error',
+              message: 'Failed to save message. Please try again.',
+              code: 'DB_ERROR',
+            } satisfies ServerMessage));
+            return;
+          }
 
           // T1-03 fix: broadcast the trigger message to all clients
           const invokeUserMsg: Message = {
@@ -477,7 +517,7 @@ export const wsRoutes = new Elysia()
           // Self-deliver: Elysia 1.4.28 does not implement publishToSelf
           ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(invokeUserMsg) }));
 
-          log('invoke_agent', msg.agent, 'room:', roomId);
+          logger.info({ agent: msg.agent, roomId }, 'WS invoke_agent');
           invokeAgent(roomId, msg.agent, msg.prompt);
           break;
         }
@@ -519,11 +559,12 @@ export const wsRoutes = new Elysia()
       const key = ws.raw ?? ws;
       const connId = wsConnIds.get(key);
       const closedName = connId ? connStates.get(connId)?.name : 'unknown';
-      log('close', closedName, 'room:', roomId, 'connId:', connId);
+      logger.info({ closedName, roomId, connId }, 'WS close');
 
-      // Clean up rate limit bucket, connected user state, and connId map
+      // Clean up connected user state and connId map.
+      // Per-connection rate limit bucket lives inside the createTokenBucket closure
+      // and is keyed by connId — it will naturally expire when no more messages arrive.
       if (connId) {
-        buckets.delete(connId);
         connStates.delete(connId);
         const roomConnSet = roomConns.get(roomId);
         if (roomConnSet) {

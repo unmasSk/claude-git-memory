@@ -81,5 +81,93 @@ Call sites updated: `peekToken` and `validateToken` pass `token` to `recordAuthF
 directly here because config.ts is not yet loaded. Allowlist is still required to prevent
 staging/misconfigured envs from getting pretty-printed dev logs.
 
+## Config cleanup — session 5 (2026-03-19)
+
+**Dead exports removed from config.ts**: `LOG_LEVEL`, `WS_ROOM_TOPIC_PREFIX`, `BANNED_TOOLS`.
+- `LOG_LEVEL` — only consumer was logger.ts which reads `process.env` directly (circular dep prevents import).
+- `WS_ROOM_TOPIC_PREFIX` — no runtime consumers; only appeared in config-validation.test.ts (test removed).
+- `BANNED_TOOLS` — moved to single source of truth in agent-registry.ts (exported there, imported by agent-invoker.ts and tests).
+
+**BANNED_TOOLS pattern**: `export const BANNED_TOOLS: readonly string[] = ['Bash', 'computer']` in agent-registry.ts.
+Internal `const BANNED_TOOLS_SET = new Set(BANNED_TOOLS)` for O(1) lookup in buildRegistry().
+agent-invoker.ts imports from `./agent-registry.js`, tests import from `./agent-registry.js`.
+config-validation.test.ts: removed 4 dead-export tests (WS_ROOM_TOPIC_PREFIX x1, BANNED_TOOLS x3).
+
+**AGENT_DIR canonicalization**: Added `realpathSync` import to config.ts. Applied in all 3 branches of
+`resolveAgentDir()`: env var path, globSync match, and fallback (only if path exists — no error if fallback is virtual).
+
+**logger.ts LOG_LEVEL validation**: Added inline enum check before pino initialization.
+Pattern: `LOG_LEVEL_ALLOWED` const array, `_rawLogLevel` from env, early exit with `process.stderr.write()`
+and `process.exit(1)` if invalid. Uses string concatenation (NOT template literals) in the
+`process.stderr.write()` call — template literals in that position caused the TS compiler to
+emit a literal newline inside the string when the linter converted `\n` to CRLF. String concat avoids this.
+
+**auth-tokens.ts size cap**: `AUTH_FAILURE_MAX_ENTRIES = 5_000` const. In `recordAuthFailure`,
+before adding a new entry (when `!window`), check size and evict the oldest Map key if at capacity.
+Map insertion order is FIFO so `keys().next().value` gives the oldest entry.
+
+**auth-tokens.ts constant-time lookup**: Added `tokenBuf: Buffer` field to `TokenEntry` interface.
+`issueToken` stores `Buffer.from(token)` in the entry. `peekToken` and `validateToken` both:
+1. Call `Map.get(token)` to find the entry.
+2. Create `givenBuf = Buffer.from(token)`.
+3. Check `entry.tokenBuf.length !== givenBuf.length` first (timingSafeEqual throws on length mismatch).
+4. Call `crypto.timingSafeEqual(entry.tokenBuf, givenBuf)` — defense-in-depth after the Map lookup.
+
+**Linter behavior**: A linter/formatter runs on every file write and reverts content using CRLF.
+When writing TypeScript files with string literals containing `\n`, use Python binary writes with
+hex bytes (`b'\x5c\x6e'`) or string concatenation instead of template literals to avoid CRLF normalization
+corrupting escape sequences. The Edit tool triggers the linter; batch Python writes survive if done
+atomically before the linter fires.
+
 **SEC-OPEN-012** (agent-invoker.ts): Wrap `stderrOutput.trim()` in `sanitizePromptContent()`
 before calling `log()`. The safeStderr variable replaces the raw trim inline.
+
+---
+
+## Session 7 fixes — 2026-03-19 (Bilbo findings)
+
+### Shared rate-limiter factory (services/rate-limiter.ts)
+`createTokenBucket(max, windowMs)` returns a `(key: string) => boolean` closure.
+Each caller gets its own Map — no shared state between API and WS limiters.
+`api.ts` and `ws.ts` both import from this module instead of duplicating the inline implementation.
+`checkUpgradeRateLimit` in `ws.ts` uses an IIFE wrapping `createTokenBucket` with a constant `'global'` key.
+
+### WS ingress sanitization
+In `ws.ts` `send_message` handler, the `@mention` path now calls
+`sanitizePromptContent(msg.content)` before passing content to `invokeAgents`.
+The `@everyone` directive path was already sanitized — this closes the gap for direct @mention invocations.
+
+### getReservedAgentNames() shared function
+`auth-tokens.ts` exports `getReservedAgentNames(): Set<string>` — returns the WS-layer
+name-blocking set (excludes 'user' and 'claude', includes 'system' and all AGENT_BY_NAME keys).
+`ws.ts` imports it instead of duplicating the construction. The auth-token issuance set
+(also in auth-tokens.ts) uses a slightly different filter (excludes 'user' only).
+
+### auth-tokens.ts setInterval .unref()
+`setInterval(...).unref()` added so the GC timer does not prevent process exit
+after all real work completes.
+
+### drainActiveInvocations() — graceful shutdown
+`agent-invoker.ts` exports `drainActiveInvocations(): Promise<void>` — waits on all
+`activeInvocations` Map values via `Promise.allSettled`. Resolves immediately when empty.
+`index.ts` imports it and `await drainActiveInvocations()` between `app.server?.stop()` and
+`db.exec('PRAGMA wal_checkpoint')`. `gracefulShutdown` is now `async`. Signal handlers use
+`void gracefulShutdown(...)` to silence the floating promise.
+
+### Swagger restricted to development only
+`index.ts`: `if (NODE_ENV === 'development')` — removed `|| NODE_ENV === 'test'`.
+Swagger adds HTTP overhead and leaks API surface in test mode.
+
+### Dead code removal
+- `logger.ts`: `export default rootLogger` → `export { rootLogger }` (named export).
+  `logger.test.ts` updated to `import { createLogger, rootLogger } from './logger.js'`.
+- `utils.ts`: `formatTimeHHMM` removed. `utils.test.ts` describe block removed.
+- `stream-parser.ts`: `StreamEvent` type alias made module-private (was exported but unused externally).
+  `PermissionDenial` interface was already private after previous session.
+- `mention-parser.ts`: `log()` unstructured wrapper removed; replaced with `logger.debug(...)` calls.
+
+### Test renames and additions
+- `routes/invite.test.ts` renamed to `routes/api-invite.test.ts`.
+- `routes/api.test.ts`: test server handler updated to strip `allowedTools` (matching production).
+  Old "each agent has an allowedTools array" test replaced with
+  "allowedTools is stripped from every agent in the production route (SEC-MED-001)".

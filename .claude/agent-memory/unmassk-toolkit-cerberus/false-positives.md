@@ -46,6 +46,18 @@ This is the cross-platform form of `sed -i` (GNU requires `-i ''`, macOS require
 
 In `app.middleware.ts` lines 87-88, `applyRateLimit(app)` is called before `configureRateLimitLogging(app)`. This looks like it could be a registration order issue, but both register on `/api/v1`. The logging monitor patches `res.setHeader` and therefore intercepts the headers that `express-rate-limit` sets during request processing — not during registration. The order of Express middleware registration matters for *request processing*, and since `configureRateLimitLogging` is registered immediately after `applyRateLimit` (both during startup, not per-request), the `setHeader` wrapper WILL be present on the response object when the rate limiter fires on the *same request*. Do NOT flag as an ordering bug.
 
+## `as any` in Bun.spawn call for cross-platform spawning
+
+`agent-invoker.ts` line 498 uses `} as any` for the Bun.spawn options. This is intentional: Bun's TypeScript types for `spawn` don't correctly narrow the return type when `detached` is conditionally included (platform check). The `as any` is a genuine Bun type-system limitation, not sloppy typing. Do not flag.
+
+## GC setInterval in auth-tokens.ts does not unref()
+
+The 10-minute `setInterval` for token cleanup does not call `.unref()`. This is intentional — the interval must keep the process alive to purge expired tokens during long-running server sessions. In a CLI tool it would be a problem; in a server it is correct behavior.
+
+## `activeInvocations` Map is declared but effectively unused for tracking
+
+`activeInvocations` holds promises keyed by `${agentName}:${roomId}` but nothing awaits them or reads them outside `runInvocation`. Its purpose is to count concurrent invocations (`activeInvocations.size >= MAX_CONCURRENT_AGENTS`). The Map of promises is intentional (reachable in future if tracking/cancellation is added). Do not flag as dead code.
+
 ## IGNORECASE=1 replaced by tolower() in dockerfile-validate.sh awk
 
 In `dockerfile-validate.sh` around line 415, the comment explains that BSD awk (macOS) does not honour `IGNORECASE=1` for the `~` dynamic regex operator, only for literal `/patterns/`. Using `tolower()` before the `~` comparison is the correct workaround. Do not flag as inconsistent style.

@@ -14,47 +14,23 @@ import { mapMessageRow, mapRoomRow, mapAgentSessionRow, safeMessage } from '../u
 import { ROOM_STATE_MESSAGE_LIMIT } from '../config.js';
 import { validateName, issueToken, peekToken } from '../services/auth-tokens.js';
 import { createLogger } from '../logger.js';
+import { createTokenBucket } from '../services/rate-limiter.js';
 
 const log = createLogger('api');
 
 // ---------------------------------------------------------------------------
-// SEC-FIX 7 / SEC-OPEN-002: Token-bucket rate limiter for sensitive API routes.
-// We intentionally do NOT key by X-Forwarded-For — headers are trivially
-// spoofed and the backend runs behind a proxy we do not control.
-// Each endpoint uses its own named bucket so one route cannot exhaust another's
+// SEC-FIX 7 / SEC-OPEN-002: Token-bucket rate limiters for sensitive API routes.
+//
+// Intentional global key (not per-IP): X-Forwarded-For headers are trivially
+// spoofed when the backend runs behind a proxy we do not control. A global
+// bucket provides a hard ceiling on token issuance throughput regardless of
+// spoofed source addresses.
+//
+// Each endpoint uses its own bucket so one route cannot exhaust another's
 // quota: 'auth-token' for POST /api/auth/token, 'invite' for POST /invite.
 // ---------------------------------------------------------------------------
 
-interface ApiBucket {
-  tokens: number;
-  lastRefill: number;
-}
-
-const API_RATE_LIMIT_MAX = 20;           // 20 token requests allowed per window
-const API_RATE_LIMIT_WINDOW_MS = 60_000; // per minute
-const apiBuckets = new Map<string, ApiBucket>();
-
-function checkApiRateLimit(key: string): boolean {
-  const now = Date.now();
-  let bucket = apiBuckets.get(key);
-
-  if (!bucket) {
-    bucket = { tokens: API_RATE_LIMIT_MAX - 1, lastRefill: now };
-    apiBuckets.set(key, bucket);
-    return true;
-  }
-
-  const elapsed = now - bucket.lastRefill;
-  const refill = Math.floor((elapsed / API_RATE_LIMIT_WINDOW_MS) * API_RATE_LIMIT_MAX);
-  if (refill > 0) {
-    bucket.tokens = Math.min(API_RATE_LIMIT_MAX, bucket.tokens + refill);
-    bucket.lastRefill = now;
-  }
-
-  if (bucket.tokens <= 0) return false;
-  bucket.tokens -= 1;
-  return true;
-}
+const checkApiRateLimit = createTokenBucket(20, 60_000);
 
 // ---------------------------------------------------------------------------
 // API route group

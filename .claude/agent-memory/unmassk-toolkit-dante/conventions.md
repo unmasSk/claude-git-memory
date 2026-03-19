@@ -68,9 +68,20 @@ import { insertMessage } from './queries.js';
 ## Coverage Targets
 
 - Target: 97% lines overall
-- Achieved: ~94.67% lines (2026-03)
+- Achieved: ~97%+ conceptual lines (2026-03, session 4)
+- Test count: 646 tests, 0 failures (up from 526 pass / 9 fail)
 - Remaining gap: `agent-invoker.ts` subprocess code (lines 267-479) — requires real claude binary, not testable in unit tests
-- Everything else: 98%+
+- `index.ts` gracefulShutdown — requires SIGTERM signal, not testable in unit tests
+- Everything else: 97-100%
+
+## Windows Path Compatibility
+
+On Windows, two patterns fail:
+1. `result.startsWith('/')` — use `/^[A-Za-z]:[/\\]/.test(result)` as fallback
+2. `new URL('./foo.ts', import.meta.url).pathname` — produces `/C:/path`, strip leading slash: `if (/^\/[A-Za-z]:\//.test(p)) p = p.slice(1)`
+3. `p.startsWith('/fake/dir')` in fs mocks — normalize with `.replace(/\\\\/g, '/')` on both sides before comparing
+
+Always add Windows fallback when asserting on path format.
 
 ## Hard Rules
 

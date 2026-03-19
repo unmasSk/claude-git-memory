@@ -4,6 +4,43 @@ description: Key findings from Bilbo scans on unmassk-crew codebase
 type: project
 ---
 
+## 2026-03-19 — chatroom backend deep structural audit (src/ dependency graph)
+
+Full file-by-file dependency map + dead export + structural anomaly scan of `chatroom/apps/backend/src/`.
+
+**CONFIRMED DEAD EXPORTS:**
+- `config.ts:WS_ROOM_TOPIC_PREFIX` — exported, never imported anywhere in source or tests
+- `stream-parser.ts:StreamEvent` (type) — never imported outside stream-parser itself
+- `stream-parser.ts:PermissionDenial` (type) — never imported outside stream-parser itself
+- `logger.ts:export default rootLogger` — never imported by any consumer; all modules use named `createLogger`
+- `utils.ts:formatTimeHHMM` — only appears in `utils.test.ts`, never in source files
+
+**CONFIRMED STRUCTURAL ANOMALIES:**
+1. `BANNED_TOOLS` defined twice: `config.ts:178` (array) AND `agent-registry.ts:32` (Set). The config export is consumed by agent-invoker, but agent-registry has its own private copy. Two sources of truth for a security-critical blocklist.
+2. `RESERVED_AGENT_NAMES` constructed independently in BOTH `ws.ts:130` and `auth-tokens.ts:33`. The constructions differ: ws.ts excludes 'claude' from AGENT_BY_NAME filter (so 'claude' isn't added then removed), while auth-tokens.ts lets it through then removes it via EXTRA_RESERVED. Same outcome but different paths — divergence risk.
+3. `logger.ts` reads `process.env.LOG_LEVEL` directly (line 23) instead of importing the validated `LOG_LEVEL` from `config.ts`. This bypasses config.ts's enum validation (fatal/error/warn/info/debug/trace). An invalid LOG_LEVEL silently falls back to pino's default instead of exit(1).
+4. `log()` helper (unstructured variadic string concat) duplicated in 3 files: `ws.ts:4`, `agent-invoker.ts:22`, `mention-parser.ts:5`. Pattern inconsistency vs structured `logger.warn({}, 'msg')` pattern used elsewhere in the same files.
+5. Circular dependency (intentional, documented): `message-bus.ts` → lazy `import('../index.js')` inside `getApp()`. Necessary because index.ts exports the Elysia app singleton. Works by design but is a structural coupling.
+
+**MISSING SOURCE FILE:**
+- `routes/invite.test.ts` (340 LOC) tests the POST /api/rooms/:id/invite route but the route lives in `routes/api.ts`. The test file builds its own inline Elysia app — it does NOT import `apiRoutes`. File is correctly named for what it tests but has no collocated source file. Not an orphan (tests real code), but the naming implies a `routes/invite.ts` that doesn't exist.
+
+**OVERSIZED FILES (>500 LOC):**
+- `services/agent-invoker.ts` — 1154 LOC. God module: scheduling, queue management, subprocess spawn, stream parsing coordination, prompt building, system prompt building, session management, cost tracking, @mention chaining, SKIP handling, rate-limit retry, context-overflow respawn. Could be split into: agent-scheduler.ts (queue/concurrency), agent-runner.ts (spawn/parse), prompt-builder.ts.
+- `routes/ws.ts` — 542 LOC. Contains: rate limiter state machine, connection state management (wsConnIds, connStates, roomConns maps), name resolution, open/message/close handlers, all WS message type handlers. Rate limiter + connection state could be extracted.
+
+**CHATROOM ROOT STRAY FILES:**
+- `design-mocks/` — 20+ HTML files (agent mock UIs, chatroom mockups) + `claude-p-output-example.json` + `SIDEBAR-DESIGN-SESSION.md`. Non-code design artifacts at repo root. Not harmful but not in a `docs/` or `design/` subdirectory.
+- `design-references/` — mockup HTML files at root level
+- `generated-images/` — 3 HTML files (mockup-chatroom, mockup-dashboard variants). Name implies images but contains HTML.
+- `PLAN.md`, `PROGRESS.md`, `CHANGELOG.md` at root — project management files, acceptable at root level for a chatroom project.
+- `start.sh`, `start.bat` at root — OK, launch scripts.
+
+**DATABASE FILES COMMITTED:**
+- `chatroom/apps/backend/data/chatroom.db`, `chatroom.db-shm`, `chatroom.db-wal` — live SQLite database files in the repo. The `chatroom/.gitignore` has `data/` excluded, but these are under `apps/backend/data/` not root `data/`. Needs verification whether a `apps/backend/.gitignore` also excludes them. The `apps/backend/.env.example` shows `DB_PATH=data/chatroom.db` as the default, which resolves relative to the backend dir.
+
+No escalation needed — structural/dependency audit only.
+
 ## 2026-03-19 — chatroom backend production-readiness audit
 
 Audited `chatroom/apps/backend/` for production tooling presence/absence.

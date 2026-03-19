@@ -28,8 +28,10 @@ export interface AgentConfig extends AgentDefinition {
 /**
  * SEC-FIX 3: Tools that are never allowed regardless of what frontmatter says.
  * Bash = arbitrary code execution. computer = desktop automation.
+ * Single source of truth — agent-invoker.ts and tests import from here.
  */
-const BANNED_TOOLS = new Set(['Bash', 'computer']);
+export const BANNED_TOOLS: readonly string[] = ['Bash', 'computer'];
+const BANNED_TOOLS_SET = new Set(BANNED_TOOLS);
 
 // ---------------------------------------------------------------------------
 // Frontmatter parser
@@ -110,7 +112,7 @@ function buildRegistry(): Map<string, AgentConfig> {
 
         // SEC-FIX 3: Parse tools and filter banned tools
         const rawTools = parseToolsList(fm.tools);
-        const allowedTools = rawTools.filter((t) => !BANNED_TOOLS.has(t));
+        const allowedTools = rawTools.filter((t) => !BANNED_TOOLS_SET.has(t));
 
         // SEC-FIX 3: Agent must have at least one allowed tool to be invokable
         // Use the original static definition's invokable flag, not the pre-set false

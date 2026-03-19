@@ -212,6 +212,20 @@ When a bridge process checks for an existing instance by probing `GET /health` u
 
 Rule: health/liveness endpoints MUST be exempt from auth if they are used for singleton detection or readiness probing.
 
+## Inline log wrapper anti-pattern: coercing objects to strings manually
+
+In `agent-invoker.ts`, `ws.ts`, and `mention-parser.ts`, a custom `log()` wrapper is defined:
+```typescript
+function log(...args: unknown[]) {
+  logger.info(args.map(a => typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a)).join(' '));
+}
+```
+This defeats pino's structured logging — objects are serialized as opaque strings, losing field-level searchability. The project convention (`createLogger` → `logger.info({ field }, 'message')`) must be used directly. The `log` wrapper is a workaround for a missing import pattern and should be removed in favor of consistent `logger.info({ ... }, 'message')` calls.
+
+## Duplicated rate-limit bucket implementation across api.ts and test files
+
+`checkApiRateLimit` in `api.ts` and `checkInviteRateLimit` in `invite.test.ts` (and `checkRateLimit` in `ws.ts`) contain identical token-bucket logic (3 copies). The bucket algorithm is non-trivial (refill formula, cap logic). If the formula has a bug, it must be fixed in 3 places. Extract to a shared `createBucket(max, windowMs)` factory. This hits the 3+ duplication threshold for mandatory abstraction.
+
 ## `inFlight` lock keyed by agent name only (not agent:room)
 
 Using a `Set<string>` keyed by agent name alone for a per-agent in-flight lock blocks the agent across ALL rooms when the desired scope is per-agent-per-room. The `activeInvocations` map uses `${agentName}:${roomId}` — the `inFlight` lock must use the same compound key for consistency. Found in `agent-invoker.ts:inFlight` (2026-03-18). Check that all concurrency primitives in the same module use the same key scope.

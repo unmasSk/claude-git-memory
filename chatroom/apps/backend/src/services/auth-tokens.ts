@@ -37,11 +37,33 @@ const RESERVED_AGENT_NAMES = new Set([
 const NAME_RE = /^[a-zA-Z0-9_-]{1,32}$/;
 
 /**
+ * Returns the set of reserved agent names for WS connection name validation.
+ *
+ * ws.ts uses a slightly narrower filter than this module: it excludes 'user' and 'claude'
+ * from the blocked set (both are valid WS identities). The shared factory here returns the
+ * auth-token-issuance set; ws.ts filters it down as needed.
+ *
+ * Exported so ws.ts can derive its RESERVED_AGENT_NAMES from a single authoritative source
+ * instead of duplicating the construction logic.
+ */
+export function getReservedAgentNames(): Set<string> {
+  return new Set([
+    ...Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user' && n !== 'claude'),
+    'system',
+  ]);
+}
+
+/**
  * Returns the normalised name or null if invalid / reserved / empty.
  * SEC-AUTH-003: Empty names are rejected — the frontend must send an explicit
  * name. The previous default of 'user' allowed anonymous tokens to silently
  * assume the default human identity.
  */
+/** Returns the set of reserved agent names for use in other modules (e.g. ws.ts). */
+export function getReservedAgentNames(): ReadonlySet<string> {
+  return RESERVED_AGENT_NAMES;
+}
+
 export function validateName(rawName: string | undefined): string | null {
   if (!rawName || rawName.trim() === '') return null;
   const name = rawName.trim();
@@ -59,6 +81,8 @@ const TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes — survives reconnect backof
 interface TokenEntry {
   name: string;
   expiresAt: number;
+  /** Raw token bytes stored for constant-time comparison (SEC-AUTH-005) */
+  tokenBuf: Buffer;
 }
 
 const tokens = new Map<string, TokenEntry>();
@@ -71,7 +95,7 @@ export function issueToken(name: string): { token: string; expiresAt: string } |
   }
   const token = crypto.randomUUID();
   const expiresAt = Date.now() + TOKEN_TTL_MS;
-  tokens.set(token, { name, expiresAt });
+  tokens.set(token, { name, expiresAt, tokenBuf: Buffer.from(token) });
   log.info({ name }, 'token issued');
   return { token, expiresAt: new Date(expiresAt).toISOString() };
 }
@@ -80,12 +104,24 @@ export function issueToken(name: string): { token: string; expiresAt: string } |
  * Validate a token without consuming it. Use for non-WS endpoints that need
  * auth but must not burn the WS token (e.g. POST /api/rooms/:id/invite).
  * Returns the name if valid, null if missing/unknown/expired.
+ *
+ * SEC-AUTH-005: Constant-time comparison — prevents timing-based token enumeration.
+ * Map.get() locates the entry by key, then timingSafeEqual compares the full
+ * token value in constant time. Buffer lengths are checked first so we never
+ * pass mismatched-length Buffers to timingSafeEqual (which throws on length mismatch).
  */
 export function peekToken(token: string | undefined): string | null {
   if (!token) { recordAuthFailure(token); return null; }
   const entry = tokens.get(token);
   if (!entry) {
     log.warn('peekToken failed: unknown token');
+    recordAuthFailure(token);
+    return null;
+  }
+  // SEC-AUTH-005: Constant-time comparison — defense-in-depth after Map.get.
+  // Compare lengths first; timingSafeEqual throws if Buffers differ in length.
+  const givenBuf = Buffer.from(token);
+  if (entry.tokenBuf.length !== givenBuf.length || !crypto.timingSafeEqual(entry.tokenBuf, givenBuf)) {
     recordAuthFailure(token);
     return null;
   }
@@ -103,11 +139,18 @@ export function peekToken(token: string | undefined): string | null {
  * Returns null if the token is missing, unknown, or expired.
  * SEC-AUTH-004: One-time-use — the token is deleted on first successful
  * validation to prevent replay attacks via token reuse.
+ * SEC-AUTH-005: Constant-time comparison — see peekToken for rationale.
  */
 export function validateToken(token: string | undefined): string | null {
   if (!token) { recordAuthFailure(token); return null; }
   const entry = tokens.get(token);
   if (!entry) { log.warn('token validation failed: unknown token'); recordAuthFailure(token); return null; }
+  // SEC-AUTH-005: Constant-time comparison — defense-in-depth after Map.get.
+  const givenBuf = Buffer.from(token);
+  if (entry.tokenBuf.length !== givenBuf.length || !crypto.timingSafeEqual(entry.tokenBuf, givenBuf)) {
+    recordAuthFailure(token);
+    return null;
+  }
   if (Date.now() > entry.expiresAt) {
     tokens.delete(token);
     log.warn({ name: entry.name }, 'token validation failed: expired');
@@ -150,11 +193,19 @@ function sourceKey(token: string | undefined): string {
   return token.slice(0, 8);
 }
 
+const AUTH_FAILURE_MAX_ENTRIES = 5_000;
+
 function recordAuthFailure(token?: string | undefined): void {
   const now = Date.now();
   const key = sourceKey(token);
   const window = authFailureBySource.get(key);
   if (!window || now - window.windowStart > AUTH_FAILURE_WINDOW_MS) {
+    // Evict oldest entry when the map is at capacity (prevents unbounded growth
+    // under a distributed attack that uses many distinct token prefixes).
+    if (!window && authFailureBySource.size >= AUTH_FAILURE_MAX_ENTRIES) {
+      const oldestKey = authFailureBySource.keys().next().value;
+      if (oldestKey !== undefined) authFailureBySource.delete(oldestKey);
+    }
     // Start a fresh window for this source
     authFailureBySource.set(key, { count: 1, windowStart: now });
   } else {
@@ -165,7 +216,8 @@ function recordAuthFailure(token?: string | undefined): void {
   }
 }
 
-// Periodic GC — remove expired tokens every 10 minutes + stale failure windows
+// Periodic GC — remove expired tokens every 10 minutes + stale failure windows.
+// .unref() prevents this timer from keeping the process alive after all real work is done.
 setInterval(() => {
   const now = Date.now();
   let removed = 0;
@@ -183,4 +235,4 @@ setInterval(() => {
     }
   }
   if (failWindowsRemoved > 0) log.info({ failWindowsRemoved }, 'failure window GC completed');
-}, 10 * 60 * 1000);
+}, 10 * 60 * 1000).unref();
