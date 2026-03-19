@@ -26,7 +26,7 @@ import { AGENT_BY_NAME } from '@agent-chatroom/shared';
  * Although "user" appears in AGENT_BY_NAME (as a human participant entry),
  * it is excluded here so the frontend can register with that name.
  */
-const EXTRA_RESERVED = new Set(['claude']);
+const EXTRA_RESERVED = new Set(['claude', 'system']);
 const RESERVED_AGENT_NAMES = new Set([
   ...Array.from(AGENT_BY_NAME.keys()).filter((n) => n !== 'user'),
   ...EXTRA_RESERVED,
