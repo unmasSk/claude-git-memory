@@ -257,3 +257,16 @@ A guard `process.env.NODE_ENV !== 'production'` activates in staging, test, and 
 Always say "non-production environments (NODE_ENV !== 'production')" and add an explicit NOTE that staging operators must set NODE_ENV=production.
 
 Found in: `config.ts:78` (chatroom WS_ALLOWED_ORIGINS dev bypass, 2026-03-18).
+
+## Shared sanitizer that does not cover its own delimiters
+
+A sanitizer function that strips all known trust-boundary markers from user content will be incomplete if the system later adds a new delimiter (e.g. box-drawing chars for a RESPAWN notice) without adding a corresponding strip pattern to the sanitizer. The gap means stored messages containing the new delimiter pass through unsanitized.
+
+Pattern to detect: when a new structural delimiter is introduced (constant like `RESPAWN_DELIMITER_BEGIN`), check whether `sanitizePromptContent` (or equivalent) has a matching `.replace()` for it. If not, flag the omission.
+
+Correct fix: add a pattern to the sanitizer that strips any sequence matching the delimiter format, e.g.:
+```typescript
+.replace(/\u2550{2,}[^\n\u2550]*\u2550{2,}/g, '[DELIMITER-SANITIZED]')
+```
+
+Found in: `agent-invoker.ts:sanitizePromptContent` (2026-03-19) — RESPAWN delimiters (U+2550) not covered after box-drawing delimiter hardening.

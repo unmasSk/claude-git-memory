@@ -77,6 +77,26 @@ export function issueToken(name: string): { token: string; expiresAt: string } |
 }
 
 /**
+ * Validate a token without consuming it. Use for non-WS endpoints that need
+ * auth but must not burn the WS token (e.g. POST /api/rooms/:id/invite).
+ * Returns the name if valid, null if missing/unknown/expired.
+ */
+export function peekToken(token: string | undefined): string | null {
+  if (!token) return null;
+  const entry = tokens.get(token);
+  if (!entry) {
+    log.warn('peekToken failed: unknown token');
+    return null;
+  }
+  if (Date.now() > entry.expiresAt) {
+    tokens.delete(token);
+    log.warn({ name: entry.name }, 'peekToken failed: expired');
+    return null;
+  }
+  return entry.name;
+}
+
+/**
  * Validate a token and return the associated name.
  * Returns null if the token is missing, unknown, or expired.
  * SEC-AUTH-004: One-time-use — the token is deleted on first successful

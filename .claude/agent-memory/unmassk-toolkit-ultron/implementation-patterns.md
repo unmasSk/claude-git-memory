@@ -77,3 +77,73 @@ Server-side enforcement for `@everyone stop` directives.
 - `EVERYONE_ENTRY: AgentDefinition` — synthetic entry with `invokable: false`, name='everyone'
 - `ALL_AUTOCOMPLETE = [...INVOKABLE_AGENTS, EVERYONE_ENTRY]`
 - Filter uses `ALL_AUTOCOMPLETE` — `everyone` appears when user types `@e` or `@ev`
+
+---
+
+## Session 4 fixes — 2026-03-19
+
+### FIX: "Prompt is too long" = context overflow — respawn with full history (2026-03-19)
+In `agent-invoker.ts` stale-session detection block:
+- `isContextOverflow = resultText.includes('Prompt is too long') || stderrOutput.includes('Prompt is too long')`
+- `isStaleSession = isContextOverflow || ...` (context overflow is a superset of stale session)
+- When overflow: post visible `🔄 {AgentName} reinvocado (contexto agotado, nueva sesión)` system message
+- Set `context.isRespawn = true` on the context before scheduling retry
+- `doInvoke` checks `context.isRespawn`: passes `historyLimit=2000` to `buildPrompt` (full history instead of AGENT_HISTORY_LIMIT=20)
+- `buildSystemPrompt(agentName, role, isRespawn)`: when `isRespawn=true`, prepends RESPAWN NOTICE block instructing agent to read history and orient silently
+- `InvocationContext.isRespawn?: boolean` added to the interface
+- `buildPrompt(roomId, trigger, historyLimit?)` — third param is optional override
+- `buildSystemPrompt(agentName, role, isRespawn=false)` — third param defaults to false
+- Plain stale session (not overflow) still posts generic "retrying fresh" message and does NOT set isRespawn
+
+### FIX: @everyone + @mention double-invoke guard
+In `ws.ts` `send_message` handler, compute `everyoneProcessed = /@everyone\b/i.test(msg.content)` BEFORE calling `extractMentions`. If `everyoneProcessed`, set `mentions = new Set<string>()` (skip extractMentions). This prevents agents named in the @everyone message from being invoked twice.
+
+### FIX: /invite endpoint auth — peekToken pattern
+Added `peekToken(token)` to `auth-tokens.ts` — validates token without consuming it (unlike `validateToken` which is one-time-use for WS upgrades).
+Invite endpoint reads `Authorization: Bearer <token>` header, calls `peekToken`, returns 401 on failure.
+Import: `import { ..., peekToken } from '../services/auth-tokens.js'`
+
+### FIX: Human-priority queue
+Added `priority: boolean` field to `QueueEntry`. `invokeAgents` accepts a new `priority = false` parameter and passes it to `scheduleInvocation`. `scheduleInvocation` uses `pendingQueue.unshift(entry)` for priority=true, `push` for priority=false. All human-originated calls from `ws.ts` pass `priority = true`. Agent-chained calls (inside `doInvoke`) do not pass priority (defaults to false).
+
+---
+
+## Session 5 security fixes — 2026-03-19 (Cerberus + Argus review)
+
+### FIX 1: Case-insensitive "Prompt is too long" detection
+`const CONTEXT_OVERFLOW_SIGNAL = 'prompt is too long'` at module scope.
+Use `resultText.toLowerCase().includes(CONTEXT_OVERFLOW_SIGNAL)` — prevents Claude version variation in capitalisation breaking detection.
+
+### FIX 2: Elysia typed header schema on /invite
+Add `headers: t.Object({ authorization: t.Optional(t.String()) })` to the route config.
+Access via `headers.authorization` (typed) — no more `(headers as Record<string, string | undefined>)` cast.
+
+### FIX 3: sanitizePromptContent shared function
+`export function sanitizePromptContent(s: string): string` in `agent-invoker.ts` — strips all trust boundary delimiters (CHATROOM HISTORY, PRIOR AGENT OUTPUT, ORIGINAL TRIGGER, DIRECTIVE FROM USER) via gi regex chain.
+Applied to: `triggerContent`, every `msg.content` and `msg.author` in the history loop, and `@everyone` directive content before storage.
+Import in `ws.ts`: `import { sanitizePromptContent } from '../services/agent-invoker.js'`
+
+### FIX 4: Hardened RESPAWN NOTICE delimiters
+`RESPAWN_DELIMITER_BEGIN/END` use box-drawing U+2550 characters — cannot appear in user text or agent metadata.
+`buildSystemPrompt` strips U+2550 from `agentName` and `role` before interpolation (declared before use).
+
+### FIX 5: Sanitize @everyone directive before storage
+`const safeDirective = sanitizePromptContent(directive)` in ws.ts — stored message and `invokeAgents` call both use `safeDirective`.
+
+### FIX 6: Rate limit on /invite endpoint
+`checkApiRateLimit('global')` at top of `/invite` handler — same bucket/window as `/auth/token`. Returns 429 if exceeded.
+
+### FIX 7: Respawn retry passes priority=true
+`scheduleInvocation(roomId, agentName, context, true, true)` — priority flag preserves queue position on context-overflow respawn.
+
+### FIX 8: enqueue at module scope
+`function enqueue(entry: QueueEntry)` moved to module scope (after `pendingQueue` declaration). Captures nothing per-call. Inner closure in `scheduleInvocation` removed.
+
+### FIX 9: EVERYONE_PATTERN constant
+`const EVERYONE_PATTERN = /@everyone\b/i` at module scope in `ws.ts`. Both `.test()` calls updated to use it.
+
+### FIX 10: peekToken brace style
+`if (!entry)` in `peekToken` expanded to multi-line format matching the rest of `auth-tokens.ts`.
+
+### FIX 11: Test isolation try/finally
+historyLimit test in `agent-invoker.test.ts` now wraps assertions in `try/finally` — cleanup rows are deleted even if assertions throw.

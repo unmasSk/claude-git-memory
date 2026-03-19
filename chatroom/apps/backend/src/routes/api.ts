@@ -12,7 +12,7 @@ import {
 import { getAllAgents, getAgentConfig } from '../services/agent-registry.js';
 import { mapMessageRow, mapRoomRow, mapAgentSessionRow, safeMessage } from '../utils.js';
 import { ROOM_STATE_MESSAGE_LIMIT } from '../config.js';
-import { validateName, issueToken } from '../services/auth-tokens.js';
+import { validateName, issueToken, peekToken } from '../services/auth-tokens.js';
 import { createLogger } from '../logger.js';
 
 const log = createLogger('api');
@@ -170,9 +170,27 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
   )
 
   // POST /api/rooms/:id/invite — add agents to a room (create agent_session rows)
+  // SEC-FIX 8: Requires a valid auth token in the Authorization header.
+  // Uses peekToken (non-consuming) so the caller's WS token is not burned.
   .post(
     '/rooms/:id/invite',
-    ({ params, body, set }) => {
+    ({ params, body, set, headers }) => {
+      // FIX 6: Rate limit on /invite — same global bucket as /auth/token.
+      if (!checkApiRateLimit('global')) {
+        log.warn('POST /api/rooms/:id/invite rate limit exceeded');
+        set.status = 429;
+        return { error: 'Too many requests — try again later', code: 'RATE_LIMIT' };
+      }
+
+      // FIX 2: headers.authorization is now typed via the schema declaration below.
+      // Extract token from "Authorization: Bearer <token>"
+      const rawAuth = headers.authorization ?? '';
+      const bearerToken = rawAuth.startsWith('Bearer ') ? rawAuth.slice(7).trim() : undefined;
+      if (!peekToken(bearerToken)) {
+        set.status = 401;
+        return { error: 'Unauthorized. Provide a valid token via Authorization: Bearer <token>', code: 'UNAUTHORIZED' };
+      }
+
       const room = getRoomById(params.id);
       if (!room) {
         set.status = 404;
@@ -207,5 +225,8 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
       body: t.Object({
         agents: t.Array(t.String(), { minItems: 1 }),
       }),
+      // FIX 2: Typed header schema so Elysia provides headers.authorization as string | undefined
+      // instead of requiring an unsafe cast to Record<string, string | undefined>.
+      headers: t.Object({ authorization: t.Optional(t.String()) }),
     }
   );

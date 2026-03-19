@@ -22,12 +22,16 @@ import { ROOM_STATE_MESSAGE_LIMIT, WS_ALLOWED_ORIGINS } from '../config.js';
 import { validateToken } from '../services/auth-tokens.js';
 import { ClientMessageSchema, AGENT_BY_NAME } from '@agent-chatroom/shared';
 import type { ServerMessage, Message, ConnectedUser } from '@agent-chatroom/shared';
+import { sanitizePromptContent } from '../services/agent-invoker.js';
 
 // ---------------------------------------------------------------------------
 // SEC-FIX 2: Allowed origins for WebSocket upgrade — sourced from config
 // ---------------------------------------------------------------------------
 
 const ALLOWED_ORIGINS = new Set(WS_ALLOWED_ORIGINS);
+
+// FIX 9: Shared @everyone regex — used in both directive detection and skip guard.
+const EVERYONE_PATTERN = /@everyone\b/i;
 
 // ---------------------------------------------------------------------------
 // SEC-FIX 6: Per-connection token bucket rate limiter
@@ -336,7 +340,7 @@ export const wsRoutes = new Elysia()
 
           // @everyone: post as a high-priority system directive that agents
           // must obey when they read it in their history context
-          if (/@everyone\b/i.test(msg.content)) {
+          if (EVERYONE_PATTERN.test(msg.content)) {
             const directive = msg.content.replace(/@everyone\b/gi, '').trim();
             log('send_message', authorName, '@everyone directive:', directive);
 
@@ -353,28 +357,33 @@ export const wsRoutes = new Elysia()
               break;
             }
 
+            // FIX 5: Sanitize directive content before storage to prevent double-framing
+            // injection — a user cannot embed [DIRECTIVE FROM USER...] in their own input
+            // and trick agents into treating stored history as a system-level directive.
+            const safeDirective = sanitizePromptContent(directive);
             const sysId = generateId();
             const sysCreatedAt = nowIso();
             insertMessage({
               id: sysId, roomId, author: 'system', authorType: 'system',
-              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${directive}`,
+              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${safeDirective}`,
               msgType: 'system', parentId: null, metadata: '{}',
             });
             const sysMsg: Message = {
               id: sysId, roomId, author: 'system', authorType: 'system',
-              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${directive}`,
+              content: `[DIRECTIVE FROM USER — ALL AGENTS MUST OBEY] ${safeDirective}`,
               msgType: 'system', parentId: null, metadata: {}, createdAt: sysCreatedAt,
             };
             broadcastSync(roomId, { type: 'new_message', message: sysMsg }, ws);
             ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(sysMsg) }));
 
             // @everyone (non-stop): invoke all agents currently in the room
+            // priority=true: human message — goes to front of queue (FIX 4)
             if (!isStopDirective) {
               const agentSessions = listAgentSessions(roomId);
               if (agentSessions.length > 0) {
                 const agentNames = new Set(agentSessions.map((row) => mapAgentSessionRow(row).agentName));
                 log('@everyone — invoking active agents:', [...agentNames]);
-                invokeAgents(roomId, agentNames, directive);
+                invokeAgents(roomId, agentNames, safeDirective, new Map(), true);
               }
             }
           } else if (isPaused(roomId)) {
@@ -383,11 +392,16 @@ export const wsRoutes = new Elysia()
             log('send_message', authorName, 'invocations resumed after @everyone stop');
           }
 
-          const mentions = extractMentions(msg.content);
-          log('send_message', authorName, 'contentLength:', msg.content.length, 'mentions:', [...mentions]);
+          // FIX: Skip individual @mention processing when @everyone already invoked
+          // all agents — extractMentions would otherwise double-invoke any agent
+          // whose name also appears in the message alongside @everyone.
+          const everyoneProcessed = EVERYONE_PATTERN.test(msg.content);
+          const mentions = everyoneProcessed ? new Set<string>() : extractMentions(msg.content);
+          log('send_message', authorName, 'contentLength:', msg.content.length, 'everyoneProcessed:', everyoneProcessed, 'mentions:', [...mentions]);
 
           if (mentions.size > 0) {
-            invokeAgents(roomId, mentions, msg.content);
+            // priority=true: human message — goes to front of queue (FIX 4)
+            invokeAgents(roomId, mentions, msg.content, new Map(), true);
           }
 
           break;
