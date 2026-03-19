@@ -18,11 +18,11 @@ import { createLogger } from '../logger.js';
 const log = createLogger('api');
 
 // ---------------------------------------------------------------------------
-// SEC-FIX 7: Rate limiter for POST /api/auth/token.
+// SEC-FIX 7 / SEC-OPEN-002: Token-bucket rate limiter for sensitive API routes.
 // We intentionally do NOT key by X-Forwarded-For — headers are trivially
 // spoofed and the backend runs behind a proxy we do not control.
-// Using 'global' caps the total token-issuance rate server-wide, which is
-// sufficient to prevent brute-force token farming.
+// Each endpoint uses its own named bucket so one route cannot exhaust another's
+// quota: 'auth-token' for POST /api/auth/token, 'invite' for POST /invite.
 // ---------------------------------------------------------------------------
 
 interface ApiBucket {
@@ -144,8 +144,8 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
   .post(
     '/auth/token',
     ({ body, set }) => {
-      // SEC-FIX 7: Rate limit keyed by 'global' — never by X-Forwarded-For.
-      if (!checkApiRateLimit('global')) {
+      // SEC-OPEN-002: Separate bucket for auth/token — prevents /invite exhaustion from burning auth quota.
+      if (!checkApiRateLimit('auth-token')) {
         log.warn('POST /api/auth/token rate limit exceeded');
         set.status = 429;
         return { error: 'Too many token requests — try again later', code: 'RATE_LIMIT' };
@@ -175,8 +175,8 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
   .post(
     '/rooms/:id/invite',
     ({ params, body, set, headers }) => {
-      // FIX 6: Rate limit on /invite — same global bucket as /auth/token.
-      if (!checkApiRateLimit('global')) {
+      // SEC-OPEN-002: Separate bucket for /invite so it cannot starve /auth/token and vice versa.
+      if (!checkApiRateLimit('invite')) {
         log.warn('POST /api/rooms/:id/invite rate limit exceeded');
         set.status = 429;
         return { error: 'Too many requests — try again later', code: 'RATE_LIMIT' };

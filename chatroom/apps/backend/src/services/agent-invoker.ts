@@ -634,7 +634,10 @@ async function spawnAndParse(
   }
 
   if (stderrOutput.trim()) {
-    log('stderr', agentName, stderrOutput.trim());
+    // SEC-OPEN-012: Sanitize stderr before logging — subprocess output can contain
+    // prompt injection markers that would poison structured log ingestion pipelines.
+    const safeStderr = sanitizePromptContent(stderrOutput.trim());
+    log('stderr', agentName, safeStderr);
   }
 
   // FIX 2: Stale session detection (includes context-overflow "Prompt is too long")
@@ -833,6 +836,11 @@ async function spawnAndParse(
  */
 export function sanitizePromptContent(s: string): string {
   return s
+    // SEC-OPEN-006: Neutralize Unicode homoglyphs of [ and ] before bracket-pattern checks.
+    // Fullwidth/math bracket variants are visually indistinguishable from ASCII brackets
+    // and can be used to bypass bracket-based trust-boundary markers.
+    .replace(/[\uFF3B\u27E6\u2E22\u3010]/g, '(')  // fullwidth/math left brackets → (
+    .replace(/[\uFF3D\u27E7\u2E23\u3011]/g, ')')  // fullwidth/math right brackets → )
     .replace(/\[CHATROOM HISTORY[^\]]*\]/gi, '[CHATROOM-HISTORY-SANITIZED]')
     .replace(/\[END CHATROOM HISTORY\]/gi, '[END-CHATROOM-HISTORY-SANITIZED]')
     .replace(/\[PRIOR AGENT OUTPUT[^\]]*\]/gi, '[PRIOR-AGENT-OUTPUT-SANITIZED]')

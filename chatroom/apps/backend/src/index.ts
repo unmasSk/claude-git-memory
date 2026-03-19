@@ -23,16 +23,6 @@ loadAgentRegistry();
  * SEC-FIX 2: Bind to 127.0.0.1 only — no external access.
  */
 export const app = new Elysia()
-  .use(swagger({
-    path: '/docs',
-    documentation: {
-      info: {
-        title: 'Chatroom API',
-        version: '0.1.0',
-        description: 'Multi-agent chatroom backend',
-      },
-    },
-  }))
   .use(cors({
     origin: NODE_ENV === 'development'
       ? ['http://localhost:4201', 'http://127.0.0.1:4201']
@@ -49,6 +39,20 @@ export const app = new Elysia()
   .use(apiRoutes)
   .use(wsRoutes)
   .get('/health', () => ({ status: 'ok', timestamp: new Date().toISOString() }));
+
+// SEC-OPEN-001: Mount swagger only in non-production environments — never expose docs in prod
+if (NODE_ENV === 'development' || NODE_ENV === 'test') {
+  app.use(swagger({
+    path: '/docs',
+    documentation: {
+      info: {
+        title: 'Chatroom API',
+        version: '0.1.0',
+        description: 'Multi-agent chatroom backend',
+      },
+    },
+  }));
+}
 
 // FIX 10: Mount static plugin in production only
 if (NODE_ENV === 'production') {

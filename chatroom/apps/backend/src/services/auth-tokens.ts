@@ -82,15 +82,17 @@ export function issueToken(name: string): { token: string; expiresAt: string } |
  * Returns the name if valid, null if missing/unknown/expired.
  */
 export function peekToken(token: string | undefined): string | null {
-  if (!token) return null;
+  if (!token) { recordAuthFailure(); return null; }
   const entry = tokens.get(token);
   if (!entry) {
     log.warn('peekToken failed: unknown token');
+    recordAuthFailure();
     return null;
   }
   if (Date.now() > entry.expiresAt) {
     tokens.delete(token);
     log.warn({ name: entry.name }, 'peekToken failed: expired');
+    recordAuthFailure();
     return null;
   }
   return entry.name;
@@ -103,18 +105,47 @@ export function peekToken(token: string | undefined): string | null {
  * validation to prevent replay attacks via token reuse.
  */
 export function validateToken(token: string | undefined): string | null {
-  if (!token) return null;
+  if (!token) { recordAuthFailure(); return null; }
   const entry = tokens.get(token);
-  if (!entry) { log.warn('token validation failed: unknown token'); return null; }
+  if (!entry) { log.warn('token validation failed: unknown token'); recordAuthFailure(); return null; }
   if (Date.now() > entry.expiresAt) {
     tokens.delete(token);
     log.warn({ name: entry.name }, 'token validation failed: expired');
+    recordAuthFailure();
     return null;
   }
   // Consume the token: one successful WS upgrade per token issued.
   tokens.delete(token);
   log.info({ name: entry.name }, 'token validated and consumed');
   return entry.name;
+}
+
+// ---------------------------------------------------------------------------
+// SEC-OPEN-011: Auth failure counter — detect brute-force attempts
+// ---------------------------------------------------------------------------
+
+const AUTH_FAILURE_WINDOW_MS = 60_000; // 60-second sliding window
+const AUTH_FAILURE_THRESHOLD = 10;     // alert after this many failures in the window
+
+interface FailureWindow {
+  count: number;
+  windowStart: number;
+}
+
+const authFailureWindow: FailureWindow = { count: 0, windowStart: Date.now() };
+
+function recordAuthFailure(): void {
+  const now = Date.now();
+  if (now - authFailureWindow.windowStart > AUTH_FAILURE_WINDOW_MS) {
+    // Start a fresh window
+    authFailureWindow.count = 1;
+    authFailureWindow.windowStart = now;
+  } else {
+    authFailureWindow.count += 1;
+  }
+  if (authFailureWindow.count >= AUTH_FAILURE_THRESHOLD) {
+    log.error({ failCount: authFailureWindow.count }, 'Repeated auth failures detected — possible brute force');
+  }
 }
 
 // Periodic GC — remove expired tokens every 10 minutes

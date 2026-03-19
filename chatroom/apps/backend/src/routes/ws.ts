@@ -60,6 +60,10 @@ const connStates = new Map<string, ConnState>();
 // Map from roomId → Set<connId> for listing users per room
 const roomConns = new Map<string, Set<string>>();
 
+// SEC-OPEN-008: Per-room connection cap — prevents a single room from being
+// flooded with connections that consume memory and WS server capacity.
+const MAX_CONNECTIONS_PER_ROOM = 20;
+
 // Using a Map keyed by a unique id we stamp at open time
 const buckets = new Map<string, TokenBucket>();
 let _connCounter = 0;
@@ -199,6 +203,19 @@ export const wsRoutes = new Elysia()
       }
       const resolvedName = tokenName;
 
+      // SEC-OPEN-008: Per-room connection cap — reject when the room is full.
+      const existingRoomConns = roomConns.get(roomId);
+      if (existingRoomConns && existingRoomConns.size >= MAX_CONNECTIONS_PER_ROOM) {
+        logger.warn({ roomId, connCount: existingRoomConns.size }, 'WS connection rejected: per-room cap reached');
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Room connection limit reached. Try again later.',
+          code: 'ROOM_FULL',
+        } satisfies ServerMessage));
+        ws.close();
+        return;
+      }
+
       // Assign a unique connId for rate limiting and store it in the module map.
       const connId = nextConnId();
       wsConnIds.set(ws.raw ?? ws, connId);
@@ -255,7 +272,9 @@ export const wsRoutes = new Elysia()
 
       // SEC-FIX 6: Rate limit check
       if (!connId || !checkRateLimit(connId)) {
-        log('rate limit hit connId:', connId);
+        // SEC-OPEN-010: Warn-level log for rate-limit events — enables intrusion detection
+        // and alerting on clients sending excessive messages.
+        logger.warn({ connId, roomId }, 'WS rate limit exceeded');
         ws.send(JSON.stringify({
           type: 'error',
           message: 'Rate limit exceeded. Max 5 messages per 10 seconds.',

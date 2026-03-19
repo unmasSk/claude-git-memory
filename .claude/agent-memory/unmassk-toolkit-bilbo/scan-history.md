@@ -4,6 +4,44 @@ description: Key findings from Bilbo scans on unmassk-crew codebase
 type: project
 ---
 
+## 2026-03-19 — chatroom backend production-readiness audit
+
+Audited `chatroom/apps/backend/` for production tooling presence/absence.
+
+**EXISTS (confirmed):**
+- Structured logging: pino + pino-pretty, child loggers per module, LOG_LEVEL env configurable, NDJSON to stderr in prod — but NO log rotation
+- Validation: Elysia t.Object on all HTTP routes (params, body, query, headers); Zod schemas in `packages/shared/src/schemas.ts` for WS protocol (ClientMessageSchema.safeParse used in ws.ts)
+- CORS: @elysiajs/cors, origin-locked per env
+- Rate limiting: custom in-memory token-bucket on WS (5 msg/10s per connId) and API (20/min global bucket on /auth/token + /invite)
+- WebSocket auth: short-lived UUID token (POST /api/auth/token → ?token= on WS upgrade), one-time-use, 30-min TTL, periodic GC
+- Input sanitization: sanitizePromptContent() in agent-invoker.ts strips prompt injection markers ([CHATROOM HISTORY] etc.)
+- Health check: GET /health returns {status, timestamp}
+- Database: bun:sqlite WAL mode, busy_timeout=5000, synchronous=NORMAL, singleton via getDb()
+- TypeScript strict: strict:true + noUncheckedIndexedAccess + noImplicitReturns + noFallthroughCasesInSwitch in root tsconfig.json
+- Testing: bun:test, 20 test files (unit + integration + smoke), in-memory DB for tests, no mocking of SQLite
+- Hot reload: `bun run --hot` in dev
+- Signal handling: PARTIAL — start.sh has trap EXIT (kills PIDs), but process.on('SIGTERM') not in backend index.ts
+- WS max payload: 64KB hard ceiling via maxPayloadLength
+
+**MISSING (confirmed absent):**
+- No Swagger/OpenAPI docs (no swagger-jsdoc, no @elysiajs/swagger)
+- No Elysia global onError handler (unhandled exceptions surface as 500 with Elysia defaults, not structured JSON)
+- No Helmet (no HTTP security headers: X-Frame-Options, X-Content-Type-Options, CSP, etc.)
+- No CSRF protection (token-based WS auth mitigates CSRF for WS, but HTTP POST /api/auth/token has no CSRF token)
+- No log rotation (pino logs to stderr only, no file transport, no pino-roll)
+- No ORM/query builder (raw bun:sqlite queries; schema managed in-code via CREATE TABLE IF NOT EXISTS)
+- No migration tooling (schema initialized at startup via schema.ts, no versioned migrations, no rollback)
+- No Prometheus/OpenTelemetry metrics endpoint
+- No Sentry or structured error tracking
+- No environment variable validation library (process.env accessed directly with raw defaults)
+- No Docker/containerization (no Dockerfile, no docker-compose.yml anywhere in chatroom/)
+- No coverage tooling configured (no c8, no istanbul, no bun coverage flags in scripts)
+- No ESLint/Biome/Prettier config files anywhere
+- No graceful shutdown in index.ts (process.on('SIGTERM') not registered; Bun exits immediately on signal)
+- No connection pooling (bun:sqlite is single-connection by design; not applicable, but WAL enables concurrent reads)
+
+**Escalation:** None needed — inventory scan only.
+
 ## 2026-03-15 — BM25 skill-search.py architecture trace
 
 Full data-flow map of skill-search.py (unmassk-crew 1.3.0). Key findings:
