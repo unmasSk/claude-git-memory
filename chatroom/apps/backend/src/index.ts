@@ -24,7 +24,7 @@ loadAgentRegistry();
  */
 export const app = new Elysia()
   .use(cors({
-    origin: NODE_ENV === 'development'
+    origin: (NODE_ENV === 'development' || NODE_ENV === 'test')
       ? ['http://localhost:4201', 'http://127.0.0.1:4201']
       : false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
