@@ -29,101 +29,73 @@ import {
 import { handleSendMessage, handleInvokeAgent, handleLoadHistory } from './ws-message-handlers.js';
 
 // ---------------------------------------------------------------------------
-// open()
+// open() helpers
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function open(ws: any): void {
-  // SEC-FIX 2: Origin check at open time.
-  // Elysia's upgrade hook ignores return values and cannot reject the
-  // connection, so we perform the check here and close immediately if the
-  // origin is not allowed.
+function rejectUpgrade(ws: any, logCtx: Record<string, unknown>, logMsg: string, msg?: string, code?: string): null {
+  logger.warn(logCtx, logMsg);
+  if (msg && code) ws.send(JSON.stringify({ type: 'error', message: msg, code } satisfies ServerMessage));
+  ws.close();
+  return null;
+}
+
+/**
+ * Validates the WS upgrade: origin, rate limit, room cap, auth token.
+ * Returns the tokenName on success, or null after closing the connection.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateUpgrade(ws: any, roomId: string): string | null {
   const origin = (ws.data as WsData & { headers?: Record<string, string> }).headers?.['origin'] ?? '';
-  if (!ALLOWED_ORIGINS.has(origin)) {
-    logger.warn({ origin }, 'WS open rejected: bad origin');
-    ws.close();
-    return;
-  }
-
-  // WS upgrade rate limit — 50 upgrades/second global
-  if (!checkUpgradeRateLimit()) {
-    logger.warn({ origin }, 'WS open rejected: upgrade rate limit exceeded');
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: 'Too many connections. Try again later.',
-        code: 'UPGRADE_RATE_LIMIT',
-      } satisfies ServerMessage),
-    );
-    ws.close();
-    return;
-  }
-
-  const wsData = ws.data as WsData;
-  const { roomId } = wsData.params;
-
-  // SEC-OPEN-008: Per-room connection cap — check BEFORE consuming token.
+  if (!ALLOWED_ORIGINS.has(origin))
+    return rejectUpgrade(ws, { origin }, 'WS open rejected: bad origin');
+  if (!checkUpgradeRateLimit())
+    return rejectUpgrade(ws, { origin }, 'WS open rejected: upgrade rate limit exceeded', 'Too many connections. Try again later.', 'UPGRADE_RATE_LIMIT');
   const existingRoomConns = roomConns.get(roomId);
-  if (existingRoomConns && existingRoomConns.size >= MAX_CONNECTIONS_PER_ROOM) {
-    logger.warn({ roomId, connCount: existingRoomConns.size }, 'WS connection rejected: per-room cap reached');
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: 'Room connection limit reached. Try again later.',
-        code: 'ROOM_FULL',
-      } satisfies ServerMessage),
-    );
-    ws.close();
-    return;
-  }
+  if (existingRoomConns && existingRoomConns.size >= MAX_CONNECTIONS_PER_ROOM)
+    return rejectUpgrade(ws, { roomId, connCount: existingRoomConns.size }, 'WS connection rejected: per-room cap reached', 'Room connection limit reached. Try again later.', 'ROOM_FULL');
+  const tokenName = validateToken((ws.data as WsData).query?.token);
+  if (tokenName === null)
+    return rejectUpgrade(ws, { roomId }, 'WS open rejected: invalid or missing token', 'Unauthorized. Obtain a token from POST /api/auth/token.', 'UNAUTHORIZED');
+  return tokenName;
+}
 
-  // SEC-AUTH-001: Token validation — token consumed only when room has capacity.
-  const rawToken = wsData.query?.token;
-  const tokenName = validateToken(rawToken);
-  if (tokenName === null) {
-    logger.warn({ roomId }, 'WS open rejected: invalid or missing token');
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: 'Unauthorized. Obtain a token from POST /api/auth/token.',
-        code: 'UNAUTHORIZED',
-      } satisfies ServerMessage),
-    );
-    ws.close();
-    return;
-  }
-
-  // Assign a unique connId for rate limiting and store it in the module map.
+/**
+ * Registers a new connection in the module state maps and subscribes to the
+ * room pub/sub topic. Broadcasts an updated user list to the room.
+ * Returns the assigned connId.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function registerConnection(ws: any, roomId: string, tokenName: string): string {
   const connId = nextConnId();
   wsConnIds.set(ws.raw ?? ws, connId);
   logger.info({ tokenName, roomId, connId }, 'WS open');
 
-  const connectedAt = nowIso();
-  connStates.set(connId, { name: tokenName, roomId, connectedAt });
+  connStates.set(connId, { name: tokenName, roomId, connectedAt: nowIso() });
   if (!roomConns.has(roomId)) roomConns.set(roomId, new Set());
   roomConns.get(roomId)!.add(connId);
 
   const topic = `room:${roomId}`;
-
-  // Subscribe to room pub/sub topic
   ws.subscribe(topic);
 
-  // Broadcast updated user list to all room subscribers (including self)
   const userListMsg = JSON.stringify({ type: 'user_list_update', connectedUsers: getConnectedUsers(roomId) });
   ws.publish(topic, userListMsg);
   ws.send(userListMsg);
 
+  return connId;
+}
+
+/**
+ * Looks up the room and sends the full room_state payload (room, messages, agents,
+ * connectedUsers). Returns false and closes the connection if the room is not found.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function sendInitialState(ws: any, roomId: string): boolean {
   const room = getRoomById(roomId);
   if (!room) {
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: `Room '${roomId}' not found`,
-        code: 'ROOM_NOT_FOUND',
-      } satisfies ServerMessage),
-    );
+    ws.send(JSON.stringify({ type: 'error', message: `Room '${roomId}' not found`, code: 'ROOM_NOT_FOUND' } satisfies ServerMessage));
     ws.close();
-    return;
+    return false;
   }
 
   const messageRows = getRecentMessages(roomId, ROOM_STATE_MESSAGE_LIMIT);
@@ -142,6 +114,29 @@ export function open(ws: any): void {
   };
 
   ws.send(JSON.stringify(roomState));
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// open()
+// ---------------------------------------------------------------------------
+
+/**
+ * Elysia WebSocket open handler.
+ * Validates the upgrade request (origin, rate limits, room cap, token), registers the
+ * connection in module state, and sends the initial room_state snapshot to the client.
+ *
+ * @param ws - The Elysia WebSocket instance (typed as any due to Elysia internals).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function open(ws: any): void {
+  const { roomId } = (ws.data as WsData).params;
+
+  const tokenName = validateUpgrade(ws, roomId);
+  if (tokenName === null) return;
+
+  registerConnection(ws, roomId, tokenName);
+  sendInitialState(ws, roomId);
 }
 
 // ---------------------------------------------------------------------------
@@ -149,64 +144,56 @@ export function open(ws: any): void {
 // ---------------------------------------------------------------------------
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function parseAndValidate(ws: any, rawMessage: unknown): ReturnType<typeof ClientMessageSchema.safeParse> | null {
+  let parsed: unknown;
+  try {
+    parsed = typeof rawMessage === 'string' ? JSON.parse(rawMessage) : rawMessage;
+  } catch {
+    ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON', code: 'PARSE_ERROR' } satisfies ServerMessage));
+    return null;
+  }
+
+  const result = ClientMessageSchema.safeParse(parsed);
+  if (!result.success) {
+    ws.send(JSON.stringify({ type: 'error', message: `Invalid message: ${result.error.issues[0]?.message ?? 'unknown'}`, code: 'VALIDATION_ERROR' } satisfies ServerMessage));
+    return null;
+  }
+
+  return result;
+}
+
+/**
+ * Elysia WebSocket message handler.
+ * Enforces the per-connection rate limit, parses and validates the incoming JSON
+ * against ClientMessageSchema, then dispatches to the appropriate handler
+ * (handleSendMessage, handleInvokeAgent, or handleLoadHistory).
+ *
+ * @param ws - The Elysia WebSocket instance.
+ * @param rawMessage - The raw message payload (string or already-parsed object).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function message(ws: any, rawMessage: unknown): void {
   const wsData = ws.data as WsData;
   const { roomId } = wsData.params;
   const connId = wsConnIds.get(ws.raw ?? ws);
 
-  // SEC-FIX 6: Rate limit check
   if (!connId || !checkRateLimit(connId)) {
-    // SEC-OPEN-010: Warn-level log for rate-limit events — enables intrusion detection
-    // and alerting on clients sending excessive messages.
     logger.warn({ connId, roomId }, 'WS rate limit exceeded');
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: 'Rate limit exceeded. Max 5 messages per 10 seconds.',
-        code: 'RATE_LIMIT',
-      } satisfies ServerMessage),
-    );
+    ws.send(JSON.stringify({ type: 'error', message: 'Rate limit exceeded. Max 5 messages per 10 seconds.', code: 'RATE_LIMIT' } satisfies ServerMessage));
     return;
   }
 
-  // Parse incoming message
-  let parsed: unknown;
-  try {
-    parsed = typeof rawMessage === 'string' ? JSON.parse(rawMessage) : rawMessage;
-  } catch {
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: 'Invalid JSON',
-        code: 'PARSE_ERROR',
-      } satisfies ServerMessage),
-    );
-    return;
-  }
-
-  const result = ClientMessageSchema.safeParse(parsed);
-  if (!result.success) {
-    ws.send(
-      JSON.stringify({
-        type: 'error',
-        message: `Invalid message: ${result.error.issues[0]?.message ?? 'unknown'}`,
-        code: 'VALIDATION_ERROR',
-      } satisfies ServerMessage),
-    );
-    return;
-  }
+  const result = parseAndValidate(ws, rawMessage);
+  if (!result) return;
 
   const msg = result.data;
-
   switch (msg.type) {
     case 'send_message':
       handleSendMessage(ws, roomId, connId, msg.content);
       break;
-
     case 'invoke_agent':
       handleInvokeAgent(ws, roomId, connId, msg.agent, msg.prompt);
       break;
-
     case 'load_history':
       handleLoadHistory(ws, roomId, msg.before, msg.limit);
       break;
@@ -217,6 +204,14 @@ export function message(ws: any, rawMessage: unknown): void {
 // close()
 // ---------------------------------------------------------------------------
 
+/**
+ * Elysia WebSocket close handler.
+ * Removes the connection from all module state maps (wsConnIds, connStates, roomConns),
+ * broadcasts an updated user list to the remaining room subscribers, then unsubscribes
+ * the socket from the room pub/sub topic.
+ *
+ * @param ws - The Elysia WebSocket instance.
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function close(ws: any): void {
   const { roomId } = (ws.data as WsData).params;

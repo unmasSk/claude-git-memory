@@ -1,26 +1,9 @@
 /**
- * agent-scheduler.ts
+ * agent-scheduler.ts — Queue-based concurrency scheduler for agent invocations.
  *
- * Queue-based concurrency scheduler for agent invocations.
- *
- * Key concerns:
- *   FIX 14 — Queue with consumer (semaphore pattern)
- *   FIX 15 — Per-agent in-flight lock (scoped per room: agentName:roomId)
- *   SEC-SCOPE-001 — Room-scoped pause state
- *
- * Exports (public API):
- *   - InvocationContext (type)
- *   - invokeAgents   — fire-and-forget multi-agent dispatch
- *   - invokeAgent    — fire-and-forget single-agent dispatch
- *   - scheduleInvocation — enqueue/run one agent invocation
- *   - drainQueue     — drain next entry from pending queue
- *   - drainActiveInvocations — waits for all in-flight to settle
- *   - pauseInvocations / resumeInvocations / isPaused — room-scoped pause
- *   - clearQueue     — per-room queue drain
- *
- * Exported state (consumed by agent-runner):
- *   - inFlight
- *   - activeInvocations
+ * FIX 14 — Queue with consumer (semaphore pattern)
+ * FIX 15 — Per-agent in-flight lock (scoped per room: agentName:roomId)
+ * SEC-SCOPE-001 — Room-scoped pause state
  */
 
 import { createLogger } from '../logger.js';
@@ -52,10 +35,16 @@ export interface InvocationContext {
 // Concurrency state — FIX 14 + FIX 15
 // ---------------------------------------------------------------------------
 
-/** Currently running invocations keyed by "${agentName}:${roomId}" */
+/**
+ * Currently running invocations keyed by "${agentName}:${roomId}".
+ * Consumed by drainActiveInvocations() for graceful shutdown.
+ */
 export const activeInvocations = new Map<string, Promise<void>>();
 
-/** FIX 15: In-flight lock keyed by "${agentName}:${roomId}" (per-room scope) */
+/**
+ * Per-agent-per-room in-flight lock keyed by "${agentName}:${roomId}".
+ * An agent with an existing entry is queued rather than started concurrently (FIX 15).
+ */
 export const inFlight = new Set<string>();
 
 /**
@@ -111,19 +100,40 @@ function enqueue(entry: QueueEntry): void {
  */
 const _pausedRooms = new Set<string>();
 
+/**
+ * Pause all new agent invocations for a room (triggered by @everyone stop).
+ * Queued invocations are discarded by clearQueue; in-flight ones run to completion.
+ *
+ * @param roomId - The room to pause.
+ */
 export function pauseInvocations(roomId: string): void {
   _pausedRooms.add(roomId);
 }
+
+/**
+ * Resume agent invocations for a room after an @everyone stop was issued.
+ *
+ * @param roomId - The room to resume.
+ */
 export function resumeInvocations(roomId: string): void {
   _pausedRooms.delete(roomId);
 }
+
+/**
+ * Returns whether agent invocations are currently paused for a room.
+ *
+ * @param roomId - The room to check.
+ * @returns true if the room is paused, false otherwise.
+ */
 export function isPaused(roomId: string): boolean {
   return _pausedRooms.has(roomId);
 }
 
 /**
  * Remove all pending queue entries for a room.
- * Returns the number of entries removed.
+ *
+ * @param roomId - The room whose pending entries should be cleared.
+ * @returns The number of entries removed from the queue.
  */
 export function clearQueue(roomId: string): number {
   const before = pendingQueue.length;
@@ -139,12 +149,15 @@ export function clearQueue(roomId: string): number {
 
 /**
  * Invoke one or more agents by name in a room.
+ * Staggered by 600ms per agent to avoid simultaneous rate-limit spikes.
  * Called from the WS send_message handler after extracting @mentions.
- *
  * Fire-and-forget — returns immediately, work runs async.
  *
- * @param priority — when true (human-originated), entries go to the front of
- *   the queue so human messages are processed before pending agent-chained work.
+ * @param roomId - The room where agents will be invoked.
+ * @param agentNames - Set of agent names to invoke.
+ * @param triggerContent - The message content that triggered the invocations.
+ * @param agentTurns - Per-agent turn count for the current chain (default empty map).
+ * @param priority - When true (human-originated), entries go to the front of the queue.
  */
 export function invokeAgents(
   roomId: string,
@@ -165,8 +178,12 @@ export function invokeAgents(
 }
 
 /**
- * Invoke a single agent explicitly (from invoke_agent WS message).
+ * Invoke a single agent explicitly from an invoke_agent WS message.
  * Fire-and-forget — returns immediately, work runs async.
+ *
+ * @param roomId - The room where the agent will be invoked.
+ * @param agentName - The agent to invoke.
+ * @param prompt - The prompt to pass to the agent.
  */
 export function invokeAgent(roomId: string, agentName: string, prompt: string): void {
   scheduleInvocation(roomId, agentName, { triggerContent: prompt, agentTurns: new Map() }, false);
@@ -176,6 +193,56 @@ export function invokeAgent(roomId: string, agentName: string, prompt: string): 
 // Scheduling logic — FIX 14 + FIX 15
 // ---------------------------------------------------------------------------
 
+/**
+ * Merge into an existing pending queue entry for the same agent+room, or
+ * enqueue a new entry. Always handles the invocation — caller must return.
+ * Distinct log/system messages per call site preserve branch-level observability.
+ */
+function tryMergeOrEnqueue(
+  roomId: string,
+  agentName: string,
+  context: InvocationContext,
+  isRetry: boolean,
+  priority: boolean,
+  mergedLogMsg: string,
+  mergedSysMsg: string,
+  enqueuedSysMsg: (queueSize: number) => string,
+): void {
+  // Issue #31: merge into existing pending entry to avoid N runs for N queued messages
+  const existing = pendingQueue.find((e) => e.agentName === agentName && e.roomId === roomId);
+  if (existing) {
+    // FIX 3: Reject merge if combined content exceeds size cap
+    const merged = existing.context.triggerContent + `\n\n${context.triggerContent}`;
+    if (merged.length > MAX_TRIGGER_CONTENT_BYTES) {
+      void postSystemMessageAsync(roomId, `Agent ${agentName} trigger content too large — message dropped.`);
+      return;
+    }
+    existing.context.triggerContent = merged;
+    if (priority) existing.priority = true; // FIX 1: escalate priority
+    logger.debug({ agentName, roomId, queueSize: pendingQueue.length }, mergedLogMsg);
+    void postSystemMessageAsync(roomId, mergedSysMsg);
+    return;
+  }
+
+  if (pendingQueue.length >= MAX_QUEUE_SIZE) {
+    void postSystemMessageAsync(roomId, `Agent ${agentName} cannot be queued — too many pending invocations.`);
+    return;
+  }
+  enqueue({ roomId, agentName, context, isRetry, priority });
+  void postSystemMessageAsync(roomId, enqueuedSysMsg(pendingQueue.length));
+}
+
+/**
+ * Schedule an agent invocation, subject to the room pause state, per-agent
+ * in-flight lock, and global concurrency cap. Starts immediately if a slot
+ * is available; otherwise merges into an existing pending entry or enqueues.
+ *
+ * @param roomId - The room to run the agent in.
+ * @param agentName - The agent to invoke.
+ * @param context - Invocation context (trigger content, turn counts, retry flags).
+ * @param isRetry - When true, prevents a second retry loop on stale-session detection.
+ * @param priority - When true, the entry is inserted at the front of the queue.
+ */
 export function scheduleInvocation(
   roomId: string,
   agentName: string,
@@ -192,80 +259,30 @@ export function scheduleInvocation(
   const flightKey = `${agentName}:${roomId}`;
 
   logger.debug(
-    {
-      agentName,
-      roomId,
-      turns: Object.fromEntries(context.agentTurns),
-      isRetry,
-      priority,
-      inFlight: inFlight.has(flightKey),
-      queueSize: pendingQueue.length,
-    },
+    { agentName, roomId, turns: Object.fromEntries(context.agentTurns), isRetry, priority,
+      inFlight: inFlight.has(flightKey), queueSize: pendingQueue.length },
     'scheduleInvocation',
   );
 
   // FIX 15: Per-agent-per-room in-flight lock — queue if already running
   if (inFlight.has(flightKey)) {
-    // Issue #31: merge into an existing pending entry for the same agent+room
-    // instead of adding a new queue slot. This prevents running the agent N times
-    // for N queued messages — the next run will have all trigger content combined.
-    const existing = pendingQueue.find((e) => e.agentName === agentName && e.roomId === roomId);
-    if (existing) {
-      // FIX 3: Reject merge if combined content exceeds size cap
-      const merged = existing.context.triggerContent + `\n\n${context.triggerContent}`;
-      if (merged.length > MAX_TRIGGER_CONTENT_BYTES) {
-        void postSystemMessageAsync(roomId, `Agent ${agentName} trigger content too large — message dropped.`);
-        return;
-      }
-      existing.context.triggerContent = merged;
-      // FIX 1: Escalate priority if incoming context has higher priority
-      if (priority) existing.priority = true;
-      logger.debug(
-        { agentName, roomId, queueSize: pendingQueue.length },
-        'scheduleInvocation: merged into existing queue entry',
-      );
-      void postSystemMessageAsync(roomId, `Agent ${agentName} is busy. Message merged into pending invocation.`);
-      return;
-    }
-
-    if (pendingQueue.length >= MAX_QUEUE_SIZE) {
-      void postSystemMessageAsync(roomId, `Agent ${agentName} cannot be queued — too many pending invocations.`);
-      return;
-    }
-    enqueue({ roomId, agentName, context, isRetry, priority });
-    logger.debug({ agentName, roomId, queueSize: pendingQueue.length }, 'scheduleInvocation: in-flight, queued');
-    void postSystemMessageAsync(roomId, `Agent ${agentName} is busy. Message queued (${pendingQueue.length} pending).`);
+    tryMergeOrEnqueue(
+      roomId, agentName, context, isRetry, priority,
+      'scheduleInvocation: merged into existing queue entry',
+      `Agent ${agentName} is busy. Message merged into pending invocation.`,
+      (n) => `Agent ${agentName} is busy. Message queued (${n} pending).`,
+    );
     return;
   }
 
-  // FIX 14: Concurrency cap
+  // FIX 14: Concurrency cap — queue if global limit reached
   if (activeInvocations.size >= MAX_CONCURRENT_AGENTS) {
-    // Issue #31: merge into an existing pending entry for the same agent+room
-    const existing = pendingQueue.find((e) => e.agentName === agentName && e.roomId === roomId);
-    if (existing) {
-      // FIX 3: Reject merge if combined content exceeds size cap
-      const merged = existing.context.triggerContent + `\n\n${context.triggerContent}`;
-      if (merged.length > MAX_TRIGGER_CONTENT_BYTES) {
-        void postSystemMessageAsync(roomId, `Agent ${agentName} trigger content too large — message dropped.`);
-        return;
-      }
-      existing.context.triggerContent = merged;
-      // FIX 1: Escalate priority if incoming context has higher priority
-      if (priority) existing.priority = true;
-      logger.debug(
-        { agentName, roomId, queueSize: pendingQueue.length },
-        'scheduleInvocation: merged into existing queue entry (cap)',
-      );
-      void postSystemMessageAsync(roomId, `Agent ${agentName} queued. Message merged into pending invocation.`);
-      return;
-    }
-
-    if (pendingQueue.length >= MAX_QUEUE_SIZE) {
-      void postSystemMessageAsync(roomId, `Agent ${agentName} cannot be queued — too many pending invocations.`);
-      return;
-    }
-    enqueue({ roomId, agentName, context, isRetry, priority });
-    void postSystemMessageAsync(roomId, `Agent ${agentName} queued (${pendingQueue.length} in queue).`);
+    tryMergeOrEnqueue(
+      roomId, agentName, context, isRetry, priority,
+      'scheduleInvocation: merged into existing queue entry (cap)',
+      `Agent ${agentName} queued. Message merged into pending invocation.`,
+      (n) => `Agent ${agentName} queued (${n} in queue).`,
+    );
     return;
   }
 
@@ -302,7 +319,11 @@ function runInvocation(roomId: string, agentName: string, context: InvocationCon
   activeInvocations.set(key, promise);
 }
 
-/** FIX 14: Drain the next entry from the queue when a slot opens up. */
+/**
+ * Drain the next eligible entry from the pending queue when a concurrency slot opens.
+ * Skips entries whose agent is already in-flight in the same room (T2-05).
+ * No-op if the queue is empty or the concurrency cap is still reached.
+ */
 export function drainQueue(): void {
   if (pendingQueue.length === 0) return;
   if (activeInvocations.size >= MAX_CONCURRENT_AGENTS) return;

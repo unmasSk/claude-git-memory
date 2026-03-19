@@ -156,8 +156,8 @@ historyLimit test in `agent-invoker.test.ts` now wraps assertions in `try/finall
 ### Issue #36: retryScheduled mutation removed from InvocationContext
 `retryScheduled` deleted from `InvocationContext`. `spawnAndParse` and `doInvoke` now return `Promise<boolean>`. `runInvocation` reads the boolean in `.then()` to decide whether to clean up inFlight/activeInvocations. The `.catch()` guard handles unexpected rejections (always cleans up). `.finally()` always drains queue.
 
-### Issue #31: Queue merge for same-agent+room pending entries
-In `scheduleInvocation`, before adding a new queue entry, check `pendingQueue.find(e => e.agentName === agentName && e.roomId === roomId)`. If found, append the new trigger content with `\n\n` separator instead of adding a new entry. Applied in both the inFlight-lock path and the concurrency-cap path. Prevents N sequential runs when N messages arrive for a busy agent.
+### Issue #31: Queue merge for same-agent+room pending entries — tryMergeOrEnqueue
+In `scheduleInvocation`, both the inFlight-lock path and the concurrency-cap path call the shared helper `tryMergeOrEnqueue(roomId, agentName, context, isRetry, priority, mergedLogMsg, mergedSysMsg, enqueuedSysMsg)`. The helper merges into an existing pending entry (appending triggerContent with `\n\n`) or enqueues a new entry. Callers pass distinct log/system message strings to preserve per-branch observability. Return type is `void` — caller always returns after calling it. Prevents N sequential runs when N messages arrive for a busy agent.
 
 ### Issue #29: git diff stat injected into agent system prompt
 `getGitDiffStat()` runs `Bun.spawnSync(['git', 'diff', '--stat', 'HEAD~3'])` synchronously. Output capped at 50 lines. Injected as a `RECENT CODE CHANGES` section in `buildSystemPrompt` just before the SECURITY section. Non-fatal — empty string returned on any error.
@@ -307,7 +307,7 @@ Original `agent-invoker.ts` (1181 LOC) split into 4 files:
 |---|---|---|
 | `agent-prompt.ts` | 333 | validateSessionId, sanitizePromptContent, buildPrompt, buildSystemPrompt, formatToolDescription, getGitDiffStat, RESPAWN constants, CONTEXT_OVERFLOW_SIGNAL |
 | `agent-runner.ts` | 596 | doInvoke, spawnAndParse, postSystemMessage, updateStatusAndBroadcast |
-| `agent-scheduler.ts` | 327 | InvocationContext type, invokeAgents, invokeAgent, scheduleInvocation, runInvocation, drainQueue, drainActiveInvocations, pauseInvocations, resumeInvocations, isPaused, clearQueue, inFlight, activeInvocations |
+| `agent-scheduler.ts` | 299 | InvocationContext type, invokeAgents, invokeAgent, scheduleInvocation, tryMergeOrEnqueue, runInvocation, drainQueue, drainActiveInvocations, pauseInvocations, resumeInvocations, isPaused, clearQueue, inFlight, activeInvocations |
 | `agent-invoker.ts` | 56 | Thin facade — re-exports everything for backward compat |
 
 ### Circular import resolution — dynamic imports
@@ -321,3 +321,109 @@ Solution:
 
 ### Test update pattern (same as ws.ts split)
 Tests that read source file path `../../src/services/agent-invoker.ts` to verify literal strings (e.g., `[PRIOR AGENT OUTPUT]`) must be updated to read `../../src/services/agent-prompt.ts` — that is where the prompt builder strings now live.
+
+---
+
+## Session 12: agent-prompt.ts — buildSystemPrompt split (2026-03-19)
+
+`buildSystemPrompt` (95 LOC) split into three private sub-builders + a thin assembler:
+
+| Function | Type | LOC | Responsibility |
+|---|---|---|---|
+| `buildIdentityBlock(name, role, isRespawn)` | private | 21 | Respawn notice block + identity line; strips U+2550 from inputs |
+| `buildChatroomRules()` | private | 56 | @mention rules, silence, courtesy, human-priority, anti-spam |
+| `buildSecurityRules()` | private | 24 | Git diff stat injection (Issue #29) + SECURITY block |
+| `buildSystemPrompt(name, role, isRespawn)` | export | 8 | Assembler: spreads all three sub-builders |
+
+### Key decisions
+- `buildChatroomRules` is 56 LOC (over the ≤30 helper guideline) but is purely string literals — no logic to compress without arbitrary splits.
+- `buildIdentityBlock` returns `string[]`, not `string` — callers spread it. Same pattern as respawnNotice array in the original.
+- File target: <300 LOC. Final: 294 LOC.
+- Golden tests: 114 assertions, all pass before and after.
+
+---
+
+## Session 13: ws-handlers.ts + ws-message-handlers.ts sub-function extraction — 2026-03-19
+
+### ws-handlers.ts: open() decomposition
+
+`open()` (110 LOC) → 4 helpers + 1 thin exported assembler:
+
+| Function | Type | LOC | Responsibility |
+|---|---|---|---|
+| `rejectUpgrade(ws, logCtx, logMsg, msg?, code?)` | private helper | 6 | Shared close+log+send pattern for all upgrade rejections |
+| `validateUpgrade(ws, roomId)` | private helper | 14 | Origin, rate limit, room cap, token checks — returns tokenName or null |
+| `registerConnection(ws, roomId, tokenName)` | private helper | 24 | Assigns connId, updates state maps, subscribes to topic, broadcasts user list |
+| `sendInitialState(ws, roomId)` | private helper | 26 | Fetches room/messages/agents, sends room_state; closes on ROOM_NOT_FOUND |
+| `open(ws)` | **exported** | 9 | Assembler: calls validateUpgrade → registerConnection → sendInitialState |
+
+`message()` (63 LOC) → 1 helper + thin dispatcher:
+
+| Function | Type | LOC | Responsibility |
+|---|---|---|---|
+| `parseAndValidate(ws, rawMessage)` | private helper | 17 | JSON parse + Zod schema validation, sends errors, returns result or null |
+| `message(ws, rawMessage)` | **exported** | 27 | Rate limit check → parseAndValidate → switch dispatch to handlers |
+
+### ws-message-handlers.ts: handleEveryoneDirective decomposition
+
+`handleEveryoneDirective` (64 LOC) → 1 extracted helper + compressed body:
+
+| Function | Type | LOC | Responsibility |
+|---|---|---|---|
+| `insertAndBroadcastDirective(ws, roomId, safeDirective)` | private helper | 16 | Insert system directive to DB + broadcast to room; returns false on DB error |
+| `handleEveryoneDirective(ws, roomId, content, authorName)` | private helper | 26 | Extract directive, check stop words, sanitize, delegate to insertAndBroadcastDirective, invoke agents |
+
+### LOC summary (all within targets)
+
+| Function | Type | LOC | Limit | Status |
+|---|---|---|---|---|
+| rejectUpgrade | helper | 6 | ≤30 | ✓ |
+| validateUpgrade | helper | 14 | ≤30 | ✓ |
+| registerConnection | helper | 24 | ≤30 | ✓ |
+| sendInitialState | helper | 26 | ≤30 | ✓ |
+| open | exported | 9 | ≤50 | ✓ |
+| parseAndValidate | helper | 17 | ≤30 | ✓ |
+| message | exported | 27 | ≤50 | ✓ |
+| close | exported | 26 | ≤50 | ✓ |
+| sendError | helper | 2 | ≤30 | ✓ |
+| insertAndBroadcastDirective | helper | 16 | ≤30 | ✓ |
+| handleEveryoneDirective | helper | 26 | ≤30 | ✓ |
+| handleSendMessage | exported | 43 | ≤50 | ✓ |
+| handleInvokeAgent | exported | 37 | ≤50 | ✓ |
+| handleLoadHistory | exported | 13 | ≤50 | ✓ |
+
+### Pattern: rejectUpgrade helper for guard clauses with close+log+send
+When a function has 3+ guard clauses that all: (1) log warn, (2) optionally send error payload, (3) close socket and return null — extract a `rejectXxx(ws, logCtx, logMsg, msg?, code?)` helper. The optional msg+code params handle cases where no error payload is sent (e.g. bad origin just closes silently).
+
+---
+
+## Session 14: agent-runner.ts refactor — extract agent-stream.ts (2026-03-19)
+
+`agent-runner.ts` (596 LOC) reduced to 259 LOC by extracting `agent-stream.ts` (385 LOC).
+
+| Function | File | Type | LOC |
+|---|---|---|---|
+| `readAgentStream` | agent-stream.ts | export | 43 |
+| `handleAgentResult` | agent-stream.ts | export | 25 |
+| `readStderr` | agent-stream.ts | private | 14 |
+| `processStreamLine` | agent-stream.ts | private | 29 |
+| `applyResultEvent` | agent-stream.ts | private | 25 |
+| `handleFailedResult` | agent-stream.ts | private | 30 |
+| `handleEmptyResult` | agent-stream.ts | private | 29 |
+| `persistAndBroadcast` | agent-stream.ts | private | 22 |
+| `maybeTruncate` | agent-stream.ts | private | 7 |
+| `buildAgentMessage` | agent-stream.ts | private | 23 |
+| `scheduleChainMentions` | agent-stream.ts | private | 23 |
+| `doInvoke` | agent-runner.ts | export | 48 |
+| `spawnAndParse` | agent-runner.ts | export | 31 |
+| `buildSpawnArgs` | agent-runner.ts | private | 21 |
+| `makeTimeoutHandle` | agent-runner.ts | private | 18 |
+| `postSystemMessage` | agent-runner.ts | export | 30 |
+| `updateStatusAndBroadcast` | agent-runner.ts | export | 15 |
+
+### Key extraction decisions
+- `agent-stream.ts` imports `postSystemMessage` and `updateStatusAndBroadcast` from `agent-runner.ts` statically (no circular issue — stream is downstream of runner helpers)
+- `spawnAndParse` reduced to: build args → spawn → make timeout → readAgentStream → handleAgentResult
+- The `AgentStreamResult` interface carries all stdout parsed data; stderr piped into it via `readStderr` helper
+- `lastToolBroadcastTime` state captured via closure setter `setTime` to avoid mutation across function call boundary
+- awk LOC counts include function signature lines — "≤50 exported / ≤30 helper" measured from `function` keyword line through closing `}`

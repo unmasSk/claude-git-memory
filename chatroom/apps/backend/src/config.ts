@@ -6,6 +6,13 @@ import { createLogger } from './logger.js';
 const logger = createLogger('config');
 
 // ---------------------------------------------------------------------------
+// ConfigError
+// ---------------------------------------------------------------------------
+
+/** Thrown when a WS_ALLOWED_ORIGINS entry has an unsupported protocol (not http or https). */
+export class ConfigError extends Error {}
+
+// ---------------------------------------------------------------------------
 // Env validation helpers
 // ---------------------------------------------------------------------------
 
@@ -140,7 +147,7 @@ function parseWsAllowedOrigins(): readonly string[] {
     try {
       const url = new URL(entry);
       if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-        throw new Error(`protocol must be http or https`);
+        throw new ConfigError(`protocol must be http or https`);
       }
     } catch {
       logger.error(

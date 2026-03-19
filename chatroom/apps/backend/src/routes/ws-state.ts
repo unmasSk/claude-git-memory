@@ -4,35 +4,51 @@ import { getReservedAgentNames } from '../services/auth-tokens.js';
 import { WS_ALLOWED_ORIGINS } from '../config.js';
 import type { ConnectedUser } from '@agent-chatroom/shared';
 
+/** Pino logger instance for the WS module. */
 export const logger = createLogger('ws');
 
 // ---------------------------------------------------------------------------
 // SEC-FIX 2: Allowed origins for WebSocket upgrade — sourced from config
 // ---------------------------------------------------------------------------
 
+/** Set of allowed WebSocket upgrade origins, built from WS_ALLOWED_ORIGINS config. */
 export const ALLOWED_ORIGINS = new Set(WS_ALLOWED_ORIGINS);
 
-// FIX 9: Shared @everyone regex — used in both directive detection and skip guard.
+/** Shared @everyone regex — used in both directive detection and skip guard. */
 export const EVERYONE_PATTERN = /@everyone\b/i;
 
 // ---------------------------------------------------------------------------
 // SEC-FIX 6: Per-connection token bucket rate limiter (shared factory)
 // ---------------------------------------------------------------------------
 
-// 5 messages per 10 seconds — keyed by connId
+/**
+ * Per-connection message rate limiter.
+ * Allows 5 messages per 10 seconds, keyed by connId.
+ *
+ * @param connId - Connection identifier assigned in open().
+ * @returns true if the message is within the rate limit, false if it should be rejected.
+ */
 export const checkRateLimit = createTokenBucket(5, 10_000);
 
 // ---------------------------------------------------------------------------
 // WS upgrade rate limiter — 50 upgrades/second, global key
 // ---------------------------------------------------------------------------
 
-// 50 upgrades per 1 second — keyed by constant 'global'
+/**
+ * Global WebSocket upgrade rate limiter.
+ * Allows 50 new connections per second across all rooms.
+ *
+ * @returns true if the upgrade is within the rate limit, false if it should be rejected.
+ */
 export const checkUpgradeRateLimit = (() => {
   const check = createTokenBucket(50, 1_000);
   return () => check('global');
 })();
 
-// Map from ws instance → connId, populated in open(), cleaned in close()
+/**
+ * Maps a ws instance (ws.raw or ws) to its assigned connId.
+ * Populated in open(), cleaned up in close().
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const wsConnIds = new Map<any, string>();
 
@@ -42,17 +58,26 @@ export interface ConnState {
   roomId: string;
   connectedAt: string;
 }
+
+/** Maps connId to the connection state (name, roomId, connectedAt). */
 export const connStates = new Map<string, ConnState>();
 
-// Map from roomId → Set<connId> for listing users per room
+/** Maps roomId to the set of connIds currently connected in that room. */
 export const roomConns = new Map<string, Set<string>>();
 
-// SEC-OPEN-008: Per-room connection cap — prevents a single room from being
-// flooded with connections that consume memory and WS server capacity.
+/**
+ * Maximum number of simultaneous WebSocket connections allowed per room.
+ * Prevents a single room from exhausting memory and WS server capacity (SEC-OPEN-008).
+ */
 export const MAX_CONNECTIONS_PER_ROOM = 20;
 
 let _connCounter = 0;
 
+/**
+ * Generate a unique connection identifier for each WebSocket connection.
+ *
+ * @returns A string of the form "conn-{N}" where N is a monotonically increasing integer.
+ */
 export function nextConnId(): string {
   return `conn-${++_connCounter}`;
 }
@@ -62,7 +87,12 @@ export function nextConnId(): string {
 // ---------------------------------------------------------------------------
 
 /**
- * Returns the list of ConnectedUser objects currently in a room.
+ * Returns the list of connected users currently in a room, deduplicated by name.
+ * Deduplication handles React StrictMode, which opens two WebSocket connections
+ * from the same browser tab with the same token name.
+ *
+ * @param roomId - The room to query.
+ * @returns Array of ConnectedUser objects, one entry per unique display name.
  */
 export function getConnectedUsers(roomId: string): ConnectedUser[] {
   const conns = roomConns.get(roomId);
@@ -89,16 +119,20 @@ export function getConnectedUsers(roomId: string): ConnectedUser[] {
  */
 export const RESERVED_AGENT_NAMES = getReservedAgentNames();
 
-/**
- * Resolve the author name for a new WS connection.
- * Rules:
- * - If no ?name= param, use 'user'
- * - Strip the name (preserve original case for display)
- * - If it collides with a reserved agent name (case-insensitive), reject (return null)
- * - Max 32 chars, alphanumeric + dash + underscore
- */
 const NAME_RE = /^[a-zA-Z0-9_-]{1,32}$/;
 
+/**
+ * Resolve the display name for a new WebSocket connection.
+ *
+ * Rules applied in order:
+ * - If no ?name= param or blank, defaults to 'user'.
+ * - Name is trimmed (original case preserved for display).
+ * - If the name collides with a reserved agent name (case-insensitive), returns null.
+ * - Max 32 chars, alphanumeric + dash + underscore only.
+ *
+ * @param rawName - The ?name= query parameter value, may be undefined.
+ * @returns The resolved display name, or null if the name is invalid or reserved.
+ */
 export function resolveConnectionName(rawName: string | undefined): string | null {
   if (!rawName || rawName.trim() === '') return 'user';
   const name = rawName.trim();
@@ -108,5 +142,8 @@ export function resolveConnectionName(rawName: string | undefined): string | nul
   return name;
 }
 
-// connId is stored in the module-level wsConnIds map, not in ws.data
+/**
+ * Shape of the data object attached to each Elysia WebSocket connection.
+ * connId is stored separately in the module-level wsConnIds map, not here.
+ */
 export type WsData = { params: { roomId: string }; query: { name?: string; token?: string } };

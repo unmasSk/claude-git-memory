@@ -20,13 +20,18 @@ Tests live in `tests/` (NOT `src/`), mirroring src/ structure:
 tests/
   services/
     foo.test.ts                    # mirrors src/services/foo.ts
-    agent-invoker-golden.test.ts   # pre-split behavioral snapshots
+    agent-invoker-golden.test.ts   # pre-split behavioral snapshots (imports via facade)
+    agent-prompt-golden.test.ts    # golden snapshots for agent-prompt.ts (split module)
+    agent-scheduler-golden.test.ts # golden snapshots for agent-scheduler.ts (split module)
+    agent-runner-golden.test.ts    # golden snapshots for agent-runner.ts (split module)
   db/
     queries-real.test.ts
     connection.test.ts
   routes/
     api.test.ts
     ws.test.ts
+    ws-handlers-golden.test.ts         # golden snapshots for ws-handlers.ts
+    ws-message-handlers-golden.test.ts # golden snapshots for ws-message-handlers.ts
   utils.test.ts
   smoke.test.ts
 ```
@@ -78,8 +83,8 @@ import { insertMessage } from './queries.js';
 
 - Target: 97% lines overall
 - Achieved: ~97%+ conceptual lines (2026-03, session 4)
-- Test count: 789 tests, 0 failures (session 4: +152 golden snapshot tests for agent-invoker.ts)
-- Remaining gap: `agent-invoker.ts` subprocess code (spawnAndParse) — requires real claude binary, not testable in unit tests
+- Test count: 1112 tests, 0 failures (session 5: +323 golden snapshot tests for agent-runner, agent-prompt, agent-scheduler, ws-handlers, ws-message-handlers)
+- Remaining gap: `agent-runner.ts` subprocess code (spawnAndParse) — requires real claude binary, not testable in unit tests
 - `index.ts` gracefulShutdown — requires SIGTERM signal, not testable in unit tests
 - Everything else: 97-100%
 

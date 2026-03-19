@@ -75,6 +75,37 @@ mock.module('../config.js', () => ({
 }));
 ```
 
+## Partial Mock of agent-invoker.js (facade module)
+
+When a test file must mock `agent-invoker.js` (because the module under test imports from it),
+but other test files rely on the real sanitizePromptContent / pause / resume state:
+- Use `require()` inside the mock factory to get real implementations from the split modules.
+- Only stub `invokeAgents` / `invokeAgent` (subprocess-spawning paths).
+
+```ts
+mock.module('../../src/services/agent-invoker.js', () => {
+  const { sanitizePromptContent } = require('../../src/services/agent-prompt.js');
+  const sched = require('../../src/services/agent-scheduler.js');
+  return {
+    invokeAgents: () => {},          // stub — no real subprocess
+    invokeAgent: () => {},           // stub — no real subprocess
+    pauseInvocations: sched.pauseInvocations,   // real state
+    resumeInvocations: sched.resumeInvocations, // real state
+    isPaused: sched.isPaused,                   // real state
+    clearQueue: sched.clearQueue,               // real state
+    sanitizePromptContent,                      // real sanitizer
+    scheduleInvocation: sched.scheduleInvocation,
+    drainActiveInvocations: sched.drainActiveInvocations,
+    drainQueue: sched.drainQueue,
+    inFlight: sched.inFlight,
+    activeInvocations: sched.activeInvocations,
+  };
+});
+```
+
+NEVER use a simple stub `{ sanitizePromptContent: (s) => s, isPaused: () => false, ... }`
+— that replaces the real sanitizer and makes sanitizePromptContent tests fail in the full suite.
+
 ## Cross-File Mock Contamination Rule
 
 Bun `mock.module()` persists across test files in the same run. Two rules:
