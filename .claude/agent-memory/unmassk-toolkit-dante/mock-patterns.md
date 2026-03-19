@@ -144,6 +144,17 @@ readFileSync(p: string, enc?: string): string | Buffer {
 },
 ```
 
+## Fake-Agent Pattern for Fire-and-Forget Tests
+
+When testing `invokeAgents` / `invokeAgent` public API shape, use a name that does NOT
+exist in any real agent registry (e.g. `'golden-nonexistent-agent'`). This causes
+`doInvoke` to exit immediately via the "Unknown agent" guard without spawning a real
+`claude` subprocess. Using a real agent name (like `'bilbo'`) triggers a real subprocess
+and can cause `drainActiveInvocations` tests to time out (5s Bun default).
+
+Downstream tests that call `drainActiveInvocations` after invokeAgents: add a
+`await tick(80)` before drain to flush any async cleanup from fake-agent early exits.
+
 ## Cross-File DB Contamination — historyLimit pattern
 
 Tests that insert rows into `_invokerDb` and assert their presence via `buildPrompt` FAIL in the full test suite run because Bun's `mock.module()` persists: another file's `mock.module('../db/connection.js')` overwrites the closure, so `getDb()` returns a different (empty) DB. Safe workaround: assert only structural envelope (markers, trigger content) — never row content — from tests that don't control the DB mock lifecycle end-to-end.

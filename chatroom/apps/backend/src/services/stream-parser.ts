@@ -1,6 +1,4 @@
 /**
- * stream-parser.ts
- *
  * Parses NDJSON lines from `claude -p --output-format stream-json --verbose`.
  *
  * The --verbose stream is noisy: it contains `progress`, `hook_started`,
@@ -16,11 +14,13 @@
 // Output types
 // ---------------------------------------------------------------------------
 
+/** An assistant text content block extracted from an `assistant` stream event */
 export interface TextEvent {
   type: 'text';
   text: string;
 }
 
+/** A tool call block extracted from an `assistant` stream event */
 export interface ToolUseEvent {
   type: 'tool_use';
   name: string;
@@ -32,6 +32,7 @@ interface PermissionDenial {
   input?: unknown;
 }
 
+/** The final result event emitted when the claude subprocess completes */
 export interface ResultEvent {
   type: 'result';
   result: string;
@@ -91,14 +92,12 @@ interface ResultEventRaw {
 /**
  * Parse a single NDJSON line from the claude stream-json output.
  *
- * Returns one of:
- *   - TextEvent    — assistant text content
- *   - ToolUseEvent — a tool call block extracted from an assistant event
- *   - ResultEvent  — the final result event
- *   - null         — unknown/noise event (progress, hook_started, etc.) — discard silently
+ * Returns an array because one `assistant` line may contain multiple
+ * content blocks (e.g. mixed text + tool_use). Returns an empty array for
+ * noise events (progress, hook_started, etc.) — callers should discard them.
  *
- * A single line may produce multiple tool_use events (one per content block).
- * To keep the return type simple this function returns StreamEvent[] not StreamEvent|null.
+ * @param line - A single raw NDJSON line from the subprocess stdout
+ * @returns Zero or more parsed stream events
  */
 export function parseStreamLine(line: string): StreamEvent[] {
   const trimmed = line.trim();
@@ -155,7 +154,11 @@ function parseAssistantEvent(event: AssistantEvent): StreamEvent[] {
 
 /**
  * Infer context window size from model name when the CLI reports 0.
+ *
  * Keys in modelUsage are the full model IDs (e.g., "claude-sonnet-4-6").
+ *
+ * @param modelUsage - modelUsage map from the raw result event
+ * @returns Inferred context window token count, or 0 if unknown
  */
 function inferContextWindow(modelUsage: Record<string, { contextWindow?: number }> | undefined): number {
   if (!modelUsage) return 0;

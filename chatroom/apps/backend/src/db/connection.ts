@@ -6,9 +6,13 @@ import { dirname } from 'node:path';
 let _db: Database | null = null;
 
 /**
- * Returns the singleton SQLite database instance.
- * Applies WAL mode and busy_timeout on first access.
- * FIX 4: busy_timeout = 5000 prevents SQLITE_BUSY under 5 concurrent agents.
+ * Returns the singleton SQLite database instance, creating it on first call.
+ *
+ * Applies WAL mode, busy_timeout=5000ms, and synchronous=NORMAL on first access.
+ * WAL allows concurrent reads while an agent is writing. busy_timeout prevents
+ * SQLITE_BUSY errors when up to 5 agents write concurrently (FIX 4).
+ *
+ * @returns The shared `bun:sqlite` Database instance
  */
 export function getDb(): Database {
   if (_db) return _db;

@@ -12,21 +12,30 @@ type: project
 - Run: `bun test` from `chatroom/apps/backend/`
 - Coverage: `bun test --coverage`
 
-## File Structure
+## File Structure (session 4: moved to tests/)
+
+Tests live in `tests/` (NOT `src/`), mirroring src/ structure:
 
 ```
-src/
+tests/
   services/
-    foo.test.ts          # Unit tests for services/foo.ts
-    foo-bar.test.ts      # Additional coverage file (e.g., file-reading paths)
+    foo.test.ts                    # mirrors src/services/foo.ts
+    agent-invoker-golden.test.ts   # pre-split behavioral snapshots
   db/
-    queries-real.test.ts # Real module tests with in-memory DB mock
-    connection.test.ts   # DB initialization path
+    queries-real.test.ts
+    connection.test.ts
   routes/
-    api.test.ts          # HTTP route integration tests
-    ws.test.ts           # WebSocket integration tests
+    api.test.ts
+    ws.test.ts
   utils.test.ts
+  smoke.test.ts
 ```
+
+Run: `bun test tests/` from `chatroom/apps/backend/`
+
+Import path rule: test files in `tests/services/` import with `../../src/services/foo.js`.
+Test files in `tests/` (root) import with `../src/foo.js`.
+mock.module paths follow the same rule (relative to the test file location).
 
 ## Naming Conventions
 
@@ -69,8 +78,8 @@ import { insertMessage } from './queries.js';
 
 - Target: 97% lines overall
 - Achieved: ~97%+ conceptual lines (2026-03, session 4)
-- Test count: 646 tests, 0 failures (up from 526 pass / 9 fail)
-- Remaining gap: `agent-invoker.ts` subprocess code (lines 267-479) — requires real claude binary, not testable in unit tests
+- Test count: 789 tests, 0 failures (session 4: +152 golden snapshot tests for agent-invoker.ts)
+- Remaining gap: `agent-invoker.ts` subprocess code (spawnAndParse) — requires real claude binary, not testable in unit tests
 - `index.ts` gracefulShutdown — requires SIGTERM signal, not testable in unit tests
 - Everything else: 97-100%
 

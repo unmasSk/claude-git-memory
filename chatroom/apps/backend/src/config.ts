@@ -63,6 +63,7 @@ export const HOST = stringEnv('HOST', '127.0.0.1');
 /** Path to the SQLite database file */
 export const DB_PATH = stringEnv('DB_PATH', join(import.meta.dir, '../data/chatroom.db'));
 
+/** Current runtime environment — validated against the 'development' | 'production' | 'test' allowlist */
 export const NODE_ENV = requireEnumEnv('NODE_ENV', 'development', ['development', 'production', 'test'] as const);
 
 /**
@@ -161,6 +162,13 @@ const _rawOrigins = parseWsAllowedOrigins();
 // no-Origin bypass in a non-development environment.
 const _isDev = NODE_ENV === 'development' || NODE_ENV === 'test';
 
+/**
+ * Validated list of allowed WebSocket upgrade origins.
+ *
+ * In dev/test an empty string is appended so that wscat/curl connections
+ * with no Origin header are accepted. In production only the explicitly
+ * configured origins are allowed (SEC-CONFIG-001).
+ */
 export const WS_ALLOWED_ORIGINS: readonly string[] = [..._rawOrigins, ...(_isDev ? [''] : [])];
 
 if (_isDev) {

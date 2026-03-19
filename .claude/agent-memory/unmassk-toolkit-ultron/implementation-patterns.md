@@ -211,6 +211,30 @@ Implemented as a `createTokenBucket(50, 1_000)` IIFE-wrapped function. Called `c
 
 ---
 
+## Session 9 Prettier + tsc setup — 2026-03-19
+
+### Prettier setup
+- Install at workspace root: `cd chatroom && bun add -d prettier`
+- `.prettierrc` in `apps/backend/`: `{ "singleQuote": true, "trailingComma": "all", "printWidth": 120, "semi": true }`
+- `.prettierignore`: `node_modules`, `dist`, `data`, `*.db`
+- Scripts in `package.json`: `"format": "prettier --write src/"`, `"format:check": "prettier --check src/"`
+- Run format first, then fix tsc, then rerun format:check to verify clean
+
+### tsc error categories in this codebase (noUncheckedIndexedAccess + strict)
+1. **Array index access `arr[n]`** → `arr[n]!` in test files (all access after `.length` guard)
+2. **RegExpMatchArray capture groups** → `match[1]!` after `if (!match) return` guard
+3. **Map spread from destructuring** → `const [first] = arr.splice(idx, 1); if (!first) return;`
+4. **`AgentState` enum** — all status comparisons and assignments must use `AgentState.Thinking` etc., not string literals. Tests that use `toBe('thinking')` must use `AgentState.Thinking`
+5. **`MessageMetadata` extension** — add new fields to shared protocol.ts when agent-invoker adds metrics
+6. **Bun.spawn stderr** — type is `undefined` at compile time when spawn options have conditional spread; cast via `proc.stderr as unknown as ReadableStream<Uint8Array>`
+7. **Map key type** — `ws.id` in Elysia ws handlers is `string`, not `number` — Map type must match
+
+### AgentState enum usage
+`AgentState` is exported from `@agent-chatroom/shared`. Import as: `import { AgentState } from '@agent-chatroom/shared'`
+Values: `.Idle`, `.Thinking`, `.ToolUse`, `.Done`, `.Out`, `.Error`
+
+---
+
 ## Session 8 agent-invoker.ts targeted fixes — 2026-03-19
 
 ### FIX 1: sanitizePromptContent — NFKC + zero-width strip
@@ -250,3 +274,50 @@ if (responseByteLength > MAX_AGENT_RESPONSE_BYTES) {
 }
 ```
 Applied AFTER the SKIP check, BEFORE `insertMessage`. Truncation logged as warn.
+
+---
+
+## Session 10: ws.ts split into 4 modules — 2026-03-19
+
+Original `ws.ts` (628 LOC) split into 4 files, each under 300 LOC:
+
+| File | LOC | Responsibility |
+|---|---|---|
+| `ws-state.ts` | 112 | ALLOWED_ORIGINS, rate-limiter instances, connection Maps, helpers (getConnectedUsers, resolveConnectionName, nextConnId), WsData type |
+| `ws-message-handlers.ts` | 227 | handleSendMessage, handleInvokeAgent, handleLoadHistory + private handleEveryoneDirective + sendError helper |
+| `ws-handlers.ts` | 246 | open(), message() dispatcher, close() — imports state + message handlers |
+| `ws.ts` | 26 | Elysia route definition only; re-exports EVERYONE_PATTERN and MAX_CONNECTIONS_PER_ROOM for consumers |
+
+### Key decisions
+- `logger` exported from `ws-state.ts` (not `createLogger` re-called per module) — shared structured logger instance
+- Handler functions use flat positional args (not object bags) to keep call sites compact
+- `sendError(ws, message, code)` private helper in ws-message-handlers.ts reduces repetitive `JSON.stringify` boilerplate
+- Test that reads ws.ts source and checks for `ALLOWED_ORIGINS.has(origin)` updated to read `ws-handlers.ts` instead
+
+### Test update needed when splitting WS route
+Any test that reads the source file path `../../src/routes/ws.ts` to verify logic strings must be updated to the module where that logic now lives.
+
+---
+
+## Session 11: agent-invoker.ts split into 4 modules — 2026-03-19
+
+Original `agent-invoker.ts` (1181 LOC) split into 4 files:
+
+| File | LOC | Responsibility |
+|---|---|---|
+| `agent-prompt.ts` | 333 | validateSessionId, sanitizePromptContent, buildPrompt, buildSystemPrompt, formatToolDescription, getGitDiffStat, RESPAWN constants, CONTEXT_OVERFLOW_SIGNAL |
+| `agent-runner.ts` | 596 | doInvoke, spawnAndParse, postSystemMessage, updateStatusAndBroadcast |
+| `agent-scheduler.ts` | 327 | InvocationContext type, invokeAgents, invokeAgent, scheduleInvocation, runInvocation, drainQueue, drainActiveInvocations, pauseInvocations, resumeInvocations, isPaused, clearQueue, inFlight, activeInvocations |
+| `agent-invoker.ts` | 56 | Thin facade — re-exports everything for backward compat |
+
+### Circular import resolution — dynamic imports
+scheduler ← runner is the problematic direction (scheduler calls runner for doInvoke and postSystemMessage; runner calls scheduler for scheduleInvocation, invokeAgents, inFlight, activeInvocations, drainQueue).
+
+Solution:
+- Static import direction: runner → prompt only (clean)
+- scheduler uses `import('./agent-runner.js')` dynamic inside `runInvocation` and `postSystemMessageAsync`
+- runner uses `import('./agent-scheduler.js')` dynamic for stale-session retry, rate-limit path, and agent chaining
+- `import type { InvocationContext }` in runner is type-only — erased at runtime, safe to keep static
+
+### Test update pattern (same as ws.ts split)
+Tests that read source file path `../../src/services/agent-invoker.ts` to verify literal strings (e.g., `[PRIOR AGENT OUTPUT]`) must be updated to read `../../src/services/agent-prompt.ts` — that is where the prompt builder strings now live.

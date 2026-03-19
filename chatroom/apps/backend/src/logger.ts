@@ -59,10 +59,16 @@ const rootLogger = pino(
 
 /**
  * Create a child logger scoped to a module.
- * The `module` binding appears in every log line.
+ *
+ * The `module` binding appears in every log line, making it easy to filter
+ * logs by component in production aggregators.
+ *
+ * @param module - Short module name (e.g. `'agent-invoker'`, `'api'`)
+ * @returns A pino child logger with the `module` binding pre-set
  */
 export function createLogger(module: string): pino.Logger {
   return rootLogger.child({ module });
 }
 
+/** Root pino logger — use `createLogger` for module-scoped instances */
 export { rootLogger };

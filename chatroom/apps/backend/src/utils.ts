@@ -7,9 +7,12 @@ import type { Message, AgentStatus, Room } from '@agent-chatroom/shared';
 // ---------------------------------------------------------------------------
 
 /**
- * Generates a URL-safe random ID.
- * Uses 12 bytes (96 bits) — collision-safe for millions of messages.
- * Format: base62 string, ~16 chars.
+ * Generates a URL-safe random ID using 12 bytes (96 bits) of entropy.
+ *
+ * 96 bits is collision-safe for millions of messages. Output is a base62-like
+ * string (~16 chars) using `-` and `_` instead of `+` and `/`.
+ *
+ * @returns A URL-safe random string
  */
 export function generateId(): string {
   const bytes = randomBytes(12);
@@ -29,6 +32,12 @@ export function nowIso(): string {
 // DB row → protocol type mappers
 // ---------------------------------------------------------------------------
 
+/**
+ * Map a raw `messages` DB row to the shared `Message` protocol type.
+ *
+ * @param row - Raw snake_case row from bun:sqlite
+ * @returns Camel-case Message with parsed metadata
+ */
 export function mapMessageRow(row: MessageRow): Message {
   return {
     id: row.id,
@@ -43,6 +52,12 @@ export function mapMessageRow(row: MessageRow): Message {
   };
 }
 
+/**
+ * Map a raw `agent_sessions` DB row to the shared `AgentStatus` protocol type.
+ *
+ * @param row - Raw snake_case row from bun:sqlite
+ * @returns Camel-case AgentStatus
+ */
 export function mapAgentSessionRow(row: AgentSessionRow): AgentStatus {
   return {
     agentName: row.agent_name,
@@ -56,6 +71,12 @@ export function mapAgentSessionRow(row: AgentSessionRow): AgentStatus {
   };
 }
 
+/**
+ * Map a raw `rooms` DB row to the shared `Room` protocol type.
+ *
+ * @param row - Raw snake_case row from bun:sqlite
+ * @returns Camel-case Room
+ */
 export function mapRoomRow(row: RoomRow): Room {
   return {
     id: row.id,
@@ -65,7 +86,16 @@ export function mapRoomRow(row: RoomRow): Room {
   };
 }
 
-/** SEC-FIX 5: Strip sessionId from message metadata before sending to clients. */
+/**
+ * Strip sessionId from message metadata before sending to clients.
+ *
+ * SEC-FIX 5: session IDs are server-internal identifiers used for `--resume`.
+ * Leaking them to the frontend would allow clients to reconstruct agent session
+ * history or attempt to hijack a session by presenting the ID on a future call.
+ *
+ * @param msg - Full Message including internal metadata
+ * @returns Message with sessionId omitted from metadata
+ */
 export function safeMessage(msg: Message): Message {
   const { sessionId: _omit, ...safeMetadata } = msg.metadata;
   return { ...msg, metadata: safeMetadata };

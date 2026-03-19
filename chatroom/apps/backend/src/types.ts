@@ -3,6 +3,7 @@
  * These use snake_case to match column names; services map to camelCase protocol types.
  */
 
+/** Raw row from the `rooms` table */
 export interface RoomRow {
   id: string;
   name: string;
@@ -10,6 +11,7 @@ export interface RoomRow {
   created_at: string;
 }
 
+/** Raw row from the `messages` table. `metadata` is a JSON string — parse before use. */
 export interface MessageRow {
   id: string;
   room_id: string;
@@ -22,6 +24,7 @@ export interface MessageRow {
   created_at: string;
 }
 
+/** Raw row from the `agent_sessions` table */
 export interface AgentSessionRow {
   agent_name: string;
   room_id: string;

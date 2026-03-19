@@ -4,9 +4,12 @@ import { createLogger } from '../logger.js';
 const logger = createLogger('schema');
 
 /**
- * Creates all tables and indexes if they don't exist.
- * Seeds the default room.
- * Run this at startup before any queries.
+ * Creates all tables and indexes if they do not exist, then seeds the default room.
+ *
+ * Idempotent — safe to call on every startup. Must run before any query
+ * touches `rooms`, `messages`, or `agent_sessions`.
+ *
+ * @throws If the SQLite exec fails (e.g. corrupt DB, permission error)
  */
 export function initializeSchema(): void {
   const db = getDb();
