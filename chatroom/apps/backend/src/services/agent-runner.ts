@@ -17,7 +17,7 @@
 import { createLogger } from '../logger.js';
 import { getAgentConfig, BANNED_TOOLS } from './agent-registry.js';
 import { broadcast } from './message-bus.js';
-import { updateAgentStatus, getAgentSession } from '../db/queries.js';
+import { updateAgentStatus, getAgentSession, insertMessage } from '../db/queries.js';
 import { generateId, nowIso } from '../utils.js';
 import { AGENT_TIMEOUT_MS } from '../config.js';
 import { AgentState } from '@agent-chatroom/shared';
@@ -26,12 +26,28 @@ import {
   buildPrompt,
   buildSystemPrompt,
   validateSessionId,
+  sanitizePromptContent,
 } from './agent-prompt.js';
-import { insertMessage } from '../db/queries.js';
 import type { InvocationContext } from './agent-scheduler.js';
 import { readAgentStream, handleAgentResult } from './agent-stream.js';
 
 const logger = createLogger('agent-runner');
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** Options bag for spawnAndParse — replaces the 8-argument positional signature. */
+export interface SpawnAndParseOptions {
+  roomId: string;
+  agentName: string;
+  model: string;
+  allowedTools: string[];
+  prompt: string;
+  systemPrompt: string;
+  sessionId: string | null;
+  context: InvocationContext;
+}
 
 // ---------------------------------------------------------------------------
 // Core invocation
@@ -84,11 +100,11 @@ export async function doInvoke(
     // For respawned instances (context overflow), pass a high history limit.
     const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
     const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn);
-    retryScheduled = await spawnAndParse(
-      roomId, agentName, agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context,
-    );
+    retryScheduled = await spawnAndParse({
+      roomId, agentName, model: agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context,
+    });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message = sanitizePromptContent(err instanceof Error ? err.message : String(err));
     logger.error({ agentName, roomId, err: message }, 'error in doInvoke');
     await updateStatusAndBroadcast(agentName, roomId, AgentState.Error, message);
     await postSystemMessage(roomId, `Agent ${agentName} error: ${message}`);
@@ -116,16 +132,8 @@ export async function doInvoke(
  * @param context - Invocation context (used for retry flags and chained mention turn counts).
  * @returns true when a retry was scheduled internally (RACE-002 signal).
  */
-export async function spawnAndParse(
-  roomId: string,
-  agentName: string,
-  model: string,
-  allowedTools: string[],
-  prompt: string,
-  systemPrompt: string,
-  sessionId: string | null,
-  context: InvocationContext,
-): Promise<boolean> {
+export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean> {
+  const { roomId, agentName, model, allowedTools, prompt, systemPrompt, sessionId, context } = opts;
   const args = buildSpawnArgs(model, allowedTools, prompt, systemPrompt, sessionId);
 
   logger.debug({ agentName, roomId, model, sessionId: sessionId ?? 'new' }, 'spawnAndParse');

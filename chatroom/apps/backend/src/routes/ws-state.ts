@@ -120,29 +120,6 @@ export function getConnectedUsers(roomId: string): ConnectedUser[] {
  */
 export const RESERVED_AGENT_NAMES = getReservedAgentNames();
 
-const NAME_RE = /^[a-zA-Z0-9_-]{1,32}$/;
-
-/**
- * Resolve the display name for a new WebSocket connection.
- *
- * Rules applied in order:
- * - If no ?name= param or blank, defaults to 'user'.
- * - Name is trimmed (original case preserved for display).
- * - If the name collides with a reserved agent name (case-insensitive), returns null.
- * - Max 32 chars, alphanumeric + dash + underscore only.
- *
- * @param rawName - The ?name= query parameter value, may be undefined.
- * @returns The resolved display name, or null if the name is invalid or reserved.
- */
-export function resolveConnectionName(rawName: string | undefined): string | null {
-  if (!rawName || rawName.trim() === '') return 'user';
-  const name = rawName.trim();
-  if (!NAME_RE.test(name)) return null; // invalid chars or length
-  // Block specialized agent names to prevent impersonation
-  if (RESERVED_AGENT_NAMES.has(name.toLowerCase())) return null;
-  return name;
-}
-
 /**
  * Shape of the data object attached to each Elysia WebSocket connection.
  * connId is stored separately in the module-level wsConnIds map, not here.

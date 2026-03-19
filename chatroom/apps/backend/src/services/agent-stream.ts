@@ -39,6 +39,21 @@ const logger = createLogger('agent-stream');
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Shaped data collected from a single claude subprocess run.
+ *
+ * @property resultText         - The agent's final response text (empty when no result event arrived).
+ * @property resultSessionId    - Validated UUID from the result event, or null if absent/invalid.
+ * @property resultCostUsd      - Reported cost in USD from the result event.
+ * @property resultSuccess      - True when the result event carried `success: true`.
+ * @property resultDurationMs   - Wall-clock duration reported by claude, in milliseconds.
+ * @property resultNumTurns     - Number of agentic turns reported by claude.
+ * @property resultInputTokens  - Input token count from the result event.
+ * @property resultOutputTokens - Output token count from the result event.
+ * @property resultContextWindow - Context window size in tokens reported by claude.
+ * @property hasResult          - True when at least one result event was parsed from stdout.
+ * @property stderrOutput       - Raw concatenated stderr output from the subprocess.
+ */
 export interface AgentStreamResult {
   resultText: string;
   resultSessionId: string | null;
@@ -61,6 +76,12 @@ export interface AgentStreamResult {
  * Reads the subprocess stdout and stderr concurrently, parses stream-json
  * events line by line, and broadcasts tool_use events (throttled to 500 ms).
  * Returns an AgentStreamResult with all collected data.
+ *
+ * @param proc          - The spawned Bun subprocess with piped stdout/stderr.
+ * @param agentName     - The agent being run (used in log and broadcast events).
+ * @param roomId        - The room the agent is responding in (used in broadcast events).
+ * @param timeoutHandle - The setTimeout handle from makeTimeoutHandle; cleared on stream end.
+ * @returns A populated AgentStreamResult containing all parsed fields and raw stderr.
  */
 export async function readAgentStream(
   proc: { stdout: ReadableStream<Uint8Array>; stderr: unknown; exited: Promise<number>; pid: number | undefined },
@@ -196,6 +217,14 @@ function applyResultEvent(event: ResultEvent, agentName: string, result: AgentSt
  *   - empty result → posts system message, returns false
  *   - SKIP suppression → returns false
  *   - happy path: truncate, persist, broadcast, chain mentions, update session/cost
+ *
+ * @param sr        - The AgentStreamResult returned by readAgentStream.
+ * @param roomId    - The room the agent ran in.
+ * @param agentName - The agent that was run.
+ * @param model     - The model identifier used for this invocation (persisted with the message).
+ * @param context   - Invocation context carrying trigger content, turn counts, and retry flags.
+ * @returns true when a retry was scheduled internally (RACE-002 signal, caller must skip cleanup);
+ *          false in all other cases (success, error, empty, SKIP, rate-limit).
  */
 export async function handleAgentResult(
   sr: AgentStreamResult,
@@ -252,7 +281,7 @@ async function handleFailedResult(
     return true;
   }
 
-  const errorMsg = sr.resultText || 'Agent returned an error result';
+  const errorMsg = sanitizePromptContent(sr.resultText || 'Agent returned an error result');
   await updateStatusAndBroadcast(agentName, roomId, AgentState.Error, errorMsg);
   await postSystemMessage(roomId, `Agent ${agentName} failed: ${errorMsg}`);
   return false;

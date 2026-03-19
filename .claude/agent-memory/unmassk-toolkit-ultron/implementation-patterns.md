@@ -427,3 +427,34 @@ When a function has 3+ guard clauses that all: (1) log warn, (2) optionally send
 - The `AgentStreamResult` interface carries all stdout parsed data; stderr piped into it via `readStderr` helper
 - `lastToolBroadcastTime` state captured via closure setter `setTime` to avoid mutation across function call boundary
 - awk LOC counts include function signature lines — "≤50 exported / ≤30 helper" measured from `function` keyword line through closing `}`
+
+---
+
+## Session 15: agent-runner/scheduler/stream cleanup — 2026-03-19
+
+### Change 1: Merge duplicate db/queries.js imports in agent-runner.ts
+`updateAgentStatus, getAgentSession` and `insertMessage` were two separate import lines from the same path. Merged into one: `import { updateAgentStatus, getAgentSession, insertMessage } from '../db/queries.js'`.
+
+### Change 2: SpawnAndParseOptions interface (8-param to options object)
+`spawnAndParse` replaced positional 8-arg signature with `opts: SpawnAndParseOptions`. Interface exported from agent-runner.ts. Call site in `doInvoke` uses object literal `{ roomId, agentName, model: agentConfig.model, ... }`. Destructure at top of function body.
+
+### Change 3: agent-queue.ts extraction (scheduler LOC: 349 to 294)
+Extracted `InvocationContext`, `QueueEntry`, `activeInvocations`, `inFlight`, `pendingQueue`, `MAX_QUEUE_SIZE`, `MAX_TRIGGER_CONTENT_BYTES`, `enqueue` into `agent-queue.ts`. Also imports and re-exports `MAX_CONCURRENT_AGENTS` from config. agent-scheduler.ts imports from agent-queue.ts and re-exports `activeInvocations`, `inFlight`, `InvocationContext` for backward compat.
+
+### Change 4: sanitizePromptContent before insertMessage in handleInvokeAgent
+`const safePrompt = sanitizePromptContent(prompt)` computed BEFORE `insertMessage` call. Both `insertMessage` content and `invokeAgent` call use `safePrompt`. Prevents injection from reaching DB.
+
+### Change 5: sanitize error text before postSystemMessage
+In `doInvoke` catch block: `sanitizePromptContent(err.message)` applied before posting. In `handleFailedResult`: `sanitizePromptContent(sr.resultText || ...)` applied to errorMsg.
+
+### Change 6: resolveConnectionName removed from ws-state.ts (dead code)
+Function was defined but never imported from production code. Tests had their own inline copy. NAME_RE constant (only used by the dead function) also removed. RESERVED_AGENT_NAMES export kept.
+
+### Change 7: agent-registry.ts line 63 intentional non-use comment
+Added `// NOTE: frontmatter 'model' is parsed but intentionally NOT used...` before the `if (key === 'model')` line. Edit tool failed to match; used Python string replace as workaround (Windows path issue with /c/Users/ vs C:/Users/).
+
+### Change 8: JSDoc on AgentStreamResult, readAgentStream, handleAgentResult
+Added property-level `@property` JSDoc on `AgentStreamResult` interface. Added `@param`/`@returns` to `readAgentStream` and `handleAgentResult`.
+
+### Lesson: Edit tool path format on Windows
+Edit tool requires Windows-style absolute paths (`C:\Users\...`). The `/c/Users/...` bash form causes "string not found" failures. If Edit fails with no error but string is visually correct, switch to the Windows path form.

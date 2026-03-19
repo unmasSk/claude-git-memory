@@ -60,6 +60,7 @@ function parseFrontmatter(content: string): ParsedFrontmatter {
     const key = line.slice(0, colon).trim();
     const value = line.slice(colon + 1).trim();
 
+    // NOTE: frontmatter 'model' is parsed but intentionally NOT used. Model comes from the static AgentDefinition. Do NOT add fm.model override without ModelType allowlist validation.
     if (key === 'model') result.model = value;
     else if (key === 'color') result.color = value;
     else if (key === 'tools') result.tools = value;

@@ -188,10 +188,11 @@ export function handleInvokeAgent(ws: any, roomId: string, connId: string, agent
   }
   const invokeAuthorName = invokeConnState.name;
 
+  const safePrompt = sanitizePromptContent(prompt);
   const invokeMsgId = generateId();
   const invokeCreatedAt = nowIso();
   try {
-    insertMessage({ id: invokeMsgId, roomId, author: invokeAuthorName, authorType: 'human', content: prompt, msgType: 'message', parentId: null, metadata: '{}' });
+    insertMessage({ id: invokeMsgId, roomId, author: invokeAuthorName, authorType: 'human', content: safePrompt, msgType: 'message', parentId: null, metadata: '{}' });
   } catch (err) {
     logger.error({ err, roomId, agent }, 'WS invoke_agent: insertMessage failed');
     sendError(ws, 'Failed to save message. Please try again.', 'DB_ERROR');
@@ -199,12 +200,12 @@ export function handleInvokeAgent(ws: any, roomId: string, connId: string, agent
   }
 
   // T1-03 fix: broadcast the trigger message to all clients
-  const invokeUserMsg: Message = { id: invokeMsgId, roomId, author: invokeAuthorName, authorType: 'human', content: prompt, msgType: 'message', parentId: null, metadata: {}, createdAt: invokeCreatedAt };
+  const invokeUserMsg: Message = { id: invokeMsgId, roomId, author: invokeAuthorName, authorType: 'human', content: safePrompt, msgType: 'message', parentId: null, metadata: {}, createdAt: invokeCreatedAt };
   broadcastSync(roomId, { type: 'new_message', message: invokeUserMsg }, ws);
   ws.send(JSON.stringify({ type: 'new_message', message: safeMessage(invokeUserMsg) }));
 
   logger.info({ agent, roomId }, 'WS invoke_agent');
-  invokeAgent(roomId, agent, sanitizePromptContent(prompt));
+  invokeAgent(roomId, agent, safePrompt);
 }
 
 // ---------------------------------------------------------------------------
