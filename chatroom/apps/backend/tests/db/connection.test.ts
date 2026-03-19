@@ -40,28 +40,28 @@ afterAll(() => {
 
 describe('connection.ts — getDb() initialization', () => {
   it('getDb() returns an object with exec and query methods (Database interface)', async () => {
-    const { getDb } = await import('./connection.js');
+    const { getDb } = await import('../../src/db/connection.js');
     const db = getDb();
     expect(typeof db.exec).toBe('function');
     expect(typeof db.query).toBe('function');
   });
 
   it('getDb() returns the same singleton on repeated calls', async () => {
-    const { getDb } = await import('./connection.js');
+    const { getDb } = await import('../../src/db/connection.js');
     const db1 = getDb();
     const db2 = getDb();
     expect(db1).toBe(db2);
   });
 
   it('getDb() returns a working DB that can execute SQL queries', async () => {
-    const { getDb } = await import('./connection.js');
+    const { getDb } = await import('../../src/db/connection.js');
     const db = getDb();
     const result = db.query('SELECT 1 as val').get() as { val: number };
     expect(result.val).toBe(1);
   });
 
   it('getDb() initializes DB with WAL journal mode', async () => {
-    const { getDb } = await import('./connection.js');
+    const { getDb } = await import('../../src/db/connection.js');
     const db = getDb();
     const row = db.query('PRAGMA journal_mode').get() as { journal_mode: string };
     expect(row.journal_mode).toBe('wal');

@@ -119,7 +119,7 @@ describe('agent-registry frontmatter parsing', () => {
     // The cleanest approach: use dynamic import to get a fresh module
     // (Bun caches modules, so we use loadAgentRegistry's rebuild path)
 
-    const { loadAgentRegistry } = await import('./agent-registry.js');
+    const { loadAgentRegistry } = await import('../../src/services/agent-registry.js');
 
     // We need to use a fresh build with the new AGENT_DIR.
     // loadAgentRegistry() calls buildRegistry() which reads AGENT_DIR from config.ts.
@@ -153,7 +153,7 @@ describe('agent-registry frontmatter parsing', () => {
     // the agent should have allowedTools = ['Read', 'Grep', 'Glob']
     // (minus banned tools). Since we can't control AGENT_DIR here,
     // we verify the output shape matches expectations.
-    const { loadAgentRegistry } = require('./agent-registry.js');
+    const { loadAgentRegistry } = require('../../src/services/agent-registry.js');
     const registry = loadAgentRegistry();
 
     // All agents should have allowedTools as an array
@@ -163,7 +163,7 @@ describe('agent-registry frontmatter parsing', () => {
   });
 
   it('BANNED_TOOLS are never present in any agent allowedTools', () => {
-    const { loadAgentRegistry } = require('./agent-registry.js');
+    const { loadAgentRegistry } = require('../../src/services/agent-registry.js');
     const registry = loadAgentRegistry();
 
     for (const [, config] of registry) {
@@ -173,7 +173,7 @@ describe('agent-registry frontmatter parsing', () => {
   });
 
   it('agents without tools have invokable=false', () => {
-    const { loadAgentRegistry } = require('./agent-registry.js');
+    const { loadAgentRegistry } = require('../../src/services/agent-registry.js');
     const registry = loadAgentRegistry();
 
     for (const [, config] of registry) {
@@ -184,7 +184,7 @@ describe('agent-registry frontmatter parsing', () => {
   });
 
   it('loadAgentRegistry always returns a Map (even if AGENT_DIR missing)', () => {
-    const { loadAgentRegistry } = require('./agent-registry.js');
+    const { loadAgentRegistry } = require('../../src/services/agent-registry.js');
     const registry = loadAgentRegistry();
     expect(registry instanceof Map).toBe(true);
   });
@@ -207,7 +207,7 @@ describe('agent-registry with custom agent .md files', () => {
     // then bilbo should have allowedTools=['Read'] and invokable=true.
     // This is tested via the real AGENT_DIR if it exists on disk.
 
-    const { loadAgentRegistry, getAgentConfig } = await import('./agent-registry.js');
+    const { loadAgentRegistry, getAgentConfig } = await import('../../src/services/agent-registry.js');
     loadAgentRegistry();
 
     const bilbo = getAgentConfig('bilbo');
@@ -221,7 +221,7 @@ describe('agent-registry with custom agent .md files', () => {
   it('unknown agent names in .md files are silently skipped', async () => {
     // The registry should only contain agents from the shared AGENT_REGISTRY
     // Even if there's a .md file for 'unknown-agent', it won't appear
-    const { loadAgentRegistry } = await import('./agent-registry.js');
+    const { loadAgentRegistry } = await import('../../src/services/agent-registry.js');
     const registry = loadAgentRegistry();
 
     // Verify only known agents are present
@@ -236,7 +236,7 @@ describe('agent-registry with custom agent .md files', () => {
   it('model field from .md file overrides nothing (model comes from shared registry)', async () => {
     // The buildRegistry function overlays frontmatter on top of shared data.
     // The shared model is the authoritative source for known agents.
-    const { getAgentConfig } = await import('./agent-registry.js');
+    const { getAgentConfig } = await import('../../src/services/agent-registry.js');
     const bilbo = getAgentConfig('bilbo');
 
     // bilbo's model in the shared registry is 'claude-sonnet-4-6'

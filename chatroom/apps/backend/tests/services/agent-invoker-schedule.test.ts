@@ -42,7 +42,7 @@ _scheduleDb.exec(`
 `);
 
 // Mock connection before anything imports queries
-mock.module('../db/connection.js', () => ({
+mock.module('../../src/db/connection.js', () => ({
   getDb: () => _scheduleDb,
 }));
 
@@ -50,7 +50,7 @@ mock.module('../db/connection.js', () => ({
 // gets a stub server instead of starting the real Elysia server.
 // We mock the deep dependency (index.js) NOT the message-bus module itself,
 // so that message-bus-broadcast.test.ts is not contaminated.
-mock.module('../index.js', () => ({
+mock.module('../../src/index.js', () => ({
   app: {
     server: {
       publish(_topic: string, _data: string) {
@@ -72,7 +72,7 @@ import {
   pauseInvocations,
   resumeInvocations,
   isPaused,
-} from './agent-invoker.js';
+} from '../../src/services/agent-invoker.js';
 
 // ---------------------------------------------------------------------------
 // Helper: wait for a tick so fire-and-forget async work can settle

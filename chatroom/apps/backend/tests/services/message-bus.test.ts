@@ -8,7 +8,7 @@
  * - broadcastSync is callable and invokes server.publish with the correct topic
  */
 import { describe, it, expect, mock } from 'bun:test';
-import { broadcastSync } from './message-bus.js';
+import { broadcastSync } from '../../src/services/message-bus.js';
 import { AgentState } from '@agent-chatroom/shared';
 import type { ServerMessage, Message } from '@agent-chatroom/shared';
 
@@ -226,7 +226,7 @@ describe('broadcastSync', () => {
   it('broadcast function is callable and does not throw', () => {
     // broadcast (async) imports the app singleton — in test env the server
     // may not be started. We just verify it is exported and callable.
-    const { broadcast } = require('./message-bus.js');
+    const { broadcast } = require('../../src/services/message-bus.js');
     expect(typeof broadcast).toBe('function');
   });
 });

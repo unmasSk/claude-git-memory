@@ -62,7 +62,7 @@ beforeAll(async () => {
   smokeDb = makeSmokeDb();
 
   // Import shared registry to get agent list
-  const { getAllAgents, loadAgentRegistry } = await import('./services/agent-registry.js');
+  const { getAllAgents, loadAgentRegistry } = await import('../src/services/agent-registry.js');
   loadAgentRegistry();
 
   // Build the test app

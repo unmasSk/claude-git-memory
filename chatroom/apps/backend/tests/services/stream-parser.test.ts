@@ -8,8 +8,8 @@
  *  - malformed / empty input
  */
 import { describe, it, expect } from 'bun:test';
-import { parseStreamLine } from './stream-parser.js';
-import type { TextEvent, ToolUseEvent, ResultEvent } from './stream-parser.js';
+import { parseStreamLine } from '../../src/services/stream-parser.js';
+import type { TextEvent, ToolUseEvent, ResultEvent } from '../../src/services/stream-parser.js';
 
 // ---------------------------------------------------------------------------
 // Helpers

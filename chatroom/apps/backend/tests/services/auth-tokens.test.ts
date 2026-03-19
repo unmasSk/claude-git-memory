@@ -4,7 +4,7 @@
  * These tests exercise the pure in-memory logic; no HTTP server needed.
  */
 import { describe, it, expect } from 'bun:test';
-import { validateName, issueToken, validateToken, peekToken } from './auth-tokens.js';
+import { validateName, issueToken, validateToken, peekToken } from '../../src/services/auth-tokens.js';
 
 // ---------------------------------------------------------------------------
 // validateName

@@ -51,7 +51,7 @@ function makeDb(): Database {
 // rotated per-test. Bun evaluates the factory lazily on first import.
 // ---------------------------------------------------------------------------
 
-mock.module('./connection.js', () => ({
+mock.module('../../src/db/connection.js', () => ({
   getDb: () => currentDb,
 }));
 
@@ -74,7 +74,7 @@ import {
   incrementAgentCost,
   incrementAgentTurnCount,
   clearAgentSession,
-} from './queries.js';
+} from '../../src/db/queries.js';
 
 // ---------------------------------------------------------------------------
 // Rooms

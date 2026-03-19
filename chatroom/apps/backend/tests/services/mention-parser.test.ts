@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
-import { loadAgentRegistry } from './agent-registry.js';
-import { extractMentions } from './mention-parser.js';
+import { loadAgentRegistry } from '../../src/services/agent-registry.js';
+import { extractMentions } from '../../src/services/mention-parser.js';
 
 // Seed the registry before running tests
 beforeAll(() => {

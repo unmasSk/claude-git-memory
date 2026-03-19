@@ -20,7 +20,7 @@ const _mockApp = {
   },
 };
 
-mock.module('../index.js', () => ({
+mock.module('../../src/index.js', () => ({
   app: _mockApp,
 }));
 
@@ -29,7 +29,7 @@ mock.module('../index.js', () => ({
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { broadcast } from './message-bus.js';
+import { broadcast } from '../../src/services/message-bus.js';
 import { AgentState } from '@agent-chatroom/shared';
 import type { ServerMessage } from '@agent-chatroom/shared';
 

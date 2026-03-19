@@ -91,8 +91,8 @@ mock.module('node:fs', () => {
 });
 
 // Mock config.ts so AGENT_DIR resolves to our fake directory
-mock.module('../config.js', () => {
-  const realConfig = require('../config.js');
+mock.module('../../src/config.js', () => {
+  const realConfig = require('../../src/config.js');
   return {
     ...realConfig,
     AGENT_DIR: FAKE_AGENT_DIR,
@@ -104,7 +104,7 @@ mock.module('../config.js', () => {
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect } from 'bun:test';
-import { loadAgentRegistry, getAgentConfig } from './agent-registry.js';
+import { loadAgentRegistry, getAgentConfig } from '../../src/services/agent-registry.js';
 
 // Force a fresh registry build using the mocked filesystem
 const registry = loadAgentRegistry();

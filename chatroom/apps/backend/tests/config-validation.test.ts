@@ -352,28 +352,28 @@ describe('PORT env var validation boundaries', () => {
 
 describe('config.ts — exported constant shapes', () => {
   it('MAX_CONCURRENT_AGENTS is between 1 and 20', async () => {
-    const { MAX_CONCURRENT_AGENTS } = await import('./config.js');
+    const { MAX_CONCURRENT_AGENTS } = await import('../src/config.js');
     expect(MAX_CONCURRENT_AGENTS).toBeGreaterThanOrEqual(1);
     expect(MAX_CONCURRENT_AGENTS).toBeLessThanOrEqual(20);
   });
 
   it('AGENT_TIMEOUT_MS is 5 minutes (300000 ms)', async () => {
-    const { AGENT_TIMEOUT_MS } = await import('./config.js');
+    const { AGENT_TIMEOUT_MS } = await import('../src/config.js');
     expect(AGENT_TIMEOUT_MS).toBe(5 * 60 * 1000);
   });
 
   it('AGENT_HISTORY_LIMIT is 20', async () => {
-    const { AGENT_HISTORY_LIMIT } = await import('./config.js');
+    const { AGENT_HISTORY_LIMIT } = await import('../src/config.js');
     expect(AGENT_HISTORY_LIMIT).toBe(20);
   });
 
   it('ROOM_STATE_MESSAGE_LIMIT is 50', async () => {
-    const { ROOM_STATE_MESSAGE_LIMIT } = await import('./config.js');
+    const { ROOM_STATE_MESSAGE_LIMIT } = await import('../src/config.js');
     expect(ROOM_STATE_MESSAGE_LIMIT).toBe(50);
   });
 
   it('AGENT_VOICE has entries for all 10 expected agents', async () => {
-    const { AGENT_VOICE } = await import('./config.js');
+    const { AGENT_VOICE } = await import('../src/config.js');
     const expectedAgents = [
       'bilbo',
       'ultron',
@@ -393,7 +393,7 @@ describe('config.ts — exported constant shapes', () => {
   });
 
   it('AGENT_VOICE values are non-empty strings', async () => {
-    const { AGENT_VOICE } = await import('./config.js');
+    const { AGENT_VOICE } = await import('../src/config.js');
     for (const [, voice] of Object.entries(AGENT_VOICE)) {
       expect(typeof voice).toBe('string');
       expect(voice.length).toBeGreaterThan(0);
@@ -401,39 +401,39 @@ describe('config.ts — exported constant shapes', () => {
   });
 
   it('WS_ALLOWED_ORIGINS is a readonly array', async () => {
-    const { WS_ALLOWED_ORIGINS } = await import('./config.js');
+    const { WS_ALLOWED_ORIGINS } = await import('../src/config.js');
     expect(Array.isArray(WS_ALLOWED_ORIGINS)).toBe(true);
   });
 
   it('WS_ALLOWED_ORIGINS includes localhost:4201', async () => {
-    const { WS_ALLOWED_ORIGINS } = await import('./config.js');
+    const { WS_ALLOWED_ORIGINS } = await import('../src/config.js');
     expect(WS_ALLOWED_ORIGINS).toContain('http://localhost:4201');
   });
 
   it('WS_ALLOWED_ORIGINS includes 127.0.0.1:4201', async () => {
-    const { WS_ALLOWED_ORIGINS } = await import('./config.js');
+    const { WS_ALLOWED_ORIGINS } = await import('../src/config.js');
     expect(WS_ALLOWED_ORIGINS).toContain('http://127.0.0.1:4201');
   });
 
   it('AGENT_DIR is a non-empty string', async () => {
-    const { AGENT_DIR } = await import('./config.js');
+    const { AGENT_DIR } = await import('../src/config.js');
     expect(typeof AGENT_DIR).toBe('string');
     expect(AGENT_DIR.length).toBeGreaterThan(0);
   });
 
   it('NODE_ENV is one of the three allowed values', async () => {
-    const { NODE_ENV } = await import('./config.js');
+    const { NODE_ENV } = await import('../src/config.js');
     expect(['development', 'production', 'test']).toContain(NODE_ENV);
   });
 
   it('PORT is a valid port number (1–65535)', async () => {
-    const { PORT } = await import('./config.js');
+    const { PORT } = await import('../src/config.js');
     expect(PORT).toBeGreaterThanOrEqual(1);
     expect(PORT).toBeLessThanOrEqual(65535);
   });
 
   it('HOST is a non-empty string', async () => {
-    const { HOST } = await import('./config.js');
+    const { HOST } = await import('../src/config.js');
     expect(typeof HOST).toBe('string');
     expect(HOST.length).toBeGreaterThan(0);
   });

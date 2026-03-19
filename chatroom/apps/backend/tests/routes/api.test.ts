@@ -244,7 +244,7 @@ beforeAll(async () => {
   });
 
   // Load agents for /api/agents endpoint
-  const { loadAgentRegistry, getAllAgents, getAgentConfig } = await import('../services/agent-registry.js');
+  const { loadAgentRegistry, getAllAgents, getAgentConfig } = await import('../../src/services/agent-registry.js');
   loadAgentRegistry();
 
   const testApp = new Elysia({ prefix: '/api' })

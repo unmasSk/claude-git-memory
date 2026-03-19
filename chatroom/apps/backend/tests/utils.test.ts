@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'bun:test';
-import { generateId, nowIso, mapMessageRow, mapAgentSessionRow, mapRoomRow, safeMessage } from './utils.js';
-import type { MessageRow, AgentSessionRow, RoomRow } from './types.js';
+import { generateId, nowIso, mapMessageRow, mapAgentSessionRow, mapRoomRow, safeMessage } from '../src/utils.js';
+import type { MessageRow, AgentSessionRow, RoomRow } from '../src/types.js';
 import { AgentState } from '@agent-chatroom/shared';
 import type { Message, ServerToolEvent } from '@agent-chatroom/shared';
 

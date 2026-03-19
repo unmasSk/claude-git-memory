@@ -13,7 +13,7 @@
  * polluting the shared in-memory auth failure counters with noisy prefix data.
  */
 import { describe, it, expect } from 'bun:test';
-import { peekToken, validateToken, issueToken } from './auth-tokens.js';
+import { peekToken, validateToken, issueToken } from '../../src/services/auth-tokens.js';
 
 // ---------------------------------------------------------------------------
 // sourceKey derivation — exercised via short / undefined tokens

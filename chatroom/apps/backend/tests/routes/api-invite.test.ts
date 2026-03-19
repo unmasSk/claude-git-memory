@@ -41,7 +41,7 @@ _inviteDb.exec(`
   VALUES ('default', 'general', 'Agent chatroom');
 `);
 
-mock.module('../db/connection.js', () => ({
+mock.module('../../src/db/connection.js', () => ({
   getDb: () => _inviteDb,
 }));
 
@@ -51,8 +51,8 @@ mock.module('../db/connection.js', () => ({
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { Elysia, t } from 'elysia';
-import { issueToken, peekToken } from '../services/auth-tokens.js';
-import { getAgentConfig } from '../services/agent-registry.js';
+import { issueToken, peekToken } from '../../src/services/auth-tokens.js';
+import { getAgentConfig } from '../../src/services/agent-registry.js';
 
 // ---------------------------------------------------------------------------
 // Isolated rate limiter — mirrors checkApiRateLimit in api.ts exactly,
@@ -139,7 +139,7 @@ let app: TestApp | null = null;
 let baseUrl: string;
 
 beforeAll(async () => {
-  const { loadAgentRegistry } = await import('../services/agent-registry.js');
+  const { loadAgentRegistry } = await import('../../src/services/agent-registry.js');
   loadAgentRegistry();
 
   const testApp = new Elysia()
