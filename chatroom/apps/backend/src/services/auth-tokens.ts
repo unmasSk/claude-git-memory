@@ -143,7 +143,7 @@ function recordAuthFailure(): void {
   } else {
     authFailureWindow.count += 1;
   }
-  if (authFailureWindow.count >= AUTH_FAILURE_THRESHOLD) {
+  if (authFailureWindow.count === AUTH_FAILURE_THRESHOLD) {
     log.error({ failCount: authFailureWindow.count }, 'Repeated auth failures detected — possible brute force');
   }
 }

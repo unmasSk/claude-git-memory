@@ -186,9 +186,20 @@ export const wsRoutes = new Elysia()
       const wsData = ws.data as WsData;
       const { roomId } = wsData.params;
 
-      // SEC-AUTH-001: Token validation.
-      // Clients must present a valid token obtained from POST /api/auth/token.
-      // The name is bound to the token at issuance — the ?name= param is ignored.
+      // SEC-OPEN-008: Per-room connection cap — check BEFORE consuming token.
+      const existingRoomConns = roomConns.get(roomId);
+      if (existingRoomConns && existingRoomConns.size >= MAX_CONNECTIONS_PER_ROOM) {
+        logger.warn({ roomId, connCount: existingRoomConns.size }, 'WS connection rejected: per-room cap reached');
+        ws.send(JSON.stringify({
+          type: 'error',
+          message: 'Room connection limit reached. Try again later.',
+          code: 'ROOM_FULL',
+        } satisfies ServerMessage));
+        ws.close();
+        return;
+      }
+
+      // SEC-AUTH-001: Token validation — token consumed only when room has capacity.
       const rawToken = wsData.query?.token;
       const tokenName = validateToken(rawToken);
       if (tokenName === null) {
@@ -202,19 +213,6 @@ export const wsRoutes = new Elysia()
         return;
       }
       const resolvedName = tokenName;
-
-      // SEC-OPEN-008: Per-room connection cap — reject when the room is full.
-      const existingRoomConns = roomConns.get(roomId);
-      if (existingRoomConns && existingRoomConns.size >= MAX_CONNECTIONS_PER_ROOM) {
-        logger.warn({ roomId, connCount: existingRoomConns.size }, 'WS connection rejected: per-room cap reached');
-        ws.send(JSON.stringify({
-          type: 'error',
-          message: 'Room connection limit reached. Try again later.',
-          code: 'ROOM_FULL',
-        } satisfies ServerMessage));
-        ws.close();
-        return;
-      }
 
       // Assign a unique connId for rate limiting and store it in the module map.
       const connId = nextConnId();
