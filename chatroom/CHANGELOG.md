@@ -1,6 +1,104 @@
 # Changelog
 
+All notable changes to the chatroom are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
 ## [Unreleased]
+
+### Planned
+- `POST /api/rooms/:id/reset` — reset room messages and agents to idle
+- `@everyone` only invokes agents in `done` state
+- Tauri desktop app packaging
+- Sidebar metrics: duration, tokens, cost from `claude -p` output
+
+---
+
+## [0.4.0] — Room Management
+
+### Added
+- `POST /api/rooms` — create room with auto-generated adjective-animal name (e.g. `powerful-salamander`). Seeds all 10 registered agents automatically. Requires Bearer token. Rate limit: `rooms-create` bucket (20/min).
+- `DELETE /api/rooms/:id` — delete room and cascade-remove all messages and agent_sessions in a transaction. `default` room returns 403. Requires Bearer token. Rate limit: `rooms-delete` bucket (20/min).
+- `utils-name.ts` — adjective-animal room name generator
+- Room tabs in Titlebar: click to switch, `×` to mark for deletion, second `×` to confirm delete, click tab body to cancel
+- `+` button in Titlebar to create new room from the UI
+- `room-store.ts` — Zustand store for room list, active room, and pending-delete state
+- `getAuthToken()` helper in room store: fetches a fresh one-time Bearer token before each create/delete HTTP call, same pattern as the WS auth flow
+- Mention colors: agent `@name` references in messages are rendered in the agent's color
+- Stop button in MessageInput to interrupt a running agent
+- Guard in `deleteRoom` query: `if (id === 'default') return false` — defense in depth beyond the route-level 403
+- Dedup in `/invite` body: `[...new Set(body.agents)]` — prevents duplicate upserts within a single request
+
+### Fixed
+- `seedAgentSessions` was calling `agents.filter(...).length` (two passes); replaced with a loop counter
+- `deleteRoom` now wraps agent_session + message + room deletes in a single SQLite transaction
+- Cascade test in `api-rooms.test.ts` queries `_db` directly to verify deletions instead of inferring from a 404
+- Tool path display in ToolLine: RTL truncation replaced with `text-align:left; flex:1; min-width:0` — shows the filename end, not the path root; `unicode-bidi` removed
+
+### Tests
+- `tests/routes/api-rooms.test.ts` — 22 tests for all room endpoints (create, delete, cascade, auth, rate limit, guard)
+- `tests/utils-name.test.ts` — name generator correctness and format tests
+
+---
+
+## [0.3.0] — WebSocket Circuit Breaker & Pause/Resume
+
+### Added
+- WS circuit breaker: frontend enters offline mode after 3 consecutive auth failures (`MAX_CONSECUTIVE_AUTH_FAILURES = 3`)
+- Health check: `GET /api/health` for frontend connectivity probing
+- Retry UI: connection status indicator and manual reconnect button in the frontend
+- SIGSTOP/SIGCONT pause-resume for agent processes (targets process group, not just the spawned PID)
+- Bridge process removed from `concurrently` dev script — replaced by direct HTTP calls to the backend API
+
+### Fixed
+- DB constraint violation on agent session upsert during concurrent spawns
+- Timeout budget accounting during agent pause periods
+- Completion guard: prevents double-completion when an agent exits
+- `id` field added to `ServerToolEventSchema` — Zod was stripping it, breaking the activity log sidebar
+- Card border glow hidden correctly when agent is not in active state
+
+---
+
+## [0.2.0] — Frontend Visual Layer
+
+### Added
+- Agent sidebar cards: three states — active (Thinking/ToolUse in progress), invoked (running, not active), never-invoked (gray name)
+- `@everyone` in mention dropdown invokes only active agents, not all 10
+- `@claude` alias removed
+- Send button color: different color in brainstorm vs direct mode
+- Autocomplete mention dropdown with arrow-key navigation
+- CSS variables for agent colors (replaced `AGENT_COLOR` inline map)
+- 78 Vitest frontend tests: stores, hooks, components
+- Metrics pipeline end-to-end: duration, tokens, cost from `claude -p` stdout
+
+### Fixed
+- Sidebar agent order: bilbo, ultron, cerberus, argus, moriarty, dante, yoda, house, alexandria, gitto
+- Sidebar status updates from WS events wired correctly
+- Autocomplete dropdown broken after CSS refactor — restored
+
+---
+
+## [0.1.0] — Foundation
+
+### Added
+- Elysia HTTP + WebSocket server on Bun 1.x
+- SQLite database with WAL mode: tables `rooms`, `messages`, `agent_sessions`
+- `initializeSchema()` — idempotent DDL, seeds `default` room on every startup
+- `seedAgentSessions()` — `INSERT ON CONFLICT DO NOTHING` preserves existing agent status on restart (does not reset `done` agents to `idle`)
+- 10 registered agents: bilbo, ultron, cerberus, argus, moriarty, dante, yoda, house, alexandria, gitto
+- `POST /api/auth/token` — one-time-use UUID token for WS upgrade and HTTP Bearer auth (rate: 20/min, global bucket)
+- `POST /api/rooms/:id/invite` — add agents to a room; named rate-limit bucket `invite` independent of `auth-token`
+- `GET /api/rooms`, `GET /api/rooms/:id`, `GET /api/rooms/:id/messages` (paginated)
+- `GET /api/agents` — public registry, strips `allowedTools`
+- WS upgrade: token consumed on connect, single-use
+- `sanitizePromptContent()` — applied to all user content before it enters agent prompts
+- `validateName()` — blocks reserved names from being claimed as participants
+- `peekToken()` — validates a token without consuming it (used by authenticated HTTP routes)
+- Pino logging via `createLogger('module-name')` — `console.log` banned project-wide
+- `bun test` suite with in-memory SQLite (`:memory:`), Arrange/Act/Assert pattern
+
+## [Unreleased — prior]
 
 ### Added
 

@@ -43,13 +43,23 @@ Agent invocation flow: WS message → auth check → mention extraction → `Bun
 
 ## API Endpoints
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/health` | Liveness check |
-| GET | `/api/rooms` | List available rooms |
-| POST | `/api/auth/token` | Issue one-time WS auth token |
-| WS | `/ws/:roomId` | WebSocket connection (token required) |
-| GET | `/docs` | Swagger UI |
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/health` | — | Liveness check |
+| GET | `/api/rooms` | — | List all rooms |
+| GET | `/api/rooms/:id` | — | Room detail + agent participant statuses |
+| GET | `/api/rooms/:id/messages` | — | Paginated message history (`?limit=50&before=<id>`) |
+| POST | `/api/rooms` | Bearer | Create new room (auto-generates adjective-animal name, seeds 10 agents) |
+| DELETE | `/api/rooms/:id` | Bearer | Delete room and all its data (`default` is protected) |
+| POST | `/api/rooms/:id/invite` | Bearer | Add agents to a room |
+| GET | `/api/agents` | — | Public agent registry |
+| POST | `/api/auth/token` | — | Issue one-time Bearer token (rate: 20/min) |
+| WS | `/ws/:roomId` | Token | WebSocket connection |
+| GET | `/docs` | — | Swagger UI |
+
+### Room Management
+
+Rooms are created and deleted from the UI (+ button in the titlebar). Each new room is automatically seeded with all 10 registered agents. The `default` room cannot be deleted. All mutating room operations require a Bearer token obtained from `POST /api/auth/token`.
 
 ## Environment Variables
 
