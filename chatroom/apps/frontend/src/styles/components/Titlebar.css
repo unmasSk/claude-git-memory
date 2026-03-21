@@ -59,8 +59,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  padding: 0 28px 0 12px;
+  gap: 6px;
+  padding: 0 32px 0 12px;
   height: 100%;
   font-family: var(--font-ui);
   font-size: 12px;
@@ -93,19 +93,25 @@
 }
 
 .tb-tab-close {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-3);
   cursor: pointer;
   line-height: 1;
-  opacity: 0;
-  transition: opacity 100ms;
+  opacity: 1;
+  transition: background 100ms;
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
 }
 
-.tb-tab:hover .tb-tab-close { opacity: 1; }
+.tb-tab-close:hover { background: rgba(255,255,255,0.08); color: var(--text-2); }
 
 .tb-tab-new {
   display: flex;
