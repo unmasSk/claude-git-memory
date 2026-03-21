@@ -58,3 +58,17 @@ Code references tables that do not exist in schema.sql or any migration file. Ro
 **Detection:** Use `Get-CimInstance Win32_Process | Where ParentProcessId -eq $PID` to check for `conhost.exe` children.
 
 **Fix:** Remove `windowsHide: true` (it does the opposite of what's intended). Remove `detached: true` (process group kill is broken on Windows anyway). Replace orphan cleanup with `proc.kill()` direct call with timeout. The piped stdio (`stdout: 'pipe', stderr: 'pipe'`) already prevents console window creation without any additional flags.
+
+## Pattern: Missing `position: relative` on Dropdown Anchor (CSS Clipping)
+
+**Project:** agent-chatroom
+**First seen:** 2026-03-21
+
+Absolutely-positioned dropdown (`.mention-dropdown`) renders inside a container (`.chat-input`) that lacks `position: relative`. The dropdown's containing block falls through to a distant ancestor (`.chat`) that has `position: relative; overflow: hidden`. The dropdown positions itself relative to `.chat` and ends up outside its clipping bounds -- invisible to the user.
+
+**Detection:** When a dropdown "should render but doesn't appear," check:
+1. The dropdown's `position: absolute` CSS
+2. Whether its immediate parent has `position: relative`
+3. Whether any ancestor between parent and containing block has `overflow: hidden`
+
+**Key insight:** The React state and DOM are correct (the element exists in the DOM tree). The issue is purely CSS positioning. DevTools element inspector will show the element exists but is positioned outside visible bounds. This pattern is especially common when refactoring from `<input>` to `<textarea>` or reorganizing component hierarchy -- the CSS containment context changes but the dropdown positioning CSS is not updated.

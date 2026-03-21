@@ -20,22 +20,27 @@ Every rule and finding has a tier. The tier determines whether it blocks merge.
 | Finding | Tier |
 |---------|------|
 | Concatenated SQL (injection) | T1 |
+| `SELECT *` in read queries (use explicit columns) | T2 |
+| `RETURNING *` in INSERT/UPDATE (use explicit columns) | T2 |
 | Possible auth bypass | T1 |
 | Hardcoded secret | T1 |
 | Unhandled error that crashes process | T1 |
 | Critical data without validation | T1 |
 | Environment guard with blacklist (`!== 'production'`) | T1 |
-| Generic `throw new Error()` in service | T2 |
+| Generic `throw new Error()` in service (use typed error classes) | T2 |
+| `as Type` cast without justification comment | T2 |
+| Dead export (no consumers in production code) | T3 |
 | Level A service function without requestId | T2 |
 | API module without happy path test | T2 |
-| File >500 LOC without split | T2 |
+| File >300 LOC without split | T2 |
 | Manual validation instead of Zod | T2 |
 | `console.log` in committed code | T2 |
+| Line coverage below 97% | T3 |
+| Branch coverage below 85% | T3 |
 | Excessive JSDoc on helper | T3 |
 | Missing `performance.now()` on internal helper | T3 |
 | Unused import | T3 |
 | Naming inconsistent with project conventions | T3 |
-| Coverage below target | T3 |
 
 IF uncertain about tier THEN assign T2 (neither blocks everything nor gets ignored).
 
@@ -94,23 +99,29 @@ Only implement what is needed NOW. No speculative features, no "just in case" co
 
 | Type | Hard limit | Sweet spot |
 |------|-----------|------------|
-| TypeScript file | 500 LOC | 200-300 |
+| TypeScript file | 300 LOC | 200-300 |
 | Exported function/method | 50 LOC | 15-30 |
 | Internal helper function | 30 LOC | 10-20 |
 | Nesting level | 3 max | 2 |
-| Function parameters | 5 max | 3 (use object if more) |
+| Function parameters | 4 max (requestId no cuenta) | 3 (use object if more) |
 | Test file | 500 LOC | 200-400 |
 | Controller method | 50 LOC | 20-30 |
 | React component | 300 LOC | 150-200 |
 | CSS file | 800 LOC | 300-500 |
+| Cyclomatic complexity | 10 max | 5-8 |
+| Imports per service/controller | 12 max | 8-10 |
+| Imports per helper/schema | 8-10 max | 5-7 |
+| Exports per service file | 8 max (barrels exempt) | 5-6 |
+| Object options fields | 8 max | 5-6 |
+| SQL inline per query | 20 lines max | 10-15 |
 
 LOC = total lines of code (not executable-only).
 
 ```
-IF file > 500 LOC THEN mandatory split (T2)
-IF file 300-500 LOC AND has 2+ responsibilities THEN recommended split
-IF file 300-500 LOC AND has 1 responsibility THEN do NOT split
-IF file < 300 LOC THEN do NOT split
+IF file > 300 LOC THEN mandatory split (T2)
+IF file 200-300 LOC AND has 2+ responsibilities THEN recommended split
+IF file 200-300 LOC AND has 1 responsibility THEN do NOT split
+IF file < 200 LOC THEN do NOT split
 ```
 
 **What is "responsibility"** (binary definition):
@@ -214,6 +225,8 @@ Schemas in separate file `module.schemas.ts`. Always `.strict()`.
 |------|------|
 | ALWAYS parameterized with $1, $2 | T1 |
 | ORDER BY with column whitelist | T1 |
+| NEVER `SELECT *` — use explicit columns. If only checking existence, use `SELECT 1` | T2 |
+| NEVER `RETURNING *` — use explicit columns in RETURNING clause | T2 |
 | PostGIS: store EPSG:4326, transform to 3857 only for MVT | T2 |
 | `&&` operator (bbox) before ST_Intersects | T2 |
 
@@ -449,16 +462,16 @@ IF endpoint consistently exceeds "slow" THEN propose optimization (T2).
 ### When to Split a File
 
 ```
-IF file > 500 LOC
+IF file > 300 LOC
   THEN mandatory split (T2)
 
-IF file 300-500 LOC AND has 2+ responsibilities
+IF file 200-300 LOC AND has 2+ responsibilities
   THEN recommended split
 
-IF file 300-500 LOC AND has 1 responsibility
+IF file 200-300 LOC AND has 1 responsibility
   THEN do NOT split
 
-IF file < 300 LOC
+IF file < 200 LOC
   THEN do NOT split
 ```
 
@@ -525,11 +538,67 @@ IF change affects auth/permissions/data
 
 ---
 
-## 12. Anti-Patterns
+## 12. Dead Code Policy
+
+### Dead Exports (T3)
+
+IF an exported function, type, constant, or interface has zero consumers in production code THEN it is dead code.
+
+Rules:
+- Exports consumed ONLY in tests are NOT dead code (test infrastructure is valid)
+- Exports consumed ONLY internally in the same file SHOULD be made private (remove `export`)
+- Exports with zero consumers anywhere (not even tests) MUST be deleted
+- Before deleting, grep the entire `src/` directory (excluding `__tests__/`) to confirm zero consumers
+- Schema files (*.schemas.ts) and type files (*.types.ts) acting as barrels are exempt from the 8-export limit but dead schemas within them should still be cleaned
+
+### `as Type` Casts (T2)
+
+Every `as Type` cast MUST have a justification comment on the line above explaining WHY the cast is safe.
+
+```typescript
+// CORRECT: justified cast
+// Body validated by Zod middleware — type is guaranteed
+const data = req.body as CreateInventarioInput;
+
+// CORRECT: justified cast
+// pg returns unknown, we verify structure in formatRow
+const row = result.rows[0] as InventarioRow;
+
+// INCORRECT: unjustified cast
+const data = req.body as CreateInventarioInput;
+
+// INCORRECT: optimistic cast without guarantee
+return sanitized as T;
+```
+
+Exceptions (no comment needed):
+- `as const` (compile-time, zero runtime risk)
+- `as unknown as Type` in test mocks (test infrastructure)
+
+### `throw new Error()` Generic (T2)
+
+Production code MUST use typed error classes from the error system (`AppError`, `ValidationError`, `DatabaseError`, etc.).
+
+```
+IF throw new Error() in service/controller/middleware THEN T2 finding
+IF throw new Error() in boot-time config (before Express starts) THEN acceptable (HTTP status codes have no meaning pre-startup)
+IF throw new Error() in CLI scripts (not API code) THEN T3 (lower priority)
+```
+
+### Coverage Targets
+
+| Metric | Target | Tier if below |
+|--------|--------|---------------|
+| Line coverage | >97% | T3 |
+| Branch coverage | >85% | T3 |
+
+---
+
+## 13. Anti-Patterns
 
 Real errors from existing code. Reference of what NOT to do.
 
-### 11.1 Duplicated instanceof Chain
+### 13.1 Duplicated instanceof Chain
 
 ```typescript
 // ANTI-PATTERN: 10 identical blocks with instanceof
@@ -557,7 +626,7 @@ for (const [ErrorClass, config] of ERROR_HANDLERS) {
 }
 ```
 
-### 11.2 JSDoc as Decoration
+### 13.2 JSDoc as Decoration
 
 ```typescript
 // ANTI-PATTERN: more comment than code
@@ -573,11 +642,11 @@ export function handleNoOrigin(callback: CorsOriginCallback): void {
 export function handleNoOrigin(callback: CorsOriginCallback): void {
 ```
 
-### 11.3 Over-Splitting (Excessive Granularity)
+### 13.3 Over-Splitting (Excessive Granularity)
 
 Split when the module has its own entity (>30 LOC, responsibility that can grow). Not by dogmatic SRP.
 
-### 11.4 Unnecessary Deep Freeze
+### 13.4 Unnecessary Deep Freeze
 
 ```typescript
 // ANTI-PATTERN: deepFreeze runtime for object nobody mutates
@@ -588,7 +657,7 @@ const CONFIG = deepFreeze({ ... });
 const CONFIG = { ... } as const;
 ```
 
-### 11.5 Duplicated validate* Functions
+### 13.5 Duplicated validate* Functions
 
 ```typescript
 // ANTI-PATTERN: 3 identical functions changing only req.body/query/params
@@ -610,7 +679,7 @@ export const validateQuery = createValidator('query');
 export const validateParams = createValidator('params');
 ```
 
-### 11.6 Permanent @audit Tags
+### 13.6 Permanent @audit Tags
 
 ```typescript
 // ANTI-PATTERN: audit tags as permanent documentation

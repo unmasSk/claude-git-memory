@@ -1,8 +1,46 @@
 ---
-name: elysia-ws-upgrade-context
-description: Elysia .ws() upgrade hook receives an Elysia Context, not a Request object
+name: implementation-patterns
+description: Key patterns for chatroom backend WS handlers, process tracking, and protocol extension
 type: project
 ---
+
+## Extending the WS protocol (Issue #24, 2026-03-21)
+
+Adding new client message types requires 4 coordinated changes:
+
+1. **`packages/shared/src/protocol.ts`** — add interface + extend `ClientMessage` union
+2. **`packages/shared/src/schemas.ts`** — add Zod schema + extend `ClientMessageSchema` discriminated union
+3. **`apps/backend/src/routes/ws-message-handlers.ts`** — add handler function + import new scheduler fns
+4. **`apps/backend/src/routes/ws-handlers.ts`** — add case to switch; `parseAndValidate` must return `ClientMessage | null` (not `ReturnType<...> | null`) for tsc narrowing to work in the switch
+
+### parseAndValidate return type fix
+The switch `msg.type` narrowing works only when `msg` is typed as `ClientMessage` (the union).
+`ReturnType<typeof ClientMessageSchema.safeParse>` includes the failed parse case where `data` is undefined — tsc can't narrow through it.
+Pattern: return `result.data as ClientMessage` from `parseAndValidate`, typed as `ClientMessage | null`.
+
+## Active subprocess registry (Issue #24, 2026-03-21)
+
+`agent-queue.ts` exports `activeProcesses: Map<string, ActiveProcess>` keyed by `"${agentName}:${roomId}"`.
+`agent-runner.ts` registers after `Bun.spawn` and removes after `readAgentStream` completes.
+`agent-scheduler.ts` reads from `activeProcesses` in `killAgent()` to send SIGTERM.
+
+Kill pattern:
+```ts
+// Unix: kill the entire process group (detached subprocess)
+process.kill(-(proc.pid as number), 'SIGTERM');
+// fallback:
+proc.kill();
+```
+
+## Per-agent pause (Issue #24, 2026-03-21)
+
+`_pausedAgents: Set<string>` in `agent-scheduler.ts` — keyed as `"${agentName}:${roomId}"`.
+`pauseAgent/resumeAgent/isAgentPaused` exported from `agent-scheduler.ts` and re-exported via `agent-invoker.ts` facade.
+`scheduleInvocation` checks `_pausedAgents` immediately after the room-level `_pausedRooms` check.
+
+---
+
+## Elysia WS upgrade context
 
 Elysia's `.ws()` upgrade hook parameter is an **Elysia Context**, not a Web API `Request`.
 
@@ -460,6 +498,40 @@ Added property-level `@property` JSDoc on `AgentStreamResult` interface. Added `
 Edit tool requires Windows-style absolute paths (`C:\Users\...`). The `/c/Users/...` bash form causes "string not found" failures. If Edit fails with no error but string is visually correct, switch to the Windows path form.
 
 ---
+
+## Session 17: Cerberus + Argus audit fixes — 2026-03-21
+
+### killAgent: inFlight.delete + JSDoc fix (SEC-CRIT-002 + T2-02)
+`killAgent` in `agent-scheduler.ts` now calls `inFlight.delete(key)` and `activeProcesses.delete(key)` BEFORE sending SIGTERM.
+This releases the scheduler slot immediately so `drainQueue` can unblock waiting agents without waiting for the process to die.
+JSDoc updated: removed incorrect "removes the in-flight lock" description; it now reads "releases the in-flight scheduler slot immediately".
+The `proc.pid !== undefined` guard was already in place but is now documented with a SEC-CRIT-002 comment.
+
+### drainQueue: respects _pausedAgents (T2-01)
+`drainQueue` now skips entries where `_pausedRooms.has(e.roomId)` or `isAgentPaused(e.agentName, e.roomId)`.
+Previously only skipped entries already in-flight — a paused agent's queued entries could sneak through when a concurrency slot opened.
+
+### ws-control-handlers.ts extraction (T2-03)
+`handleKillAgent`, `handlePauseAgent`, `handleResumeAgent`, `handleReadChat` extracted from `ws-message-handlers.ts` into new `ws-control-handlers.ts`.
+ws-handlers.ts imports from both files now.
+ws-message-handlers.ts: 403 → 241 LOC. ws-control-handlers.ts: 225 LOC.
+
+### insertAndBroadcastReadChat helper (T2-04)
+DB insert + broadcast in `handleReadChat` extracted to private helper `insertAndBroadcastReadChat(ws, roomId, agentName, messageCount): boolean`.
+Follows the same pattern as `insertAndBroadcastDirective` in ws-message-handlers.ts.
+
+### SEC-HIGH-002: sanitize msg.author in read_chat transcript
+Transcript builder in `handleReadChat` now applies `sanitizePromptContent(msg.author)` in addition to `msg.content`.
+Both are user-supplied and can carry trust-boundary delimiters.
+
+### SEC-MED-002: No Out broadcast when killAgent returns false
+`handleKillAgent` now returns early if `killAgent()` returns false (agent not running).
+No spurious `AgentState.Out` broadcast when there is no active process.
+
+### T1: ParticipantItem.tsx — Pause button toggles to Resume
+`ParticipantItem.tsx` now uses `useState(false)` for `isPaused` local state.
+`handlePauseOrResume` callback sends `pause_agent` when not paused, `resume_agent` when paused, and flips the local flag.
+Button `aria-label` toggles between "Pause" and "Resume". Icon shows two bars (pause) or a right triangle (resume).
 
 ## Session 16: agent-stream/result/prompt/scheduler/utils cleanup — 2026-03-19
 

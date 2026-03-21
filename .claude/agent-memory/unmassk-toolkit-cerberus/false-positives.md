@@ -58,6 +58,14 @@ The 10-minute `setInterval` for token cleanup does not call `.unref()`. This is 
 
 `activeInvocations` holds promises keyed by `${agentName}:${roomId}` but nothing awaits them or reads them outside `runInvocation`. Its purpose is to count concurrent invocations (`activeInvocations.size >= MAX_CONCURRENT_AGENTS`). The Map of promises is intentional (reachable in future if tracking/cancellation is added). Do not flag as dead code.
 
+## chatroom mockup: dual hex + OKLCH color token sets are intentional (unreconciled but both present)
+
+In `option-b-cursor-style.html`, agent colors are defined twice: as WoW-palette hex values (lines 43-52: `--color-ultron: #0070DD`) and as OKLCH values (lines 65-75: `--c-ultron: oklch(65% 0.18 250)`). The HTML uses the hex set. The OKLCH set appears unused in the mockup file itself. This is NOT intentional good design — it is a W1 structural warning — but do not treat the OKLCH set as "dead code" requiring deletion. It is the intended production token system and should replace the hex set, not be removed.
+
+## chatroom mockup: `overflow: hidden` on `.agent-list` is a bug, not intentional
+
+Line 287: `.agent-list { overflow: hidden; }`. The scrollbar CSS at lines 290-292 is defined but inactive because the parent suppresses scroll. This is a confirmed bug (S7). Do not treat the scrollbar CSS as dead code — the fix is changing `hidden` to `auto`.
+
 ## IGNORECASE=1 replaced by tolower() in dockerfile-validate.sh awk
 
 In `dockerfile-validate.sh` around line 415, the comment explains that BSD awk (macOS) does not honour `IGNORECASE=1` for the `~` dynamic regex operator, only for literal `/patterns/`. Using `tolower()` before the `~` comparison is the correct workaround. Do not flag as inconsistent style.

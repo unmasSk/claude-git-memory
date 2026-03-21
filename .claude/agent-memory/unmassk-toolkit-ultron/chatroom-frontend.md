@@ -1,8 +1,112 @@
 ---
 name: chatroom-frontend-patterns
-description: Patterns and lessons from Phase 5 polish of the Agent Chatroom frontend (React + Vite + Zustand + lucide-react)
+description: Patterns and lessons from the Agent Chatroom frontend (React + Vite + Zustand + lucide-react), through Phase 7 chat area redesign
 type: project
 ---
+
+## Bug fix — Claude agent card accent color (2026-03-21)
+
+### Root cause
+`--color-claude` CSS variable was missing from `tokens.css`. All Claude-related CSS classes (`.c-claude`, `.av-claude`, `.bg-claude`, `.te-claude`, `.mention-claude`) fell back to `--color-ultron` as a workaround. AgentCard.css had no `.card-wrap.agent-claude` rule, so `--ac` and `--agent-tint` were unset on Claude's card.
+
+### Effect
+Claude's card had no visible active-card tint (radial gradient used transparent fallback) and no border highlight on hover. The data flow (ws-store → agent-store → ParticipantPanel) was actually correct; the bug was purely visual.
+
+### Fix
+- Added `--color-claude: #A78BFA` to `tokens.css` `:root`
+- Added `.card-wrap.agent-claude { --ac: var(--color-claude); --agent-tint: ... }` to `AgentCard.css`
+- Updated all 6 Claude CSS entries in `globals.css` to use `--color-claude` instead of `--color-ultron`
+
+### Lesson
+When adding a new agent or special participant, ALWAYS add its `--color-{name}` variable to `tokens.css` AND its `.card-wrap.agent-{name}` rule to `AgentCard.css` at the same time. Missing the token causes silent fallback to an unrelated color.
+
+## Phase 7 — Chat area redesign (2026-03-21)
+
+### Message structure (new — no bubbles)
+`MessageLine` renders `.msg` > `.msg-head` (`.msg-name` + `.msg-time`) + `.msg-text`.
+Human messages (`authorType === 'human'`) get `.msg.human` (card style: bg-input, border #3d3d3d, border-radius 14px).
+Agent name colored via `c-{agent}` class on `.msg-name`. Time in `.msg-time` (monospace, text-3).
+`msg-text` is a block `<div>` — ReactMarkdown goes inside it.
+
+### Tool events (new)
+`ToolLine` renders `.tool-event.te-{agent}` > `.te-agent.c-{agent}` + `.te-arrow` + `.te-badge` + `.te-desc`.
+Agent CSS classes (`te-ultron`, `te-cerberus`, etc.) in globals.css set `border-left-color`, `background`, and `.te-badge` color/bg via CSS — NO inline rgba.
+`te-{agent}` classes cover 10 agents + `te-claude` + `te-default` fallback.
+
+### System pills / invocations (new)
+Invocation events (content matching `/invoc|invoked|started by|spawned/i`) render as `.tool-event.te-{agent}` with "invocado" badge — same visual as tool events.
+Non-invocation system events keep the centered `.system-pill` / `.system-pill-inner` pill style.
+
+### Thinking dots (new)
+`ThinkingDots` component inside `MessageList` — rendered for agents with `AgentState.Thinking` from `agent-store`.
+DOM: `.thinking` > `.t-name.c-{agent}` + `.t-dots` > 3 `<span>` elements with `backgroundColor: currentColor`.
+`currentColor` picks up the `color` from `c-{agent}` class → no inline rgba needed.
+
+### Scroll-to-bottom button (new)
+Rendered conditionally in `MessageList` when `isScrollLocked === true`.
+Uses `position: absolute` on `.chat` (which has `position: relative`), `bottom: 80px`, `left: 50%`, `transform: translateX(-50%)`.
+`MessageList` renders `<>messages div + button</>` fragment — button is sibling of `.messages`, not inside it.
+
+### Code blocks in ReactMarkdown (new)
+Custom `pre` renderer → `MdCodeBlock` component with copy button (Copy/Check icons from lucide).
+Copy uses `navigator.clipboard.writeText()` + 2s "copied" feedback state.
+CSS class: `.msg-code-block` (border-radius 14px, bg-code), `.msg-code-copy` (top-right, opacity 0 → 1 on hover).
+
+### Scroll mask at top of chat
+`.chat` has `position: relative` + `::before` pseudo-element (height 16px, bg-chat, z-index 2) to fade edge.
+In globals.css, not a separate component. The `.chat` div in `ChatArea.tsx` gets `position: relative` via CSS (no inline style needed).
+
+### noUncheckedIndexedAccess and array indexing
+Bun/TS strict config has `noUncheckedIndexedAccess` → `array[i]` returns `T | undefined`.
+Fix: use non-null assertion `array[i]!` when you know the index is valid (guarded by while loop bounds check).
+`extractAgent` regex match: use `match?.[1]?.toLowerCase() ?? null` instead of `match[1].toLowerCase()`.
+
+## Phase 6 — CSS component migration (2026-03-21)
+
+### Component CSS import convention
+Each component imports its own CSS file at the top:
+`import '../styles/components/Titlebar.css'` etc.
+`globals.css` is imported only in `App.tsx`.
+
+### Titlebar replaces TopBar
+`Titlebar.tsx` (new) renders the macOS-style titlebar with traffic lights, room tab, and user info.
+`TopBar.tsx` (old) is no longer used — App.tsx now imports Titlebar.
+`TopBar.tsx` is kept in the repo but not referenced.
+
+### ParticipantPanel sidebar migration
+Old: `<div className="panel">` with `.section-label` and flat `.participant` list.
+New: `<aside className="sidebar">` with `.sb-section` label and `.agent-list` scroll container.
+No header — room info is now in the titlebar.
+
+### ParticipantItem card grid layout
+Old: flat `.participant` row with avatar + info columns.
+New: `.card-wrap` > `.card-buttons` + `.card active-card/off-card` using CSS grid:
+  - `.cell-name` (icon-role + name + model) — grid col 1 row 1
+  - `.cell-bar` (bar-track/bar-fill) — grid col 1 row 2
+  - `.cell-metrics` (role + model-badge) — grid col 1 row 3
+  - `.cell-status` (icon-status, spans rows 1-4) — grid col 2
+LucideIcon components accept `className` directly: `<Icon className="icon-role" />` — do NOT wrap in `<svg>`.
+Agent accent color via `--ac` and `--agent-tint` inline CSS custom properties on `.card-wrap`.
+AGENT_COLOR map lives in ParticipantItem.tsx (not exported) — 10 agent colors.
+
+### MessageInput textarea + ChatInput.css
+Old: `<input>` inside `.input-area`, single `send-btn`.
+New: `.chat-input` > `.input-box` > `<textarea>` + `.input-bottom` row.
+Bottom row: `.input-controls` (mode-badge mode-execute/mode-brainstorm) + `.input-icons` (Paperclip, Image, ArrowRight send).
+Mode state is local (`useState<InputMode>`) — toggles execute/brainstorm on click.
+`autoResize()` helper sets textarea height from scrollHeight on every change.
+handleKeyDown: typed as `React.KeyboardEvent<HTMLInputElement>` (cast via `as unknown`) because `useMentionAutocomplete` signature uses input — works fine at runtime.
+
+### StatusBar new classes
+Old: `.statusbar-left` / `.statusbar-right` / `.statusbar-item`.
+New: `.sb-left` / `.sb-right` / `.sb-item` (from Statusbar.css).
+Git info uses `.sb-git` + `.sb-branch` + `.sb-git-stat`.
+Agents count uses `.sb-agents` with `<span>` for the colored number.
+
+### LucideIcon className pattern
+Lucide v5 icons accept `className` and render their own `<svg>`.
+The AgentCard.css targets `svg.icon-role` and `svg.icon-status` — these work because lucide renders an svg with whatever className you pass.
+Never nest `<Icon>` inside a manually created `<svg>` — it would double-wrap.
 
 ## Scroll lock threshold
 MessageList uses 50px from bottom as the auto-scroll lock threshold (plan-specified).
