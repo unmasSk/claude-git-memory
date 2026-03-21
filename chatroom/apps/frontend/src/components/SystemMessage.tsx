@@ -13,7 +13,7 @@ interface QueueGroupProps {
 /** Extract agent name from content like "Agent house is busy..." → "house" */
 function extractAgent(content: string): string | null {
   const match = content.match(/^Agent\s+(\w+)/i);
-  return match ? match[1].toLowerCase() : null;
+  return match?.[1]?.toLowerCase() ?? null;
 }
 
 /** Strip "Agent X" prefix, capitalize agent name */
@@ -43,8 +43,36 @@ function pillVariant(content: string): string {
   return 'system-pill-inner';
 }
 
+/** Derive CSS class for tool-event agent coloring */
+function teAgentClass(agent: string): string {
+  const known = ['ultron','cerberus','dante','bilbo','house','yoda','alexandria','gitto','argus','moriarty','claude'];
+  return known.includes(agent) ? `te-${agent}` : 'te-default';
+}
+
+/** True when content represents an agent invocation event */
+function isInvocationEvent(content: string): boolean {
+  return /invoc|invoked|started by|spawned/i.test(content) ||
+    content.startsWith('[DIRECTIVE FROM USER');
+}
+
 export const SystemMessage = memo(function SystemMessage({ message }: SystemMessageProps) {
   const agent = extractAgent(message.content);
+
+  // Invocation events render as tool-event pills with "invocado" badge
+  if (agent && isInvocationEvent(message.content)) {
+    const colorClass = `c-${agent}`;
+    const agentClass = teAgentClass(agent);
+    const agentLabel = agent.charAt(0).toUpperCase() + agent.slice(1);
+    return (
+      <div className={`tool-event ${agentClass}`}>
+        <span className={`te-agent ${colorClass}`}>{agentLabel}</span>
+        <span className="te-arrow">›</span>
+        <span className="te-badge">invocado</span>
+        <span className="te-desc" />
+      </div>
+    );
+  }
+
   const colorClass = agent ? `c-${agent}` : '';
   return (
     <div className="system-pill">

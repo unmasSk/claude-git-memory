@@ -257,6 +257,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
   background:
     radial-gradient(ellipse 70% 50% at 50% 85%, rgba(0,0,0,0.15) 0%, transparent 60%),
     radial-gradient(ellipse 40% 35% at 15% 15%, rgba(0,0,0,0.1) 0%, transparent 50%),
@@ -264,50 +265,121 @@ body {
     var(--bg-chat);
 }
 
+/* Scroll fade mask at top of messages area */
+.chat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 16px;
+  background: var(--bg-chat);
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* ── Messages list ── */
 .messages {
   flex: 1;
   overflow-y: auto;
   padding: 16px 16px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
 }
 
 .messages::-webkit-scrollbar        { width: 3px; }
 .messages::-webkit-scrollbar-track  { background: transparent; }
 .messages::-webkit-scrollbar-thumb  { background: oklch(30% 0.01 250); border-radius: 2px; }
 
-/* ── Message ── */
-.message {
-  padding: 5px 8px;
+/* ── Message — no bubble, text on background ── */
+.msg {
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.msg:first-child { margin-top: 0; }
+
+/* Human message — card style */
+.msg.human {
+  background: var(--bg-input);
+  border: 1px solid #3d3d3d;
+  padding: 8px 12px;
+  border-radius: 14px;
+}
+
+.msg-head {
   display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 0;
-  line-height: 1.55;
-  border-radius: 6px;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+
+.msg-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .msg-time {
-  font-size: 10px;
-  color: var(--text-3);
   font-family: var(--font-mono);
-  margin-left: auto;
-  padding-left: 8px;
+  font-size: 9px;
+  color: var(--text-3);
   user-select: none;
-  flex-shrink: 0;
-  align-self: flex-end;
-  line-height: 1.2;
-  padding-bottom: 1px;
 }
 
-.msg-author {
-  font-weight: 600;
+.msg-text {
+  font-family: var(--font-ui);
   font-size: 13px;
-  margin-right: 8px;
-  flex-shrink: 0;
+  font-weight: 500;
+  line-height: 1.65;
+  color: var(--text-1);
+  width: 100%;
+}
+
+.msg-text code {
   font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-code);
+  background: var(--bg-code);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.msg-text blockquote {
+  border-left: 2px solid var(--text-3);
+  padding: 4px 12px;
+  color: var(--text-2);
+  margin: 6px 30px;
+  border-radius: 0 8px 8px 0;
+}
+
+.msg-text table {
+  margin: 6px 30px;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+}
+
+.msg-text table th {
+  text-align: left;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.msg-text table td {
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--border-s);
+  color: var(--text-1);
+}
+
+.msg-text table tr:last-child td { border-bottom: none; }
+
+.msg-text ul,
+.msg-text ol {
+  margin-left: 30px;
+  margin-right: 30px;
+  padding-left: 18px;
+  margin-top: 4px;
+  margin-bottom: 4px;
 }
 
 .msg-metrics {
@@ -322,11 +394,14 @@ body {
   user-select: none;
 }
 
+/* Legacy .msg-content (used by ReactMarkdown wrapper) */
 .msg-content {
   color: var(--text-1);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.65;
+  width: 100%;
+  display: block;
 }
 
 /* ── Mention ── */
@@ -346,7 +421,85 @@ body {
   color: var(--accent);
 }
 
-/* ── System pill ── */
+/* ── Tool events + System pills (unified style) ── */
+.tool-event {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  margin: 2px 30px 0;
+  border-radius: 0 8px 8px 0;
+  border-left: 2px solid transparent;
+}
+
+/* First tool after a message: 16px top gap */
+.msg + .tool-event { margin-top: 16px; }
+
+.te-agent {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  width: 56px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.te-arrow {
+  font-size: 11px;
+  flex-shrink: 0;
+  opacity: 0.5;
+  color: var(--text-3);
+}
+
+.te-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.te-desc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Per-agent tool event colors (border + bg + badge tint) */
+.te-ultron    { border-left-color: color-mix(in srgb, var(--color-ultron) 40%, transparent);    background: color-mix(in srgb, var(--color-ultron) 3%, transparent); }
+.te-cerberus  { border-left-color: color-mix(in srgb, var(--color-cerberus) 40%, transparent);  background: color-mix(in srgb, var(--color-cerberus) 3%, transparent); }
+.te-dante     { border-left-color: color-mix(in srgb, var(--color-dante) 40%, transparent);     background: color-mix(in srgb, var(--color-dante) 3%, transparent); }
+.te-bilbo     { border-left-color: color-mix(in srgb, var(--color-bilbo) 40%, transparent);     background: color-mix(in srgb, var(--color-bilbo) 3%, transparent); }
+.te-house     { border-left-color: color-mix(in srgb, var(--color-house) 40%, transparent);     background: color-mix(in srgb, var(--color-house) 3%, transparent); }
+.te-yoda      { border-left-color: color-mix(in srgb, var(--color-yoda) 40%, transparent);      background: color-mix(in srgb, var(--color-yoda) 3%, transparent); }
+.te-alexandria { border-left-color: color-mix(in srgb, var(--color-alexandria) 40%, transparent); background: color-mix(in srgb, var(--color-alexandria) 3%, transparent); }
+.te-gitto     { border-left-color: color-mix(in srgb, var(--color-gitto) 40%, transparent);     background: color-mix(in srgb, var(--color-gitto) 3%, transparent); }
+.te-argus     { border-left-color: color-mix(in srgb, var(--color-argus) 40%, transparent);     background: color-mix(in srgb, var(--color-argus) 3%, transparent); }
+.te-moriarty  { border-left-color: color-mix(in srgb, var(--color-moriarty) 40%, transparent);  background: color-mix(in srgb, var(--color-moriarty) 3%, transparent); }
+.te-claude    { border-left-color: color-mix(in srgb, var(--color-ultron) 40%, transparent);    background: color-mix(in srgb, var(--color-ultron) 3%, transparent); }
+.te-default   { border-left-color: color-mix(in srgb, var(--text-3) 40%, transparent);          background: transparent; }
+
+/* Badge tint per agent */
+.te-ultron    .te-badge { background: color-mix(in srgb, var(--color-ultron) 12%, transparent);    color: var(--color-ultron); }
+.te-cerberus  .te-badge { background: color-mix(in srgb, var(--color-cerberus) 12%, transparent);  color: var(--color-cerberus); }
+.te-dante     .te-badge { background: color-mix(in srgb, var(--color-dante) 12%, transparent);     color: var(--color-dante); }
+.te-bilbo     .te-badge { background: color-mix(in srgb, var(--color-bilbo) 12%, transparent);     color: var(--color-bilbo); }
+.te-house     .te-badge { background: color-mix(in srgb, var(--color-house) 12%, transparent);     color: var(--color-house); }
+.te-yoda      .te-badge { background: color-mix(in srgb, var(--color-yoda) 12%, transparent);      color: var(--color-yoda); }
+.te-alexandria .te-badge { background: color-mix(in srgb, var(--color-alexandria) 12%, transparent); color: var(--color-alexandria); }
+.te-gitto     .te-badge { background: color-mix(in srgb, var(--color-gitto) 12%, transparent);     color: var(--color-gitto); }
+.te-argus     .te-badge { background: color-mix(in srgb, var(--color-argus) 12%, transparent);     color: var(--color-argus); }
+.te-moriarty  .te-badge { background: color-mix(in srgb, var(--color-moriarty) 12%, transparent);  color: var(--color-moriarty); }
+.te-claude    .te-badge { background: color-mix(in srgb, var(--color-ultron) 12%, transparent);    color: var(--color-ultron); }
+.te-default   .te-badge { background: var(--bg-card);                                              color: var(--text-2); }
+
+/* ── System pill (queue / join / leave — centered) ── */
 .system-pill {
   display: flex;
   justify-content: center;
@@ -390,32 +543,121 @@ body {
   gap: 2px;
 }
 
-/* ── Tool line ── */
-.tool-line {
-  font-size: 11px;
-  color: var(--text-2);
-  padding: 2px 0 2px 48px;
+/* ── Thinking dots ── */
+.thinking {
   display: flex;
   align-items: center;
-  gap: 6px;
-  opacity: 0.7;
+  gap: 8px;
+  margin-top: 16px;
+  margin-bottom: 0;
 }
 
-.tool-agent {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-3);
-  min-width: 0;
-}
-
-.tool-badge {
+.t-name {
   font-family: var(--font-mono);
-  font-size: 10px;
-  background: var(--bg-card);
-  color: var(--info);
-  padding: 1px 6px;
-  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 700;
 }
+
+.t-dots {
+  display: flex;
+  gap: 5px;
+  position: relative;
+  top: 1px;
+}
+
+.t-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  animation: tdot 1.4s ease-in-out infinite;
+}
+
+.t-dots span:nth-child(2) { animation-delay: 0.22s; }
+.t-dots span:nth-child(3) { animation-delay: 0.44s; }
+
+@keyframes tdot {
+  0%, 80%, 100% { opacity: 0.25; transform: scale(1); }
+  40%           { opacity: 1;    transform: scale(1.3); }
+}
+
+/* ── Scroll-to-bottom button ── */
+.scroll-bottom {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 32px;
+  background: #272727;
+  border: 1px solid #3d3d3d;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-2);
+  z-index: 3;
+  transition: background 150ms, color 150ms;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.scroll-bottom:hover {
+  background: #333333;
+  color: var(--text-1);
+}
+
+/* ── Code blocks inside messages ── */
+.msg-code-block {
+  background: var(--bg-code);
+  border: 1px solid var(--border-s);
+  border-radius: 14px;
+  margin: 16px 30px;
+  overflow: hidden;
+  position: relative;
+}
+
+.msg-code-block pre {
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-code);
+  overflow-x: auto;
+  margin: 0;
+}
+
+.msg-code-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-3);
+  transition: color 150ms, background 150ms;
+  opacity: 0;
+}
+
+.msg-code-block:hover .msg-code-copy { opacity: 1; }
+
+.msg-code-copy:hover {
+  color: var(--text-2);
+  background: rgba(255,255,255,0.05);
+}
+
+/* Syntax highlight classes */
+.msg-code-block pre .kw   { color: oklch(70% 0.16 290); }
+.msg-code-block pre .fn   { color: oklch(72% 0.18 200); }
+.msg-code-block pre .str  { color: oklch(70% 0.16 130); }
+.msg-code-block pre .cm   { color: var(--text-3); font-style: italic; }
+.msg-code-block pre .num  { color: oklch(72% 0.18 65); }
+.msg-code-block pre .type { color: oklch(68% 0.16 60); }
 
 /* ── Input area ── */
 .input-area {
@@ -597,11 +839,12 @@ body {
 .mention-user      { color: var(--color-bex);       background: color-mix(in srgb, var(--color-bex) 12%, transparent); }
 
 /* ── Markdown rendering inside message content ── */
-.msg-content .md-para {
-  display: inline;
+.msg-text .md-para {
+  display: block;
+  margin: 2px 0;
 }
 
-.msg-content .md-code-inline {
+.msg-text .md-code-inline {
   font-family: var(--font-mono);
   font-size: 11px;
   background: var(--bg-code);
@@ -610,6 +853,77 @@ body {
   border-radius: 3px;
 }
 
+/* Code blocks — rendered as .msg-code-block via custom pre component */
+.msg-text .md-pre {
+  display: contents;
+}
+
+.msg-text .md-pre .md-code-block {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-code);
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+.msg-text .md-ul,
+.msg-text .md-ol {
+  display: block;
+  margin: 4px 30px 4px 30px;
+  padding-left: 18px;
+}
+
+.msg-text .md-li {
+  display: list-item;
+  margin: 1px 0;
+  font-size: 13px;
+  color: var(--text-1);
+}
+
+.msg-text .md-blockquote {
+  border-left: 2px solid var(--text-3);
+  padding: 4px 12px;
+  color: var(--text-2);
+  margin: 6px 30px;
+  border-radius: 0 8px 8px 0;
+}
+
+.msg-text .md-table-wrap {
+  margin: 6px 30px;
+  overflow-x: auto;
+}
+
+.msg-text .md-table {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+}
+
+.msg-text .md-th {
+  text-align: left;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+.msg-text .md-td {
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--border-s);
+}
+
+/* Legacy .msg-content markdown — kept for backward compat */
+.msg-content .md-para { display: inline; }
+.msg-content .md-code-inline {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: var(--bg-code);
+  color: var(--text-code);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
 .msg-content .md-pre {
   display: block;
   margin: 4px 0;
@@ -619,7 +933,6 @@ body {
   padding: 8px 12px;
   overflow-x: auto;
 }
-
 .msg-content .md-pre .md-code-block {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -628,13 +941,11 @@ body {
   padding: 0;
   border-radius: 0;
 }
-
 .msg-content .md-ul,
 .msg-content .md-ol {
   display: block;
   margin: 4px 0 4px 18px;
 }
-
 .msg-content .md-li {
   display: list-item;
   margin: 1px 0;

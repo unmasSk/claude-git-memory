@@ -1,7 +1,9 @@
-import React, { memo, Children, isValidElement } from 'react';
+import React, { memo, useCallback, Children, isValidElement } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Copy, Check } from 'lucide-react';
+import { useState } from 'react';
 import type { Message } from '@agent-chatroom/shared';
-import { agentColorClass, mentionClass } from '../lib/colors';
+import { mentionClass } from '../lib/colors';
 
 // SEC-XSS-001: Allowed URL schemes for markdown links.
 // javascript:, data:, and vbscript: are blocked to prevent XSS.
@@ -22,7 +24,7 @@ function formatModelName(model: string): string {
   const m = model.replace(/^claude-/, '').replace(/-(\d{8})$/, '');
   const parts = m.split('-');
   const name = parts[0];
-  const version = parts.slice(1).join('.').replace(/\.\d+$/, (s) => s); // keep as is
+  const version = parts.slice(1).join('.');
   return `${name} ${version}`;
 }
 
@@ -57,8 +59,6 @@ function formatTime(createdAt: string): string {
 
 /**
  * Parse a text string and highlight @mentions.
- * Returns React nodes — plain text segments stay as strings, @mentions become
- * <span className="mention …"> elements.
  */
 function splitMentions(text: string): React.ReactNode[] {
   const parts = text.split(/(@\w+)/g);
@@ -76,10 +76,7 @@ function splitMentions(text: string): React.ReactNode[] {
 }
 
 /**
- * Walk a React node tree and replace every string leaf that contains an
- * @mention with the highlighted output of splitMentions.
- * Non-string nodes (elements, arrays) are recursed into so mentions inside
- * bold/italic/code siblings are still highlighted.
+ * Walk a React node tree and highlight @mentions in string leaves.
  */
 function highlightMentionsInNode(node: React.ReactNode, keyPrefix: string): React.ReactNode {
   if (typeof node === 'string') {
@@ -91,7 +88,6 @@ function highlightMentionsInNode(node: React.ReactNode, keyPrefix: string): Reac
   if (isValidElement(node)) {
     const el = node as React.ReactElement<{ children?: React.ReactNode }>;
     const newChildren = highlightMentionsInNode(el.props.children, keyPrefix);
-    // Only clone if something actually changed (avoids unnecessary rerenders)
     if (newChildren === el.props.children) return node;
     return React.cloneElement(el, {}, newChildren);
   }
@@ -99,8 +95,7 @@ function highlightMentionsInNode(node: React.ReactNode, keyPrefix: string): Reac
 }
 
 /**
- * Custom paragraph renderer — renders inline content with @mention highlighting
- * instead of wrapping in a <p> tag (to preserve IRC-style inline layout).
+ * Paragraph renderer — inline layout with @mention highlighting.
  */
 function MdParagraph({ children }: { children?: React.ReactNode }): React.ReactElement {
   const highlighted = Children.map(children, (child, i) =>
@@ -109,24 +104,64 @@ function MdParagraph({ children }: { children?: React.ReactNode }): React.ReactE
   return <span className="md-para">{highlighted}</span>;
 }
 
+/**
+ * Code block renderer with copy button.
+ */
+function MdCodeBlock({ children }: { children: React.ReactNode }): React.ReactElement {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const text = extractText(children);
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [children]);
+
+  return (
+    <div className="msg-code-block">
+      <button
+        type="button"
+        className="msg-code-copy"
+        onClick={handleCopy}
+        aria-label="Copy code"
+      >
+        {copied ? <Check size={12} /> : <Copy size={12} />}
+      </button>
+      <pre>{children}</pre>
+    </div>
+  );
+}
+
+function extractText(node: React.ReactNode): string {
+  if (typeof node === 'string') return node;
+  if (typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join('');
+  if (isValidElement(node)) {
+    const el = node as React.ReactElement<{ children?: React.ReactNode }>;
+    return extractText(el.props.children);
+  }
+  return '';
+}
+
 export const MessageLine = memo(function MessageLine({ message }: MessageLineProps) {
   const safeAuthor = message.author || 'unknown';
   const authorName = safeAuthor.charAt(0).toUpperCase() + safeAuthor.slice(1);
-  const bgClass = message.authorType === 'agent' || message.authorType === 'user'
-    ? `bg-${safeAuthor.toLowerCase().replace(/\s+/g, '-')}`
-    : '';
+  const isHuman = message.authorType === 'human';
+  const colorClass = `c-${safeAuthor.toLowerCase()}`;
 
   const metrics = message.authorType === 'agent' ? formatMetrics(message.metadata) : null;
 
   return (
-    <div className={`message ${bgClass}`}>
-      <span className={`msg-author ${agentColorClass(safeAuthor)}`}>
-        {authorName}
-      </span>
-      <span className="msg-content">
+    <div className={`msg${isHuman ? ' human' : ''}`}>
+      <div className="msg-head">
+        <span className={`msg-name ${colorClass}`}>{authorName}</span>
+        <span className="msg-time">{formatTime(message.createdAt)}</span>
+      </div>
+      <div className="msg-text">
         <ReactMarkdown
           components={{
-            // SEC-XSS-001: Block javascript:, data:, vbscript: URIs in links
+            // SEC-XSS-001: Block dangerous URI schemes in links
             a: ({ href, children }) => {
               const safeHref = sanitizeHref(href);
               if (!safeHref) return <span>{children}</span>;
@@ -136,9 +171,9 @@ export const MessageLine = memo(function MessageLine({ message }: MessageLinePro
                 </a>
               );
             },
-            // Render paragraphs inline to preserve IRC-style layout
+            // Paragraphs inline with @mention highlighting
             p: MdParagraph,
-            // Inline code — styled via CSS .md-code-inline
+            // Inline code
             code: ({ children, className }) => {
               const isBlock = !!className;
               if (isBlock) {
@@ -146,18 +181,29 @@ export const MessageLine = memo(function MessageLine({ message }: MessageLinePro
               }
               return <code className="md-code-inline">{children}</code>;
             },
-            // Code blocks — styled via CSS .md-pre
-            pre: ({ children }) => <pre className="md-pre">{children}</pre>,
-            // List items and lists
+            // Code blocks with copy button
+            pre: ({ children }) => <MdCodeBlock>{children}</MdCodeBlock>,
+            // Lists indented 30px
             ul: ({ children }) => <ul className="md-ul">{children}</ul>,
             ol: ({ children }) => <ol className="md-ol">{children}</ol>,
             li: ({ children }) => <li className="md-li">{children}</li>,
+            // Blockquote with agent-colored left border (inherits from .msg-text)
+            blockquote: ({ children }) => (
+              <blockquote className="md-blockquote">{children}</blockquote>
+            ),
+            // Tables
+            table: ({ children }) => (
+              <div className="md-table-wrap">
+                <table className="md-table">{children}</table>
+              </div>
+            ),
+            th: ({ children }) => <th className="md-th">{children}</th>,
+            td: ({ children }) => <td className="md-td">{children}</td>,
           }}
         >
           {message.content}
         </ReactMarkdown>
-      </span>
-      <span className="msg-time">{formatTime(message.createdAt)}</span>
+      </div>
       {metrics && (
         <span className="msg-metrics">{metrics}</span>
       )}
