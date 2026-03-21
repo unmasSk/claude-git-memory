@@ -1,15 +1,16 @@
 import '../styles/components/Statusbar.css';
 import { GitBranch, ArrowDown, ArrowUp } from 'lucide-react';
-import { useAgentStore } from '../stores/agent-store';
-import { AgentState } from '@agent-chatroom/shared';
+import { useWsStore } from '../stores/ws-store';
 
 export function StatusBar() {
-  const agents = useAgentStore((s) => s.agents);
+  const status = useWsStore((s) => s.status);
 
-  const activeAgents = Array.from(agents.values()).filter(
-    (a) => a.status !== AgentState.Out
-  ).length;
-  const totalAgents = agents.size;
+  const dotClass =
+    status === 'connected'
+      ? 'statusbar-dot connected'
+      : status === 'connecting'
+      ? 'statusbar-dot connecting'
+      : 'statusbar-dot disconnected';
 
   return (
     <div className="statusbar">
@@ -26,8 +27,9 @@ export function StatusBar() {
       </div>
 
       <div className="sb-right">
-        <span className="sb-item sb-agents">
-          <span>{activeAgents}</span> / {totalAgents} active
+        <span className="sb-item">
+          <div className={dotClass} />
+          {status}
         </span>
       </div>
     </div>

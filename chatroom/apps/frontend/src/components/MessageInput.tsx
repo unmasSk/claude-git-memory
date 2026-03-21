@@ -1,6 +1,6 @@
 import '../styles/components/ChatInput.css';
 import { useState, useRef, useCallback } from 'react';
-import { Paperclip, Image, ArrowRight, Zap } from 'lucide-react';
+import { Paperclip, Image, ArrowRight, Zap, Lightbulb } from 'lucide-react';
 import { useWsStore } from '../stores/ws-store';
 import { useAgentStore } from '../stores/agent-store';
 import { useMentionAutocomplete, replaceMention } from '../hooks/useMentionAutocomplete';
@@ -124,7 +124,7 @@ export function MessageInput() {
               type="button"
               aria-label="Toggle input mode"
             >
-              {mode === 'execute' ? <Zap size={14} /> : <span style={{ fontSize: '14px' }}>&#129504;</span>}
+              {mode === 'execute' ? <Zap size={14} /> : <Lightbulb size={14} />}
               {mode === 'execute' ? 'Execute' : 'Brainstorm'}
               <span className="chip-arrow">&#9662;</span>
             </button>
