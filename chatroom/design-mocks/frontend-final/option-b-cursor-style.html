@@ -500,7 +500,7 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
 /* ── MESSAGES ────────────────────────────────────── */
 .messages {
-  flex: 1; overflow-y: auto; padding: 16px 22px 8px;
+  flex: 1; overflow-y: auto; padding: 14px 14px 0;
 }
 .messages::-webkit-scrollbar { width: 3px; }
 .messages::-webkit-scrollbar-track { background: transparent; }
@@ -520,6 +520,8 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
 /* Message — NO bubble */
 .msg { margin-bottom: 14px; }
+.tool-event + .msg { margin-top: 14px; }
+.sys-pill + .msg { margin-top: 14px; }
 .msg-head {
   display: flex; align-items: baseline; gap: 8px;
   margin-bottom: 3px;
@@ -543,23 +545,29 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   background: var(--bg-code);
   padding: 1px 5px; border-radius: 3px;
 }
+.msg-text blockquote {
+  border-left: 2px solid var(--text-3);
+  padding-left: 12px;
+  color: var(--text-2);
+  margin: 6px 0;
+}
 
 /* Human message — warm strip */
 .msg.human {
-  background: rgba(255, 200, 100, 0.04);
-  border-left: 2px solid rgba(255, 200, 100, 0.12);
-  padding: 8px 14px;
-  border-radius: 0 4px 4px 0;
-  margin-left: -14px;
-  margin-right: -14px;
+  background: var(--bg-input);
+  border: 1px solid #3d3d3d;
+  padding: 8px 12px;
+  border-radius: 14px;
 }
 
 /* ── TOOL EVENTS ─────────────────────────────────── */
 .tool-event {
   display: flex; align-items: center; gap: 8px;
   padding: 4px 12px;
-  margin: 3px 0;
-  border-radius: 0 4px 4px 0;
+  margin: 2px 0;
+  margin-left: 30px;
+  margin-right: 30px;
+  border-radius: 0 8px 8px 0;
 }
 .te-agent {
   font-family: var(--font-mono);
@@ -582,10 +590,16 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
 /* ── SYSTEM PILL ─────────────────────────────────── */
 .sys-pill {
-  display: flex; align-items: center; gap: 10px;
-  margin: 10px 0;
+  display: flex; align-items: center; gap: 8px;
+  margin: 2px 0;
+  margin-left: 30px;
+  margin-right: 30px;
+  padding: 4px 12px;
+  border-radius: 0 8px 8px 0;
+  border-left: 2px solid var(--text-3);
+  background: rgba(125, 125, 125, 0.03);
 }
-.sys-pill .line { flex: 1; height: 1px; background: var(--border-s); }
+.sys-pill .line { display: none; }
 .sys-pill .text {
   font-family: var(--font-mono);
   font-size: 9px; color: var(--text-3);
@@ -601,7 +615,7 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   font-family: var(--font-mono);
   font-size: 12px; font-weight: 700;
 }
-.t-dots { display: flex; gap: 5px; }
+.t-dots { display: flex; gap: 5px; position: relative; top: 1px; }
 .t-dots span {
   width: 5px; height: 5px; border-radius: 50%;
   animation: tdot 1.4s ease-in-out infinite;
@@ -651,7 +665,10 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   border: 1px solid var(--border-s);
   border-radius: 6px;
   margin: 8px 0;
+  margin-left: 30px;
+  margin-right: 30px;
   overflow: hidden;
+  position: relative;
 }
 .code-label {
   font-family: var(--font-mono);
@@ -660,6 +677,23 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   color: var(--text-3);
   padding: 5px 12px;
   border-bottom: 1px solid var(--border-s);
+}
+.code-copy {
+  position: absolute;
+  top: 32px; right: 6px;
+  width: 24px; height: 24px;
+  background: none; border: none; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-3);
+  transition: color 150ms, background 150ms;
+  opacity: 0;
+}
+.code-block:hover .code-copy { opacity: 1; }
+.code-copy:hover { color: var(--text-2); background: rgba(255,255,255,0.05); }
+.code-copy svg {
+  width: 14px; height: 14px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
 }
 .code-block pre {
   padding: 10px 12px;
@@ -678,12 +712,12 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
 /* ── INPUT — Cursor-style chatbox ──── */
 .chat-input {
-  padding: 10px 20px 14px;
+  padding: 14px;
   flex-shrink: 0;
 }
 .input-box {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid #3d3d3d;
   border-radius: 14px;
   padding: 6px 7px 6px;
   display: flex; flex-direction: column; gap: 6px;
@@ -695,7 +729,7 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 .input-box textarea {
   width: 100%; background: none; border: none; outline: none;
   font-family: var(--font-ui); font-size: 13px; color: var(--text-1);
-  resize: none; height: 28px; line-height: 1.5;
+  resize: none; height: 20px; min-height: 20px; max-height: 200px; line-height: 1.5; overflow-y: auto;
   padding-left: 2px;
 }
 .input-box textarea::placeholder { color: var(--text-3); }
@@ -716,6 +750,8 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   cursor: pointer;
   display: flex; align-items: center; gap: 4px;
   transition: background 150ms;
+  position: relative;
+  top: 3px;
 }
 .input-chip:hover { background: #222222; }
 .input-chip .chip-arrow {
@@ -726,11 +762,14 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 .mode-badge {
   font-family: var(--font-ui);
   font-size: 11px; font-weight: 500;
-  border: none; border-radius: 6px;
+  border: none; border-radius: 14px;
   padding: 3px 8px;
   cursor: pointer;
   display: flex; align-items: center; gap: 5px;
   transition: opacity 150ms;
+  position: relative;
+  top: 2px;
+  left: 1px;
 }
 .mode-badge:hover { opacity: 0.85; }
 .mode-badge svg {
@@ -747,8 +786,8 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   color: #3FC7EB;
 }
 .mode-brainstorm {
-  background: rgba(51, 147, 127, 0.12);
-  color: #33937F;
+  background: rgba(244, 140, 186, 0.12);
+  color: #F48CBA;
 }
 .input-icons {
   display: flex; align-items: center; gap: 4px;
@@ -762,9 +801,9 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 }
 .input-icon-btn:hover { color: var(--text-2); background: #1e1e1e; }
 .input-icon-btn.send-btn {
-  background: #333333; color: var(--text-1); border-radius: 50%;
+  background: rgba(63, 199, 235, 0.15); color: #3FC7EB; border-radius: 50%;
 }
-.input-icon-btn.send-btn:hover { background: #444444; }
+.input-icon-btn.send-btn:hover { background: rgba(63, 199, 235, 0.25); }
 
 /* ── STATUS BAR ──────────────────────────────────── */
 .statusbar {
@@ -1180,78 +1219,79 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
             <span class="msg-name" style="color:var(--c-bex)">bex</span>
             <span class="msg-time">14:21</span>
           </div>
-          <div class="msg-text">@ultron implementa rate limiting en la WS API. 100 req/min por conexi&oacute;n, sliding window.</div>
+          <div class="msg-text"><span style="color:var(--color-ultron); font-weight:600">@ultron</span> implementa rate limiting en la WS API. 100 req/min por conexi&oacute;n, sliding window.</div>
         </div>
 
         <!-- 2. Ultron response -->
         <div class="msg">
           <div class="msg-head">
-            <span class="msg-name" style="color:var(--c-ultron)">ultron</span>
+            <span class="msg-name" style="color:var(--color-ultron)">ultron</span>
             <span class="msg-time">14:21</span>
           </div>
           <div class="msg-text">Rate limiting en WS. Leo el c&oacute;digo actual de <code>ws.ts</code> y <code>config.ts</code>, luego aplico sliding window con burst allowance.</div>
         </div>
 
         <!-- 3. Tool events — Ultron (green border) -->
-        <div class="tool-event" style="background:oklch(72% 0.18 145 / 0.03); border-left:2px solid oklch(72% 0.18 145 / 0.4)">
-          <span class="te-agent" style="color:var(--c-ultron)">ultron</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 145 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 145 / 0.12); color:var(--c-ultron)">Read</span>
+        <div class="tool-event" style="background:rgba(0, 112, 221, 0.03); border-left:2px solid rgba(0, 112, 221, 0.4)">
+          <span class="te-agent" style="color:var(--color-ultron)">ultron</span>
+          <span class="te-arrow" style="color:rgba(0, 112, 221, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0, 112, 221, 0.12); color:var(--color-ultron)">Read</span>
           <span class="te-desc">apps/backend/src/routes/ws.ts</span>
         </div>
-        <div class="tool-event" style="background:oklch(72% 0.18 145 / 0.03); border-left:2px solid oklch(72% 0.18 145 / 0.4)">
-          <span class="te-agent" style="color:var(--c-ultron)">ultron</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 145 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 145 / 0.12); color:var(--c-ultron)">Read</span>
+        <div class="tool-event" style="background:rgba(0, 112, 221, 0.03); border-left:2px solid rgba(0, 112, 221, 0.4)">
+          <span class="te-agent" style="color:var(--color-ultron)">ultron</span>
+          <span class="te-arrow" style="color:rgba(0, 112, 221, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0, 112, 221, 0.12); color:var(--color-ultron)">Read</span>
           <span class="te-desc">apps/backend/src/config.ts</span>
         </div>
-        <div class="tool-event" style="background:oklch(72% 0.18 145 / 0.03); border-left:2px solid oklch(72% 0.18 145 / 0.4)">
-          <span class="te-agent" style="color:var(--c-ultron)">ultron</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 145 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 145 / 0.12); color:var(--c-ultron)">Edit</span>
+        <div class="tool-event" style="background:rgba(0, 112, 221, 0.03); border-left:2px solid rgba(0, 112, 221, 0.4)">
+          <span class="te-agent" style="color:var(--color-ultron)">ultron</span>
+          <span class="te-arrow" style="color:rgba(0, 112, 221, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0, 112, 221, 0.12); color:var(--color-ultron)">Edit</span>
           <span class="te-desc">apps/backend/src/routes/ws.ts &mdash; added sliding window rateLimiter</span>
         </div>
-        <div class="tool-event" style="background:oklch(72% 0.18 145 / 0.03); border-left:2px solid oklch(72% 0.18 145 / 0.4)">
-          <span class="te-agent" style="color:var(--c-ultron)">ultron</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 145 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 145 / 0.12); color:var(--c-ultron)">Edit</span>
+        <div class="tool-event" style="background:rgba(0, 112, 221, 0.03); border-left:2px solid rgba(0, 112, 221, 0.4)">
+          <span class="te-agent" style="color:var(--color-ultron)">ultron</span>
+          <span class="te-arrow" style="color:rgba(0, 112, 221, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0, 112, 221, 0.12); color:var(--color-ultron)">Edit</span>
           <span class="te-desc">apps/backend/src/config.ts &mdash; WS_RATE_LIMIT_RPM = 100, burst &times;1.5</span>
         </div>
 
         <!-- 4. Ultron done -->
         <div class="msg">
           <div class="msg-head">
-            <span class="msg-name" style="color:var(--c-ultron)">ultron</span>
+            <span class="msg-name" style="color:var(--color-ultron)">ultron</span>
             <span class="msg-time">14:22</span>
           </div>
           <div class="msg-text">Hecho. Sliding window, 100 req/min, burst &times;1.5. Headers <code>RateLimit-*</code> incluidos. Configurable via <code>WS_RATE_LIMIT_RPM</code> en <code>config.ts</code>.</div>
         </div>
 
         <!-- 5. System pill: cerberus invocado -->
-        <div class="sys-pill">
-          <div class="line"></div>
-          <div class="text">cerberus invocado</div>
-          <div class="line"></div>
+        <div class="tool-event" style="background:rgba(255, 124, 10, 0.03); border-left:2px solid rgba(255, 124, 10, 0.4)">
+          <span class="te-agent" style="color:var(--color-cerberus)">cerberus</span>
+          <span class="te-arrow" style="color:rgba(255, 124, 10, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(255, 124, 10, 0.12); color:var(--color-cerberus)">invocado</span>
+          <span class="te-desc"></span>
         </div>
 
         <!-- 6. Cerberus tool events (amber border) -->
-        <div class="tool-event" style="background:oklch(72% 0.18 65 / 0.03); border-left:2px solid oklch(72% 0.18 65 / 0.4)">
-          <span class="te-agent" style="color:var(--c-cerberus)">cerberus</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 65 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 65 / 0.12); color:var(--c-cerberus)">Read</span>
+        <div class="tool-event" style="background:rgba(255, 124, 10, 0.03); border-left:2px solid rgba(255, 124, 10, 0.4)">
+          <span class="te-agent" style="color:var(--color-cerberus)">cerberus</span>
+          <span class="te-arrow" style="color:rgba(255, 124, 10, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(255, 124, 10, 0.12); color:var(--color-cerberus)">Read</span>
           <span class="te-desc">apps/backend/src/routes/ws.ts</span>
         </div>
-        <div class="tool-event" style="background:oklch(72% 0.18 65 / 0.03); border-left:2px solid oklch(72% 0.18 65 / 0.4)">
-          <span class="te-agent" style="color:var(--c-cerberus)">cerberus</span>
-          <span class="te-arrow" style="color:oklch(72% 0.18 65 / 0.4)">&rsaquo;</span>
-          <span class="te-badge" style="background:oklch(72% 0.18 65 / 0.12); color:var(--c-cerberus)">Read</span>
+        <div class="tool-event" style="background:rgba(255, 124, 10, 0.03); border-left:2px solid rgba(255, 124, 10, 0.4)">
+          <span class="te-agent" style="color:var(--color-cerberus)">cerberus</span>
+          <span class="te-arrow" style="color:rgba(255, 124, 10, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(255, 124, 10, 0.12); color:var(--color-cerberus)">Read</span>
           <span class="te-desc">apps/backend/src/config.ts</span>
         </div>
 
         <!-- 7. LONG cerberus review with markdown -->
         <div class="msg">
           <div class="msg-head">
-            <span class="msg-name" style="color:var(--c-cerberus)">cerberus</span>
+            <span class="msg-name" style="color:var(--color-cerberus)">cerberus</span>
             <span class="msg-time">14:23</span>
           </div>
           <div class="msg-text md">
@@ -1270,6 +1310,7 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
             <h3>Code</h3>
             <div class="code-block">
+              <button class="code-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
               <div class="code-label">typescript</div>
               <pre><span class="kw">export function</span> <span class="fn">checkRateLimit</span>(
   ws: <span class="type">ServerWebSocket</span>,
@@ -1293,21 +1334,22 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 }</pre>
             </div>
 
-            <p>@dante &mdash; cubre el path 429 en <code>ws.test.ts</code>. Enviar 101 requests en <code>&lt;60s</code> y assert <code>RATE_LIMITED</code> response + <code>retryAfter</code> header.</p>
+            <p><span style="color:var(--color-dante); font-weight:600">@dante</span> &mdash; cubre el path 429 en <code>ws.test.ts</code>. Enviar 101 requests en <code>&lt;60s</code> y assert <code>RATE_LIMITED</code> response + <code>retryAfter</code> header.</p>
           </div>
         </div>
 
         <!-- 8. System pill: dante invocado -->
-        <div class="sys-pill">
-          <div class="line"></div>
-          <div class="text">dante invocado</div>
-          <div class="line"></div>
+        <div class="tool-event" style="background:rgba(135, 136, 238, 0.03); border-left:2px solid rgba(135, 136, 238, 0.4)">
+          <span class="te-agent" style="color:var(--color-dante)">dante</span>
+          <span class="te-arrow" style="color:rgba(135, 136, 238, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(135, 136, 238, 0.12); color:var(--color-dante)">invocado</span>
+          <span class="te-desc"></span>
         </div>
 
         <!-- 9. Short Dante message -->
         <div class="msg">
           <div class="msg-head">
-            <span class="msg-name" style="color:var(--c-dante)">dante</span>
+            <span class="msg-name" style="color:var(--color-dante)">dante</span>
             <span class="msg-time">14:24</span>
           </div>
           <div class="msg-text">On it. Adding 429 path coverage to <code>ws.test.ts</code>.</div>
@@ -1315,11 +1357,244 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
 
         <!-- 10. Thinking dots: ultron -->
         <div class="thinking">
-          <span class="t-name" style="color:var(--c-ultron)">ultron</span>
+          <span class="t-name" style="color:var(--color-ultron)">ultron</span>
           <div class="t-dots">
-            <span style="background:var(--c-ultron)"></span>
-            <span style="background:var(--c-ultron)"></span>
-            <span style="background:var(--c-ultron)"></span>
+            <span style="background:var(--color-ultron)"></span>
+            <span style="background:var(--color-ultron)"></span>
+            <span style="background:var(--color-ultron)"></span>
+          </div>
+        </div>
+
+        <!-- 11. Bilbo exploring — long message with inline code -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-bilbo)">bilbo</span>
+            <span class="msg-time">14:26</span>
+          </div>
+          <div class="msg-text">Found something interesting while tracing the WebSocket lifecycle. The <code>handleUpgrade</code> function in <code>ws-server.ts</code> creates a new <code>ClientSession</code> but never calls <code>session.init()</code> before the first message arrives. This means the token bucket in <code>rate-limiter.ts</code> gets instantiated with default values instead of the per-room config. Could explain the intermittent 429s on high-traffic rooms — the bucket resets itself on the first valid message but by then two or three frames have already been dropped.</div>
+        </div>
+
+        <!-- 12. Bilbo tool events -->
+        <div class="tool-event" style="background:rgba(170,211,114, 0.03); border-left:2px solid rgba(170,211,114, 0.4)">
+          <span class="te-agent" style="color:var(--color-bilbo)">bilbo</span>
+          <span class="te-arrow" style="color:rgba(170,211,114, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(170,211,114, 0.12); color:var(--color-bilbo)">Grep</span>
+          <span class="te-desc">session.init across ws-server.ts, rate-limiter.ts</span>
+        </div>
+        <div class="tool-event" style="background:rgba(170,211,114, 0.03); border-left:2px solid rgba(170,211,114, 0.4)">
+          <span class="te-agent" style="color:var(--color-bilbo)">bilbo</span>
+          <span class="te-arrow" style="color:rgba(170,211,114, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(170,211,114, 0.12); color:var(--color-bilbo)">Read</span>
+          <span class="te-desc">rate-limiter.ts:42-89</span>
+        </div>
+        <div class="tool-event" style="background:rgba(170,211,114, 0.03); border-left:2px solid rgba(170,211,114, 0.4)">
+          <span class="te-agent" style="color:var(--color-bilbo)">bilbo</span>
+          <span class="te-arrow" style="color:rgba(170,211,114, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(170,211,114, 0.12); color:var(--color-bilbo)">Glob</span>
+          <span class="te-desc">**/session*.ts — 3 files matched</span>
+        </div>
+
+        <!-- 13. Bilbo response with bulleted list -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-bilbo)">bilbo</span>
+            <span class="msg-time">14:27</span>
+          </div>
+          <div class="msg-text">Three things need to happen to fix the race condition:<br><br>• Move <code>session.init()</code> into <code>handleUpgrade</code> right after the token is consumed, before the socket is handed off<br>• Pass the room-specific rate config from <code>config.ts</code> instead of relying on defaults<br>• Add a guard in <code>onMessage</code> that queues frames until init completes — a simple <code>Promise</code> gate will do</div>
+        </div>
+
+        <!-- 14. Human message — bex asks house -->
+        <div class="msg human">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--text-2)">bex</span>
+            <span class="msg-time">14:28</span>
+          </div>
+          <div class="msg-text"><span style="color:var(--color-house); font-weight:600">@house</span> can you diagnose this?</div>
+        </div>
+
+        <!-- 15. House invocado -->
+        <div class="tool-event" style="background:rgba(0,255,152, 0.03); border-left:2px solid rgba(0,255,152, 0.4)">
+          <span class="te-agent" style="color:var(--color-house)">house</span>
+          <span class="te-arrow" style="color:rgba(0,255,152, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0,255,152, 0.12); color:var(--color-house)">invocado</span>
+          <span class="te-desc"></span>
+        </div>
+
+        <!-- 16. House tool events -->
+        <div class="tool-event" style="background:rgba(0,255,152, 0.03); border-left:2px solid rgba(0,255,152, 0.4)">
+          <span class="te-agent" style="color:var(--color-house)">house</span>
+          <span class="te-arrow" style="color:rgba(0,255,152, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0,255,152, 0.12); color:var(--color-house)">Read</span>
+          <span class="te-desc">ws-server.ts:1-120</span>
+        </div>
+        <div class="tool-event" style="background:rgba(0,255,152, 0.03); border-left:2px solid rgba(0,255,152, 0.4)">
+          <span class="te-agent" style="color:var(--color-house)">house</span>
+          <span class="te-arrow" style="color:rgba(0,255,152, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(0,255,152, 0.12); color:var(--color-house)">Bash</span>
+          <span class="te-desc">bun test -- rate-limiter.test.ts</span>
+        </div>
+
+        <!-- 17. House diagnosis — bold heading, blockquote, ordered list -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-house)">house</span>
+            <span class="msg-time">14:30</span>
+          </div>
+          <div class="msg-text"><strong>Diagnosis: Init-Order Race in WebSocket Upgrade</strong><br><br>Bilbo is right but the root cause is deeper. The token bucket isn't just getting defaults — it's getting <em>someone else's</em> defaults. Look at the constructor:<br><br><blockquote>The <code>TokenBucket</code> constructor reads from a module-level <code>_defaultConfig</code> that gets mutated by the last room that called <code>configureRoom()</code>. This is shared mutable state across all connections.</blockquote><br>Fix order:<br><br>1. Make <code>_defaultConfig</code> a frozen copy per room, not a shared reference<br>2. Call <code>session.init(roomConfig)</code> synchronously in the upgrade handler<br>3. Add regression test: two rooms with different rate limits connecting simultaneously</div>
+        </div>
+
+        <!-- 18. Yoda invocado -->
+        <div class="tool-event" style="background:rgba(51,147,127, 0.03); border-left:2px solid rgba(51,147,127, 0.4)">
+          <span class="te-agent" style="color:var(--color-yoda)">yoda</span>
+          <span class="te-arrow" style="color:rgba(51,147,127, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(51,147,127, 0.12); color:var(--color-yoda)">invocado</span>
+          <span class="te-desc"></span>
+        </div>
+
+        <!-- 19. Yoda judgment — score, table-like code block, bold verdict -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-yoda)">yoda</span>
+            <span class="msg-time">14:31</span>
+          </div>
+          <div class="msg-text">Quality score: <strong>92/110</strong><br><br>Reviewed the proposed fix against the codebase standards.</div>
+        </div>
+        <div class="code-block">
+          <button class="code-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <div class="code-label">score</div>
+          <pre>  Criterion              Score   Max
+  ──────────────────────  ──────  ───
+  Root cause accuracy     28      30
+  Fix completeness        24      25
+  Test coverage           22      25
+  Code style compliance   18      20
+  No regressions          pass    10
+  ──────────────────────  ──────  ───
+  TOTAL                   92     110</pre>
+        </div>
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-yoda)">yoda</span>
+            <span class="msg-time">14:31</span>
+          </div>
+          <div class="msg-text"><strong>Verdict: approved.</strong> The frozen-config approach is clean. Minor deduction on test coverage — add a concurrent-upgrade stress test and this is a full pass.</div>
+        </div>
+
+        <!-- 20. Argus invocado -->
+        <div class="tool-event" style="background:rgba(198,155,109, 0.03); border-left:2px solid rgba(198,155,109, 0.4)">
+          <span class="te-agent" style="color:var(--color-argus)">argus</span>
+          <span class="te-arrow" style="color:rgba(198,155,109, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(198,155,109, 0.12); color:var(--color-argus)">invocado</span>
+          <span class="te-desc"></span>
+        </div>
+
+        <!-- 21. Argus security scan — warning, code block, recommendation -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-argus)">argus</span>
+            <span class="msg-time">14:32</span>
+          </div>
+          <div class="msg-text"><strong>Security Warning:</strong> The shared mutable <code>_defaultConfig</code> is not just a bug — it's an attack surface. A malicious client connecting to a permissive room can pollute the rate-limit config for strict rooms, effectively bypassing throttling for all subsequent connections.</div>
+        </div>
+        <div class="code-block">
+          <button class="code-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <div class="code-label">exploit</div>
+          <pre>// Attacker connects to "open-lobby" (100 msg/10s limit)
+// _defaultConfig is now { maxMessages: 100, window: 10000 }
+// Next connection to "secure-room" (5 msg/10s limit)
+// inherits open-lobby's config → bypass achieved
+ws.connect("wss://host/open-lobby");  // pollute config
+ws.close();
+ws.connect("wss://host/secure-room"); // 100 msg/10s now</pre>
+        </div>
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-argus)">argus</span>
+            <span class="msg-time">14:33</span>
+          </div>
+          <div class="msg-text">Recommendation: beyond freezing the config, add an assertion in <code>TokenBucket</code> constructor that validates the config matches the expected room. Defense in depth — never trust upstream to pass the right config.</div>
+        </div>
+
+        <!-- 22. Alexandria invocado -->
+        <div class="tool-event" style="background:rgba(163,48,201, 0.03); border-left:2px solid rgba(163,48,201, 0.4)">
+          <span class="te-agent" style="color:var(--color-alexandria)">alexandria</span>
+          <span class="te-arrow" style="color:rgba(163,48,201, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(163,48,201, 0.12); color:var(--color-alexandria)">invocado</span>
+          <span class="te-desc"></span>
+        </div>
+
+        <!-- 23. Alexandria docs — long quote, code links -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-alexandria)">alexandria</span>
+            <span class="msg-time">14:34</span>
+          </div>
+          <div class="msg-text">Cross-referencing with project documentation and prior decisions.<br><br><blockquote>From the architecture doc (2026-02-18): "Each room MUST maintain its own isolated configuration scope. No module-level mutable state shall be shared between room instances. This was decided after the session-leak incident in sprint 4."</blockquote><br>Relevant files for context:<br><br>• <code>docs/architecture/room-isolation.md</code> — original design decision<br>• <code>apps/backend/src/config.ts</code> — room config factory (lines 88-134)<br>• <code>apps/backend/src/ws/token-bucket.ts</code> — the offending constructor<br>• <code>tests/integration/multi-room.test.ts</code> — existing isolation tests (missing rate-limit case)</div>
+        </div>
+
+        <!-- 24. Moriarty invocado -->
+        <div class="tool-event" style="background:rgba(196,30,58, 0.03); border-left:2px solid rgba(196,30,58, 0.4)">
+          <span class="te-agent" style="color:var(--color-moriarty)">moriarty</span>
+          <span class="te-arrow" style="color:rgba(196,30,58, 0.4)">&rsaquo;</span>
+          <span class="te-badge" style="background:rgba(196,30,58, 0.12); color:var(--color-moriarty)">invocado</span>
+          <span class="te-desc"></span>
+        </div>
+
+        <!-- 25. Moriarty breaking — adversarial, code exploit, red warning -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-moriarty)">moriarty</span>
+            <span class="msg-time">14:35</span>
+          </div>
+          <div class="msg-text">Argus found the appetizer. Here's the main course.<br><br>The <code>configureRoom()</code> function doesn't just mutate <code>_defaultConfig</code> — it writes to it <em>asynchronously</em>. That means with enough concurrent connections I can race two <code>configureRoom</code> calls and create a franken-config that matches <strong>neither</strong> room. The bucket gets a window from room A and a limit from room B.</div>
+        </div>
+        <div class="code-block">
+          <button class="code-copy"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+          <div class="code-label">TOCTOU exploit</div>
+          <pre>// TOCTOU race: two configureRoom() calls interleave
+// Thread A: configureRoom("secure") → sets maxMessages=5
+// Thread B: configureRoom("open")   → sets window=60000
+// Result: { maxMessages: 5, window: 60000 }
+// Neither room's config. Bucket allows 5 msgs per MINUTE
+// instead of 5 msgs per 10s. Subtle. Hard to detect.
+await Promise.all([
+  connectRoom("secure-room"),
+  connectRoom("open-lobby"),
+]); // franken-config achieved</pre>
+        </div>
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-moriarty)">moriarty</span>
+            <span class="msg-time">14:36</span>
+          </div>
+          <div class="msg-text"><strong style="color:var(--color-moriarty)">CRITICAL:</strong> This isn't theoretical — I reproduced it in 3 out of 10 runs with <code>Promise.all</code>. The frozen-config fix handles it, but add a mutex or move to per-room factory instantiation. Shared state is the enemy. Kill it completely.</div>
+        </div>
+
+        <!-- 26. Gitto memory — list of past decisions -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-gitto)">gitto</span>
+            <span class="msg-time">14:37</span>
+          </div>
+          <div class="msg-text">Relevant decisions from git memory:<br><br>• <strong>2026-02-18</strong> — decided room configs must be isolated after session-leak incident (commit <code>a3f8c1d</code>)<br>• <strong>2026-02-25</strong> — rate limiter moved from global singleton to per-connection model (commit <code>7e2b44f</code>)<br>• <strong>2026-03-01</strong> — <code>configureRoom()</code> introduced as "temporary bridge" during refactor — was never meant to stay (commit <code>d91c5e3</code>)<br>• <strong>2026-03-08</strong> — bilbo flagged <code>_defaultConfig</code> mutation as tech debt, deferred to next sprint (commit <code>f4a0d82</code>)<br>• <strong>2026-03-14</strong> — namespace migration broke room-config isolation tests, were skipped (commit <code>c4a7fb8</code>)</div>
+        </div>
+
+        <!-- 27. Human message — bex says commit and push -->
+        <div class="msg human">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--text-2)">bex</span>
+            <span class="msg-time">14:38</span>
+          </div>
+          <div class="msg-text">perfect, commit and push</div>
+        </div>
+
+        <!-- 28. Ultron thinking dots -->
+        <div class="thinking">
+          <span class="t-name" style="color:var(--color-ultron)">ultron</span>
+          <div class="t-dots">
+            <span style="background:var(--text-3)"></span>
+            <span style="background:var(--text-3)"></span>
+            <span style="background:var(--text-3)"></span>
           </div>
         </div>
 
@@ -1336,8 +1611,6 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
                 <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10"/></svg>
                 Execute <span class="chip-arrow">&#9662;</span>
               </button>
-              <!-- Model -->
-              <button class="input-chip">Opus <span class="chip-arrow">&#9662;</span></button>
             </div>
             <div class="input-icons">
               <!-- attach file -->
