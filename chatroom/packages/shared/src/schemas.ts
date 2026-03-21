@@ -156,6 +156,7 @@ export const ServerAgentStatusSchema = z.object({
 
 export const ServerToolEventSchema = z.object({
   type: z.literal('tool_event'),
+  id: z.string(),
   agent: z.string(),
   tool: z.string(),
   description: z.string(),
