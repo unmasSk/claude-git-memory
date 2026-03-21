@@ -1,6 +1,6 @@
 import type { AgentDefinition } from '@agent-chatroom/shared';
-import { agentAvatarClass, agentColorClass } from '../lib/colors';
-import { getAgentIcon } from '../lib/icons';
+import { agentColorClass } from '../lib/colors';
+import { getModelBadge } from '@agent-chatroom/shared';
 
 interface MentionDropdownProps {
   agents: AgentDefinition[];
@@ -14,24 +14,21 @@ export function MentionDropdown({ agents, selectedIndex, onSelect }: MentionDrop
   return (
     <div className="mention-dropdown">
       {agents.map((agent, i) => {
-        const Icon = getAgentIcon(agent.name);
+        const model = agent.model ? getModelBadge(agent.model) : '';
         return (
           <div
             key={agent.name}
             className={`mention-item${i === selectedIndex ? ' active' : ''}`}
             onMouseDown={(e) => {
-              // Use mousedown so it fires before the input blur
               e.preventDefault();
               onSelect(agent);
             }}
           >
-            <div className={`agent-avatar ${agentAvatarClass(agent.name)}`} style={{ width: 24, height: 24, borderRadius: 5 }}>
-              <Icon size={13} />
-            </div>
             <span className={`mention-item-name ${agentColorClass(agent.name)}`}>
               @{agent.name}
             </span>
-            <span className="mention-item-role">{agent.role}</span>
+            {model && <span className="mention-badge">{model}</span>}
+            <span className="mention-badge">{agent.role}</span>
           </div>
         );
       })}

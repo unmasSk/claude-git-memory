@@ -76,9 +76,14 @@ function handleEveryoneDirective(ws: any, roomId: string, content: string, autho
 
   if (!isStopDirective) {
     const agentSessions = listAgentSessions(roomId);
-    if (agentSessions.length > 0) {
-      const agentNames = new Set(agentSessions.map((row) => mapAgentSessionRow(row).agentName));
-      logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking active agents');
+    // Only invoke agents that have been active this session (not 'out' or 'idle')
+    const activeStatuses = new Set(['thinking', 'tool-use', 'done']);
+    const activeSessions = agentSessions
+      .map((row) => mapAgentSessionRow(row))
+      .filter((s) => activeStatuses.has(s.status));
+    if (activeSessions.length > 0) {
+      const agentNames = new Set(activeSessions.map((s) => s.agentName));
+      logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking active agents (with resume)');
       invokeAgents(roomId, agentNames, safeDirective, new Map(), true);
     }
   }

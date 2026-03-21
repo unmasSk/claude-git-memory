@@ -33,15 +33,14 @@ function replaceMention(text: string, cursorPos: number, agentName: string): { n
   };
 }
 
-const INVOKABLE_AGENTS = AGENT_REGISTRY.filter((a) => a.invokable);
+const INVOKABLE_AGENTS = AGENT_REGISTRY.filter((a) => a.invokable && a.name !== 'claude');
 
-/** Synthetic @everyone entry — not a real agent, used for broadcast directives */
 const EVERYONE_ENTRY: AgentDefinition = {
   name: 'everyone',
-  displayName: 'everyone — directive to all agents',
-  role: 'broadcast',
-  model: 'claude-sonnet-4-6',
-  color: 'oklch(0.75 0.12 60)',
+  displayName: 'everyone',
+  role: 'all invoked agents',
+  model: '',
+  color: '#ffffff',
   icon: 'Users',
   invokable: false,
 };

@@ -379,38 +379,52 @@
 .mention-dropdown {
   position: absolute;
   bottom: calc(100% + 4px);
-  left: 18px;
-  right: 52px;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  left: 16px;
+  right: 16px;
+  max-width: 224px;
+  background: var(--bg-chat);
+  border: none;
+  border-radius: 10px;
   overflow: hidden;
   z-index: 100;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  padding: 4px 0;
+  animation: dropdown-in 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: bottom left;
+}
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .mention-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 4px 10px;
   cursor: pointer;
   transition: background 0.1s;
 }
 
 .mention-item:hover,
 .mention-item.active {
-  background: var(--bg-card-h);
+  background: var(--bg-card);
 }
 
 .mention-item-name {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-.mention-item-role {
-  font-size: 11px;
+.mention-badge {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 500;
   color: var(--text-3);
+  background: rgba(255,255,255,0.04);
+  padding: 1px 5px;
+  border-radius: 4px;
+  text-transform: uppercase;
 }
 
 /* ── Status bar ── */
