@@ -1,5 +1,5 @@
 import '../styles/components/Titlebar.css';
-import { Bot, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useAgentStore } from '../stores/agent-store';
 
 export function Titlebar() {
@@ -17,7 +17,7 @@ export function Titlebar() {
         </div>
       </div>
 
-      {/* Right: tabs + user + icons, sits over chat area */}
+      {/* Right: tabs + user + settings, sits over chat area */}
       <div className="tb-tabs-area">
         <div className="tb-tabs">
           <div className="tb-tab active">
@@ -27,11 +27,7 @@ export function Titlebar() {
         </div>
 
         <div className="tb-right-group">
-          <div className="tb-user-dot" />
           <span className="tb-user">bex</span>
-          <span className="tb-icon">
-            <Bot size={14} />
-          </span>
           <span className="tb-icon">
             <Settings size={14} />
           </span>
