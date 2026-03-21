@@ -77,7 +77,7 @@
 .agent-list {
   flex: 1;
   overflow: hidden;
-  padding: 4px;
+  padding: 12px 4px 4px;
 }
 
 .agent-list .card-wrap {

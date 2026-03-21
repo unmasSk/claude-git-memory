@@ -119,7 +119,7 @@ body {
 /* ── Chat container (App shell) ── */
 .chatroom {
   width: 1000px;
-  height: 756px;
+  height: 760px;
   display: flex;
   flex-direction: column;
   border-radius: var(--radius);
