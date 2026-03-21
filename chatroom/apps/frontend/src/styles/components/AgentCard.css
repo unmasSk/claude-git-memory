@@ -214,6 +214,9 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
 
 .card-wrap:has(.neon-active) {
   animation: neon-card-glow 2.5s ease-in-out infinite;
+}
+
+.card-wrap:has(.neon-active) .card {
   border-color: transparent;
 }
 
