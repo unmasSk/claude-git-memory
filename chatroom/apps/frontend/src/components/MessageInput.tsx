@@ -56,10 +56,10 @@ export function MessageInput() {
   }, [value, status, send, closeDropdown]);
 
   // T1-01 fix: submit must be declared before this callback to avoid TDZ
-  const handleKeyDownWrapper = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDownWrapper = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => { // HTMLTextAreaElement extends HTMLElement — no cast needed
     const currentValue = textareaRef.current?.value ?? '';
     const pos = textareaRef.current?.selectionStart ?? currentValue.length;
-    const result = handleKeyDown(e as unknown as React.KeyboardEvent<HTMLInputElement>, currentValue, pos);
+    const result = handleKeyDown(e, currentValue, pos);
     if (result.handled) {
       if (result.newValue !== undefined) {
         setValue(result.newValue);

@@ -9,7 +9,7 @@ interface UseMentionAutocompleteResult {
   query: string;
   onInputChange: (value: string, cursorPos: number) => void;
   selectAgent: (agent: AgentDefinition) => string;
-  handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, value: string, cursorPos: number) => { handled: boolean; newValue?: string };
+  handleKeyDown: (e: React.KeyboardEvent<HTMLElement>, value: string, cursorPos: number) => { handled: boolean; newValue?: string };
   closeDropdown: () => void;
 }
 
@@ -85,7 +85,7 @@ export function useMentionAutocomplete(): UseMentionAutocompleteResult {
   }, []);
 
   const handleKeyDown = useCallback((
-    e: React.KeyboardEvent<HTMLInputElement>,
+    e: React.KeyboardEvent<HTMLElement>,
     value: string,
     cursorPos: number,
   ): { handled: boolean; newValue?: string } => {

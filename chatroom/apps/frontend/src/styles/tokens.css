@@ -1,0 +1,118 @@
+/* ── Reset ── */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; }
+
+/* ================================================================
+   CURSOR DEEP DARK — Design system tokens
+   Option B: no bubbles, no glassmorphism, text on background.
+   ================================================================ */
+
+:root {
+  /* ── Cursor Deep Dark palette ── */
+  --bg-body:    #050505;
+  --bg-sidebar: #141414;
+  --bg-chat:    #0e0e0e;
+  --bg-card:    #272727;
+  --bg-card-h:  #2c2c2c;
+  --bg-input:   #1f1f1f;
+  --bg-code:    #121212;
+  --border:     #232323;
+  --border-s:   #1a1a1a;
+
+  /* ── Text ── */
+  --text-1:     #ececec;
+  --text-2:     #aeaeae;
+  --text-3:     #858585;
+  --text-dim:   #8a8a8a;
+  --text-icon:  #747474;
+  --text-code:  #aeaeae;
+
+  /* ── Bar ── */
+  --bar-track:  #1a1a1a;
+  --bar-fill:   #4a4a4a;
+
+  /* ── Agent colors — WoW class palette ── */
+  --color-ultron:    #2090EE;
+  --color-cerberus:  #FF7C0A;
+  --color-dante:     #8788EE;
+  --color-bilbo:     #AAD372;
+  --color-house:     #00FF98;
+  --color-yoda:      #33937F;
+  --color-alexandria: #C050E0;
+  --color-gitto:     #FFF468;
+  --color-argus:     #C69B6D;
+  --color-moriarty:  #E03050;
+
+  /* User color */
+  --color-bex: #e6cc80;
+
+  /* Mode colors */
+  --mode-execute:    #3FC7EB;
+  --mode-brainstorm: #F48CBA;
+
+  /* ── Accent ── */
+  --accent:       oklch(65% 0.18 250);
+  --accent-muted: oklch(30% 0.06 250);
+
+  /* ── Semantic ── */
+  --success: oklch(55% 0.15 145);
+  --warning: oklch(65% 0.18 60);
+  --error:   oklch(50% 0.20 25);
+  --info:    oklch(58% 0.14 250);
+
+  /* ── Model badges ── */
+  --model-opus-bg:     oklch(25% 0.06 25);
+  --model-opus-text:   oklch(65% 0.15 25);
+  --model-sonnet-bg:   oklch(25% 0.05 250);
+  --model-sonnet-text: oklch(65% 0.12 250);
+  --model-haiku-bg:    oklch(25% 0.05 145);
+  --model-haiku-text:  oklch(60% 0.10 145);
+
+  /* ── Fonts ── */
+  --font-ui:   -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+
+  /* ── Spacing & shape ── */
+  --radius: 14px;
+  --spacing: 16px;
+
+  /* ── Legacy surface aliases (used by existing components) ── */
+  --surface-deep:     var(--bg-body);
+  --surface-base:     var(--bg-chat);
+  --surface-panel:    var(--bg-sidebar);
+  --surface-card:     var(--bg-card);
+  --surface-elevated: #272727;
+  --text-primary:     var(--text-1);
+  --text-secondary:   var(--text-2);
+  --text-muted:       var(--text-3);
+  --border-subtle:    var(--border-s);
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+html, body {
+  overflow: hidden;
+  background: var(--bg-body);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

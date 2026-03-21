@@ -10,26 +10,6 @@ interface ParticipantItemProps {
   agent: AgentStatus;
 }
 
-/** Agent accent color lookup — used for CSS custom property on card-wrap */
-const AGENT_COLOR: Record<string, string> = {
-  ultron:    '#2090EE',
-  cerberus:  '#FF7C0A',
-  dante:     '#8788EE',
-  bilbo:     '#AAD372',
-  house:     '#00FF98',
-  yoda:      '#33937F',
-  alexandria:'#C050E0',
-  gitto:     '#FFF468',
-  argus:     '#C69B6D',
-  moriarty:  '#E03050',
-};
-
-/** Returns inline style with agent CSS custom properties for card tinting */
-function agentCardStyle(agentName: string): React.CSSProperties {
-  const ac = AGENT_COLOR[agentName.toLowerCase()] ?? '#888888';
-  return { '--ac': ac, '--agent-tint': ac + '22' } as React.CSSProperties;
-}
-
 export const ParticipantItem = memo(function ParticipantItem({ agent }: ParticipantItemProps) {
   const modelBadge = getModelBadge(agent.model);
   const Icon = getAgentIcon(agent.agentName);
@@ -38,7 +18,6 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
   const isAnimating =
     agent.status === AgentState.Thinking || agent.status === AgentState.ToolUse;
   const agentNameLower = agent.agentName.toLowerCase();
-  const acColor = AGENT_COLOR[agentNameLower] ?? '#888888';
 
   const send = useWsStore((s) => s.send);
 
@@ -69,7 +48,7 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
   }, [send, agent.agentName]);
 
   return (
-    <div className="card-wrap" style={agentCardStyle(agent.agentName)}>
+    <div className={`card-wrap agent-${agentNameLower}`}>
       {/* Action buttons layer — revealed on hover via CSS shrink-reveal */}
       <div className="card-buttons">
         <div className="btn-panel">
@@ -159,7 +138,7 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
         {/* Cell 4: large status icon spanning all rows */}
         <div className="cell-status">
           {isAnimating ? (
-            <div className="neon-active" style={{ color: acColor }}>
+            <div className="neon-active" style={{ color: 'var(--ac)' }}>
               <Icon className="icon-status" />
             </div>
           ) : (

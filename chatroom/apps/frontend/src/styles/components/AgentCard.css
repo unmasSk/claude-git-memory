@@ -272,6 +272,20 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
   stroke: none;
 }
 
+/* ── Per-agent accent custom properties on .card-wrap ── */
+/* These replace the AGENT_COLOR JS map: --ac drives border/button/hover tints, */
+/* --agent-tint drives the radial gradient on .active-card */
+.card-wrap.agent-ultron    { --ac: var(--color-ultron);    --agent-tint: color-mix(in srgb, var(--color-ultron) 13%, transparent); }
+.card-wrap.agent-cerberus  { --ac: var(--color-cerberus);  --agent-tint: color-mix(in srgb, var(--color-cerberus) 13%, transparent); }
+.card-wrap.agent-dante     { --ac: var(--color-dante);     --agent-tint: color-mix(in srgb, var(--color-dante) 13%, transparent); }
+.card-wrap.agent-bilbo     { --ac: var(--color-bilbo);     --agent-tint: color-mix(in srgb, var(--color-bilbo) 13%, transparent); }
+.card-wrap.agent-house     { --ac: var(--color-house);     --agent-tint: color-mix(in srgb, var(--color-house) 13%, transparent); }
+.card-wrap.agent-yoda      { --ac: var(--color-yoda);      --agent-tint: color-mix(in srgb, var(--color-yoda) 13%, transparent); }
+.card-wrap.agent-alexandria { --ac: var(--color-alexandria); --agent-tint: color-mix(in srgb, var(--color-alexandria) 13%, transparent); }
+.card-wrap.agent-gitto     { --ac: var(--color-gitto);     --agent-tint: color-mix(in srgb, var(--color-gitto) 13%, transparent); }
+.card-wrap.agent-argus     { --ac: var(--color-argus);     --agent-tint: color-mix(in srgb, var(--color-argus) 13%, transparent); }
+.card-wrap.agent-moriarty  { --ac: var(--color-moriarty);  --agent-tint: color-mix(in srgb, var(--color-moriarty) 13%, transparent); }
+
 /* ── Reduced motion ── */
 @media (prefers-reduced-motion: reduce) {
   .bar-fill,

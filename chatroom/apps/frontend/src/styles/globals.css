@@ -1,291 +1,5 @@
-* { margin: 0; padding: 0; box-sizing: border-box; }
-*, *::before, *::after { box-sizing: border-box; }
-
-/* ================================================================
-   CURSOR DEEP DARK — Design system tokens
-   Option B: no bubbles, no glassmorphism, text on background.
-   ================================================================ */
-
-:root {
-  /* ── Cursor Deep Dark palette ── */
-  --bg-body:    #050505;
-  --bg-sidebar: #141414;
-  --bg-chat:    #0e0e0e;
-  --bg-card:    #272727;
-  --bg-card-h:  #2c2c2c;
-  --bg-input:   #1f1f1f;
-  --bg-code:    #121212;
-  --border:     #232323;
-  --border-s:   #1a1a1a;
-
-  /* ── Text ── */
-  --text-1:     #ececec;
-  --text-2:     #aeaeae;
-  --text-3:     #858585;
-  --text-dim:   #8a8a8a;
-  --text-icon:  #747474;
-  --text-code:  #aeaeae;
-
-  /* ── Bar ── */
-  --bar-track:  #1a1a1a;
-  --bar-fill:   #4a4a4a;
-
-  /* ── Agent colors — WoW class palette ── */
-  --color-ultron:    #2090EE;
-  --color-cerberus:  #FF7C0A;
-  --color-dante:     #8788EE;
-  --color-bilbo:     #AAD372;
-  --color-house:     #00FF98;
-  --color-yoda:      #33937F;
-  --color-alexandria: #C050E0;
-  --color-gitto:     #FFF468;
-  --color-argus:     #C69B6D;
-  --color-moriarty:  #E03050;
-
-  /* User color */
-  --color-bex: #e6cc80;
-
-  /* Mode colors */
-  --mode-execute:    #3FC7EB;
-  --mode-brainstorm: #F48CBA;
-
-  /* ── Accent ── */
-  --accent:       oklch(65% 0.18 250);
-  --accent-muted: oklch(30% 0.06 250);
-
-  /* ── Semantic ── */
-  --success: oklch(55% 0.15 145);
-  --warning: oklch(65% 0.18 60);
-  --error:   oklch(50% 0.20 25);
-  --info:    oklch(58% 0.14 250);
-
-  /* ── Model badges ── */
-  --model-opus-bg:     oklch(25% 0.06 25);
-  --model-opus-text:   oklch(65% 0.15 25);
-  --model-sonnet-bg:   oklch(25% 0.05 250);
-  --model-sonnet-text: oklch(65% 0.12 250);
-  --model-haiku-bg:    oklch(25% 0.05 145);
-  --model-haiku-text:  oklch(60% 0.10 145);
-
-  /* ── Fonts ── */
-  --font-ui:   -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
-
-  /* ── Spacing & shape ── */
-  --radius: 14px;
-  --spacing: 16px;
-
-  /* ── Legacy surface aliases (used by existing components) ── */
-  --surface-deep:     var(--bg-body);
-  --surface-base:     var(--bg-chat);
-  --surface-panel:    var(--bg-sidebar);
-  --surface-card:     var(--bg-card);
-  --surface-elevated: #272727;
-  --text-primary:     var(--text-1);
-  --text-secondary:   var(--text-2);
-  --text-muted:       var(--text-3);
-  --border-subtle:    var(--border-s);
-}
-
-html, body, #root {
-  height: 100%;
-  width: 100%;
-}
-
-html, body {
-  overflow: hidden;
-  background: var(--bg-body);
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-1);
-  -webkit-font-smoothing: antialiased;
-}
-
-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-#root {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* ── Chat container (App shell) ── */
-.chatroom {
-  width: 1000px;
-  height: 760px;
-  display: flex;
-  flex-direction: column;
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--bg-sidebar);
-  border: 1px solid var(--border);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03) inset;
-}
-
-/* ── Main layout ── */
-.main {
-  flex: 1;
-  display: flex;
-  overflow: hidden;
-}
-
-/* ── Participants panel (sidebar) ── */
-.panel {
-  width: 220px;
-  min-width: 220px;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.section-label {
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-3);
-  padding: 10px 14px 4px;
-  font-family: var(--font-mono);
-}
-
-/* ── Participant item ── */
-.participant {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 14px;
-  cursor: default;
-  transition: background 0.15s;
-  position: relative;
-}
-
-.participant:hover {
-  background: var(--bg-card);
-}
-
-.agent-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  position: relative;
-}
-
-.status-indicator {
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  border: 2px solid var(--bg-sidebar);
-}
-
-.status-active    { background: var(--success); }
-.status-idle      { background: var(--text-muted); }
-.status-thinking  { background: var(--warning); animation: pulse 1.5s ease-in-out infinite; }
-.status-tool      { background: var(--info);    animation: pulse 2s ease-in-out infinite; }
-.status-done      { background: var(--success); opacity: 0.6; }
-.status-out       { background: var(--error); }
-.status-error     { background: var(--error); }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.35; }
-}
-
-@keyframes dotpulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(40,200,64,0.4); }
-  50%      { box-shadow: 0 0 10px rgba(40,200,64,0.7); }
-}
-
-.participant-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-}
-
-.participant-name {
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.participant-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 1px;
-}
-
-.participant-role {
-  font-size: 10px;
-  color: var(--text-3);
-}
-
-.model-badge {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 500;
-  padding: 0px 4px;
-  border-radius: 3px;
-  letter-spacing: 0.02em;
-}
-
-.model-opus   { background: var(--model-opus-bg);   color: var(--model-opus-text); }
-.model-sonnet { background: var(--model-sonnet-bg); color: var(--model-sonnet-text); }
-.model-haiku  { background: var(--model-haiku-bg);  color: var(--model-haiku-text); }
-
-/* ── Chat area ── */
-.chat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  position: relative;
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 85%, rgba(0,0,0,0.15) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 35% at 15% 15%, rgba(0,0,0,0.1) 0%, transparent 50%),
-    radial-gradient(ellipse 35% 30% at 85% 40%, rgba(0,0,0,0.08) 0%, transparent 50%),
-    var(--bg-chat);
-}
-
-/* Scroll fade mask at top of messages area */
-.chat::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 16px;
-  background: var(--bg-chat);
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* ── Messages list ── */
-.messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 0;
-}
-
-.messages::-webkit-scrollbar        { width: 3px; }
-.messages::-webkit-scrollbar-track  { background: transparent; }
-.messages::-webkit-scrollbar-thumb  { background: oklch(30% 0.01 250); border-radius: 2px; }
+@import './tokens.css';
+@import './layout.css';
 
 /* ── Message — no bubble, text on background ── */
 .msg {
@@ -580,32 +294,6 @@ body {
   40%           { opacity: 1;    transform: scale(1.3); }
 }
 
-/* ── Scroll-to-bottom button ── */
-.scroll-bottom {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32px;
-  height: 32px;
-  background: #272727;
-  border: 1px solid #3d3d3d;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-2);
-  z-index: 3;
-  transition: background 150ms, color 150ms;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-.scroll-bottom:hover {
-  background: #333333;
-  color: var(--text-1);
-}
-
 /* ── Code blocks inside messages ── */
 .msg-code-block {
   background: var(--bg-code);
@@ -659,7 +347,7 @@ body {
 .msg-code-block pre .num  { color: oklch(72% 0.18 65); }
 .msg-code-block pre .type { color: oklch(68% 0.16 60); }
 
-/* ── Input area ── */
+/* ── Input area (legacy — kept for backward compat) ── */
 .input-area {
   padding: 16px;
   border-top: 1px solid var(--border-s);
@@ -686,24 +374,6 @@ body {
 
 .input-field::placeholder { color: var(--text-3); }
 .input-field:focus { border-color: #555555; }
-
-.send-btn {
-  width: 36px;
-  height: 36px;
-  background: rgba(63, 199, 235, 0.15);
-  color: var(--mode-execute);
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.15s;
-  flex-shrink: 0;
-}
-
-.send-btn:hover   { background: rgba(63, 199, 235, 0.25); }
-.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 /* ── Mention dropdown ── */
 .mention-dropdown {
@@ -781,6 +451,111 @@ body {
 .statusbar-dot.connected    { background: var(--success); }
 .statusbar-dot.connecting   { background: var(--warning); animation: pulse 1.5s ease-in-out infinite; }
 .statusbar-dot.disconnected { background: var(--error); }
+
+/* ── Status indicator pulse animations ── */
+.section-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 10px 14px 4px;
+  font-family: var(--font-mono);
+}
+
+/* ── Participant item (legacy sidebar list) ── */
+.participant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 14px;
+  cursor: default;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.participant:hover {
+  background: var(--bg-card);
+}
+
+.agent-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-sidebar);
+}
+
+.status-active    { background: var(--success); }
+.status-idle      { background: var(--text-muted); }
+.status-thinking  { background: var(--warning); animation: pulse 1.5s ease-in-out infinite; }
+.status-tool      { background: var(--info);    animation: pulse 2s ease-in-out infinite; }
+.status-done      { background: var(--success); opacity: 0.6; }
+.status-out       { background: var(--error); }
+.status-error     { background: var(--error); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@keyframes dotpulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(40,200,64,0.4); }
+  50%      { box-shadow: 0 0 10px rgba(40,200,64,0.7); }
+}
+
+.participant-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.participant-name {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.participant-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.participant-role {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.model-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  padding: 0px 4px;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+}
+
+.model-opus   { background: var(--model-opus-bg);   color: var(--model-opus-text); }
+.model-sonnet { background: var(--model-sonnet-bg); color: var(--model-sonnet-text); }
+.model-haiku  { background: var(--model-haiku-bg);  color: var(--model-haiku-text); }
 
 /* ── Agent color utility classes — WoW palette ── */
 .c-ultron    { color: var(--color-ultron); }
