@@ -567,6 +567,30 @@ svg.icon-tiny { width: 10px; height: 10px; stroke: var(--text-3); fill: none; st
   border-radius: 0 8px 8px 0;
   background: rgba(125, 125, 125, 0.03);
 }
+.msg-text table {
+  margin: 6px 0;
+  margin-left: 30px;
+  margin-right: 30px;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-1);
+}
+.msg-text table th {
+  text-align: left;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  font-weight: 600;
+}
+.msg-text table td {
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--border-s);
+  color: var(--text-1);
+}
+.msg-text table tr:last-child td {
+  border-bottom: none;
+}
 .msg-text ul, .msg-text ol {
   margin-left: 30px;
   margin-right: 30px;
@@ -1645,6 +1669,29 @@ ws.<span class="fn">connect</span>(<span class="str">"wss://host/secure-room"</s
             <span class="msg-time">14:37</span>
           </div>
           <div class="msg-text">Relevant decisions from git memory:<br><br>• <strong>2026-02-18</strong> — decided room configs must be isolated after session-leak incident (commit <code>a3f8c1d</code>)<br>• <strong>2026-02-25</strong> — rate limiter moved from global singleton to per-connection model (commit <code>7e2b44f</code>)<br>• <strong>2026-03-01</strong> — <code>configureRoom()</code> introduced as "temporary bridge" during refactor — was never meant to stay (commit <code>d91c5e3</code>)<br>• <strong>2026-03-08</strong> — bilbo flagged <code>_defaultConfig</code> mutation as tech debt, deferred to next sprint (commit <code>f4a0d82</code>)<br>• <strong>2026-03-14</strong> — namespace migration broke room-config isolation tests, were skipped (commit <code>c4a7fb8</code>)</div>
+        </div>
+
+        <!-- Dante summary with table -->
+        <div class="msg">
+          <div class="msg-head">
+            <span class="msg-name" style="color:var(--color-dante)">dante</span>
+            <span class="msg-time">14:37</span>
+          </div>
+          <div class="msg-text">Test coverage summary after fixes:
+            <table>
+              <thead>
+                <tr><th>Module</th><th>Tests</th><th>Pass</th><th>Fail</th><th>Coverage</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>rate-limiter.ts</td><td>24</td><td>24</td><td>0</td><td>97%</td></tr>
+                <tr><td>token-bucket.ts</td><td>18</td><td>18</td><td>0</td><td>94%</td></tr>
+                <tr><td>ws-upgrade.ts</td><td>12</td><td>12</td><td>0</td><td>89%</td></tr>
+                <tr><td>config.ts</td><td>8</td><td>8</td><td>0</td><td>100%</td></tr>
+                <tr><td><strong>Total</strong></td><td><strong>62</strong></td><td><strong>62</strong></td><td><strong>0</strong></td><td><strong>95%</strong></td></tr>
+              </tbody>
+            </table>
+            All green. Race condition regression test included.
+          </div>
         </div>
 
         <!-- 27. Human message — bex says commit and push -->
