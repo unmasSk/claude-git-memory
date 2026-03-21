@@ -64,7 +64,7 @@ mock.module('../../src/index.js', () => ({
 // Imports AFTER mocks
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import {
   invokeAgents,
   invokeAgent,
@@ -201,7 +201,7 @@ describe('pauseInvocations / resumeInvocations / isPaused — room-scoped', () =
 
 describe('clearQueue — room-scoped queue drain', () => {
   const ROOM_CLEAR = 'test-room-clear';
-  const ROOM_OTHER = 'test-room-other';
+  const _ROOM_OTHER = 'test-room-other';
 
   it('clearQueue returns 0 for an empty queue', () => {
     const removed = clearQueue(ROOM_CLEAR);
@@ -562,7 +562,7 @@ describe('@everyone double-invoke guard — inline logic mirror of ws.ts', () =>
   function makeExtractSpy(): { called: boolean; fn: (c: string) => Set<string> } {
     const spy = {
       called: false,
-      fn: (c: string) => {
+      fn: (_c: string) => {
         spy.called = true;
         return new Set<string>(['bilbo']);
       },

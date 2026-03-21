@@ -3,6 +3,7 @@ import type { ServerMessage, ClientMessage, Message } from '@agent-chatroom/shar
 import { ServerMessageSchema } from '@agent-chatroom/shared';
 import { useChatStore } from './chat-store';
 import { useAgentStore } from './agent-store';
+import logger from '../lib/logger';
 
 export type WsStatus = 'disconnected' | 'connecting' | 'connected' | 'offline';
 
@@ -69,7 +70,7 @@ function startHealthCheck() {
 }
 
 // FIX 17: message buffer for batched flush
-let messageBuffer: Message[] = [];
+const messageBuffer: Message[] = [];
 let flushScheduled = false;
 
 function scheduleFlush() {
@@ -96,12 +97,12 @@ function handleServerMessage(event: MessageEvent) {
     const raw = JSON.parse(event.data as string);
     const result = ServerMessageSchema.safeParse(raw);
     if (!result.success) {
-      console.warn('[ws-store] Invalid server message:', result.error.issues);
+      logger.warn('[ws-store] Invalid server message:', result.error.issues);
       return;
     }
     parsed = result.data;
   } catch {
-    console.warn('[ws-store] Failed to parse message:', event.data);
+    logger.warn('[ws-store] Failed to parse message:', event.data);
     return;
   }
 
@@ -171,7 +172,7 @@ function handleServerMessage(event: MessageEvent) {
       break;
 
     case 'error':
-      console.error('[ws-store] Server error:', parsed.code, parsed.message);
+      logger.error('[ws-store] Server error:', parsed.code, parsed.message);
       break;
   }
 }
@@ -185,7 +186,7 @@ export const useWsStore = create<WsState>((set, get) => ({
     // Enter 'offline' mode — stop reconnecting until a page visibility change or
     // explicit user action resets the state.
     if (consecutiveAuthFailures >= MAX_CONSECUTIVE_AUTH_FAILURES) {
-      console.error('[ws-store] Circuit breaker open: too many consecutive auth failures, entering offline mode');
+      logger.error('[ws-store] Circuit breaker open: too many consecutive auth failures, entering offline mode');
       lastKnownRoomId = roomId;
       set({ status: 'offline', roomId: null });
       return;
@@ -251,7 +252,7 @@ export const useWsStore = create<WsState>((set, get) => ({
           if (signal.aborted) return;
         }
         consecutiveAuthFailures++;
-        console.error(
+        logger.error(
           `[ws-store] Failed to obtain auth token (consecutive failures: ${consecutiveAuthFailures}):`,
           err,
         );
@@ -259,7 +260,7 @@ export const useWsStore = create<WsState>((set, get) => ({
 
         // Circuit breaker: after MAX_CONSECUTIVE_AUTH_FAILURES, give up.
         if (consecutiveAuthFailures >= MAX_CONSECUTIVE_AUTH_FAILURES) {
-          console.error('[ws-store] Circuit breaker open: server appears to be down, entering offline mode');
+          logger.error('[ws-store] Circuit breaker open: server appears to be down, entering offline mode');
           lastKnownRoomId = roomId;
           set({ status: 'offline', roomId: null });
           startHealthCheck();
@@ -272,12 +273,12 @@ export const useWsStore = create<WsState>((set, get) => ({
         if (currentRoomId && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
           const delay = getReconnectDelay();
           reconnectAttempts++;
-          console.info(`[ws-store] Reconnecting after token failure in ${delay}ms (attempt ${reconnectAttempts})`);
+          logger.info(`[ws-store] Reconnecting after token failure in ${delay}ms (attempt ${reconnectAttempts})`);
           reconnectTimer = setTimeout(() => {
             get().connect(currentRoomId);
           }, delay);
         } else if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('[ws-store] Max reconnect attempts reached after token failure');
+          logger.error('[ws-store] Max reconnect attempts reached after token failure');
         }
         return;
       }
@@ -302,7 +303,7 @@ export const useWsStore = create<WsState>((set, get) => ({
       ws.onmessage = handleServerMessage;
 
       ws.onerror = (err) => {
-        console.error('[ws-store] WebSocket error:', err);
+        logger.error('[ws-store] WebSocket error:', err);
       };
 
       ws.onclose = () => {
@@ -314,13 +315,13 @@ export const useWsStore = create<WsState>((set, get) => ({
         if (!currentRoomId) return; // intentional disconnect
 
         if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
-          console.error('[ws-store] Max reconnect attempts reached');
+          logger.error('[ws-store] Max reconnect attempts reached');
           return;
         }
 
         const delay = getReconnectDelay();
         reconnectAttempts++;
-        console.info(`[ws-store] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
+        logger.info(`[ws-store] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})`);
 
         reconnectTimer = setTimeout(() => {
           get().connect(currentRoomId);
@@ -363,7 +364,7 @@ export const useWsStore = create<WsState>((set, get) => ({
 
   send: (msg) => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      console.warn('[ws-store] Cannot send — socket not open');
+      logger.warn('[ws-store] Cannot send — socket not open');
       return;
     }
     socket.send(JSON.stringify(msg));

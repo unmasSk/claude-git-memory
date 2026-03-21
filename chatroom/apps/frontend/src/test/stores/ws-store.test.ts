@@ -42,7 +42,6 @@ class FakeWebSocket {
   onerror: ((e: Event) => void) | null = null;
 
   constructor(_url: string) {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     lastWs = this as unknown as FakeWsInstance;
   }
 

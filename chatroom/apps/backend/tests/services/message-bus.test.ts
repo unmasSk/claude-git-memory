@@ -7,7 +7,7 @@
  * - stripSessionId strips sessionId from all messages in room_state events
  * - broadcastSync is callable and invokes server.publish with the correct topic
  */
-import { describe, it, expect, mock } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { broadcastSync } from '../../src/services/message-bus.js';
 import { AgentState } from '@agent-chatroom/shared';
 import type { ServerMessage, Message } from '@agent-chatroom/shared';

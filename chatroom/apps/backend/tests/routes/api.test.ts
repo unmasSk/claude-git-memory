@@ -52,7 +52,7 @@ function makeTestDb(): Database {
 // Inline query helpers that use testDb directly (bypass connection singleton)
 // ---------------------------------------------------------------------------
 
-type Row<T> = T;
+type _Row<T> = T;
 
 function dbListRooms() {
   return testDb
@@ -244,7 +244,7 @@ beforeAll(async () => {
   });
 
   // Load agents for /api/agents endpoint
-  const { loadAgentRegistry, getAllAgents, getAgentConfig } = await import('../../src/services/agent-registry.js');
+  const { loadAgentRegistry, getAllAgents, _getAgentConfig } = await import('../../src/services/agent-registry.js');
   loadAgentRegistry();
 
   const testApp = new Elysia({ prefix: '/api' })

@@ -10,7 +10,7 @@
  * real temporary directory of .md files.
  */
 import { describe, it, expect, beforeAll } from 'bun:test';
-import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 

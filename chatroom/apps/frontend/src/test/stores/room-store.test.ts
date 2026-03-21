@@ -2,6 +2,11 @@
  * Unit tests for useRoomStore — room management Zustand store.
  *
  * Fetch is mocked globally. Each test resets store state via act().
+ *
+ * NOTE: createRoom and confirmDelete call getAuthToken() first (POST /api/auth/token)
+ * before the main operation. Every fetch spy must mock TWO sequential responses:
+ *   1. Token response: { token: 'test-token' } 200
+ *   2. The actual operation response
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -17,13 +22,22 @@ function resetStore() {
   useRoomStore.setState({ rooms: [], activeRoomId: 'default', pendingDeleteId: null });
 }
 
+/** Mock a successful token response followed by an operation response. */
+function mockTokenThen(operationResponse: Response): void {
+  const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  fetchSpy.mockResolvedValueOnce(
+    new Response(JSON.stringify({ token: 'test-token' }), { status: 200 }),
+  );
+  fetchSpy.mockResolvedValueOnce(operationResponse);
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   resetStore();
 });
 
 // ---------------------------------------------------------------------------
-// loadRooms
+// loadRooms — no auth required, single fetch
 // ---------------------------------------------------------------------------
 
 describe('loadRooms', () => {
@@ -59,15 +73,13 @@ describe('loadRooms', () => {
 });
 
 // ---------------------------------------------------------------------------
-// createRoom
+// createRoom — calls getAuthToken() first, then POST /api/rooms
 // ---------------------------------------------------------------------------
 
 describe('createRoom', () => {
   it('adds the new room to the list and activates it', async () => {
     const newRoom = makeRoom('brave-wolf');
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ room: newRoom }), { status: 201 }),
-    );
+    mockTokenThen(new Response(JSON.stringify({ room: newRoom }), { status: 201 }));
 
     const result = await act(() => useRoomStore.getState().createRoom());
 
@@ -76,7 +88,8 @@ describe('createRoom', () => {
     expect(useRoomStore.getState().activeRoomId).toBe('brave-wolf');
   });
 
-  it('returns null and does not mutate state on fetch failure', async () => {
+  it('returns null when token fetch throws (network failure)', async () => {
+    // Token fetch fails → catch → return null
     vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network'));
 
     const result = await act(() => useRoomStore.getState().createRoom());
@@ -86,7 +99,8 @@ describe('createRoom', () => {
     expect(useRoomStore.getState().activeRoomId).toBe('default');
   });
 
-  it('returns null on non-ok response', async () => {
+  it('returns null when token fetch returns non-ok', async () => {
+    // Token endpoint returns 500 → getAuthToken returns null → createRoom returns null
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response('error', { status: 500 }),
     );
@@ -95,10 +109,19 @@ describe('createRoom', () => {
 
     expect(result).toBeNull();
   });
+
+  it('returns null when room creation returns non-ok', async () => {
+    // Token succeeds, room POST fails
+    mockTokenThen(new Response('error', { status: 500 }));
+
+    const result = await act(() => useRoomStore.getState().createRoom());
+
+    expect(result).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
-// setActiveRoomId
+// setActiveRoomId — no fetch
 // ---------------------------------------------------------------------------
 
 describe('setActiveRoomId', () => {
@@ -116,7 +139,7 @@ describe('setActiveRoomId', () => {
 });
 
 // ---------------------------------------------------------------------------
-// markForDelete / cancelDelete
+// markForDelete / cancelDelete — no fetch
 // ---------------------------------------------------------------------------
 
 describe('markForDelete', () => {
@@ -140,16 +163,14 @@ describe('cancelDelete', () => {
 });
 
 // ---------------------------------------------------------------------------
-// confirmDelete
+// confirmDelete — calls getAuthToken() first, then DELETE /api/rooms/:id
 // ---------------------------------------------------------------------------
 
 describe('confirmDelete', () => {
   it('removes the room from the list on success', async () => {
     const room = makeRoom('silent-hawk');
     useRoomStore.setState({ rooms: [makeRoom('default'), room], activeRoomId: 'default' });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ deleted: 'silent-hawk' }), { status: 200 }),
-    );
+    mockTokenThen(new Response(JSON.stringify({ deleted: 'silent-hawk' }), { status: 200 }));
 
     await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
 
@@ -160,9 +181,7 @@ describe('confirmDelete', () => {
   it('falls back to default when active room is deleted', async () => {
     const room = makeRoom('silent-hawk');
     useRoomStore.setState({ rooms: [makeRoom('default'), room], activeRoomId: 'silent-hawk' });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ deleted: 'silent-hawk' }), { status: 200 }),
-    );
+    mockTokenThen(new Response(JSON.stringify({ deleted: 'silent-hawk' }), { status: 200 }));
 
     await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
 
@@ -173,39 +192,52 @@ describe('confirmDelete', () => {
     const roomA = makeRoom('room-a');
     const roomB = makeRoom('room-b');
     useRoomStore.setState({ rooms: [makeRoom('default'), roomA, roomB], activeRoomId: 'room-a' });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ deleted: 'room-b' }), { status: 200 }),
-    );
+    mockTokenThen(new Response(JSON.stringify({ deleted: 'room-b' }), { status: 200 }));
 
     await act(() => useRoomStore.getState().confirmDelete('room-b'));
 
     expect(useRoomStore.getState().activeRoomId).toBe('room-a');
   });
 
-  it('does nothing for the default room', async () => {
+  it('does nothing for the default room — no fetch called', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch');
     await act(() => useRoomStore.getState().confirmDelete('default'));
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it('clears pendingDeleteId even when fetch fails', async () => {
+  it('clears pendingDeleteId when DELETE fetch throws', async () => {
+    // getAuthToken() catches internally and returns null on token failure — does NOT re-throw.
+    // The only path to the catch in confirmDelete is: token succeeds, DELETE fetch throws.
     useRoomStore.setState({ pendingDeleteId: 'swift-falcon' });
-    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network'));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    fetchSpy.mockResolvedValueOnce(
+      new Response(JSON.stringify({ token: 'test-token' }), { status: 200 }),
+    );
+    fetchSpy.mockRejectedValueOnce(new Error('network'));
 
     await act(() => useRoomStore.getState().confirmDelete('swift-falcon'));
 
     expect(useRoomStore.getState().pendingDeleteId).toBeNull();
   });
 
-  it('does not remove room on non-ok response', async () => {
+  it('does not remove room when DELETE returns non-ok', async () => {
     const room = makeRoom('silent-hawk');
     useRoomStore.setState({ rooms: [makeRoom('default'), room] });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response('error', { status: 500 }),
-    );
+    mockTokenThen(new Response('error', { status: 500 }));
 
     await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
 
     expect(useRoomStore.getState().rooms.find((r) => r.id === 'silent-hawk')).toBeDefined();
+  });
+
+  it('clears pendingDeleteId when DELETE returns non-ok (SUGG-001)', async () => {
+    // Bug confirmed by Moriarty: if (!res.ok) return — pendingDeleteId is never cleared on HTTP errors
+    // A 404 (already deleted) or 429 (rate limited) would leave the UI stuck in "pending delete" state permanently.
+    useRoomStore.setState({ pendingDeleteId: 'silent-hawk', rooms: [makeRoom('silent-hawk')] });
+    mockTokenThen(new Response('Not Found', { status: 404 }));
+
+    await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
+
+    expect(useRoomStore.getState().pendingDeleteId).toBeNull();
   });
 });

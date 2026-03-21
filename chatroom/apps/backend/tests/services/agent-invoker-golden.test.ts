@@ -78,7 +78,7 @@ mock.module('../../src/index.js', () => ({
 // Imports AFTER all mock.module() declarations
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, afterEach, beforeEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import {
   sanitizePromptContent,
   buildPrompt,

@@ -87,7 +87,7 @@ import { AgentState } from '@agent-chatroom/shared';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const ROOM = 'runner-golden-room';
+const _ROOM = 'runner-golden-room';
 
 function getMessages(roomId: string): Array<{ author: string; content: string; msg_type: string; author_type: string }> {
   return _runnerDb

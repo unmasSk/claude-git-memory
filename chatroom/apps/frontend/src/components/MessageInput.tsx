@@ -28,7 +28,7 @@ export function MessageInput() {
     closeDropdown,
   } = useMentionAutocomplete();
 
-  const roomName = room?.name ?? 'room';
+  const _roomName = room?.name ?? 'room';
 
   /** Auto-resize textarea to content */
   function autoResize(el: HTMLTextAreaElement) {

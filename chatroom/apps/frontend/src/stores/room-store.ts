@@ -94,7 +94,7 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) return;
+      if (!res.ok) { set({ pendingDeleteId: null }); return; }
       const { rooms, activeRoomId } = get();
       const remaining = rooms.filter((r) => r.id !== id);
       // If the deleted room was active, fall back to 'default'

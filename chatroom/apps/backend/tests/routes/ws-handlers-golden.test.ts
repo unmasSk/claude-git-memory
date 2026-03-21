@@ -96,7 +96,7 @@ mock.module('../../src/services/agent-invoker.js', () => {
 // Imports AFTER all mock.module() declarations
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { describe, it, expect, afterEach } from 'bun:test';
 import { open, message, close } from '../../src/routes/ws-handlers.js';
 import {
   wsConnIds,

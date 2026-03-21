@@ -30,7 +30,7 @@ export function createTokenBucket(max: number, windowMs: number): (key: string) 
 
   return function check(key: string): boolean {
     const now = Date.now();
-    let bucket = buckets.get(key);
+    const bucket = buckets.get(key);
 
     if (!bucket) {
       // First request for this key — consume one token immediately

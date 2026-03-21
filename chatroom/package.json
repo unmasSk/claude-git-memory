@@ -12,11 +12,20 @@
     "dev:frontend": "cd apps/frontend && bun run dev",
     "build": "bun run build:shared && bun run build:frontend",
     "build:shared": "cd packages/shared && bun run build",
-    "build:frontend": "cd apps/frontend && bun run build"
+    "build:frontend": "cd apps/frontend && bun run build",
+    "lint": "eslint apps/ packages/",
+    "format": "prettier --write apps/ packages/",
+    "format:check": "prettier --check apps/ packages/",
+    "test:backend": "cd apps/backend && bun test",
+    "test:frontend": "cd apps/frontend && npx vitest run",
+    "check-all": "bun run build && bun run lint && bun run format:check && bun run test:backend && bun run test:frontend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
-    "prettier": "^3.8.1"
+    "eslint": "^10.1.0",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.1"
   },
   "dependencies": {
     "helmet": "^8.1.0"

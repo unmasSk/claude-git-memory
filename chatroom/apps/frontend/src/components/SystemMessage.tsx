@@ -24,7 +24,7 @@ function formatContent(content: string): string {
   );
 }
 
-function getIcon(content: string, size = 11) {
+function _getIcon(content: string, size = 11) {
   const lower = content.toLowerCase();
   if (lower.includes('joined') || lower.includes('started') || lower.includes('session')) return <LogIn size={size} />;
   if (lower.includes('left') || lower.includes('disconnected')) return <LogOut size={size} />;
@@ -35,7 +35,7 @@ function getIcon(content: string, size = 11) {
   return <Info size={size} />;
 }
 
-function pillVariant(content: string): string {
+function _pillVariant(content: string): string {
   const lower = content.toLowerCase();
   if (lower.includes('error') || lower.includes('failed') || lower.includes('timeout')) return 'system-pill-inner error';
   if (lower.includes('joined') || lower.includes('started')) return 'system-pill-inner join';

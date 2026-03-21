@@ -6,7 +6,10 @@
     "dev": "vite --port 4201",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src/",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "@agent-chatroom/shared": "workspace:*",

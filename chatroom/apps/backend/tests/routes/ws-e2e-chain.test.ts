@@ -222,7 +222,7 @@ beforeEach(() => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function getMessagesInRoom(roomId: string): Array<{ id: string; author: string; content: string; author_type: string }> {
+function _getMessagesInRoom(roomId: string): Array<{ id: string; author: string; content: string; author_type: string }> {
   return _e2eDb
     .query(`SELECT id, author, content, author_type FROM messages WHERE room_id = ? ORDER BY rowid`)
     .all(roomId) as Array<{ id: string; author: string; content: string; author_type: string }>;

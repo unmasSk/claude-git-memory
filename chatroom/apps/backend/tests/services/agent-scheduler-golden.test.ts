@@ -92,7 +92,7 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const ROOM = 'sched-golden-room';
+const _ROOM = 'sched-golden-room';
 
 // Use names that don't match any real agent — doInvoke exits via "Unknown agent"
 // guard without spawning a subprocess.

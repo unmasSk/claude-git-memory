@@ -20,7 +20,7 @@ import {
   resumeAgent,
   isAgentPaused,
 } from './agent-queue.js';
-import type { InvocationContext, QueueEntry } from './agent-queue.js';
+import type { InvocationContext } from './agent-queue.js';
 
 export { pauseAgent, resumeAgent, isAgentPaused };
 
