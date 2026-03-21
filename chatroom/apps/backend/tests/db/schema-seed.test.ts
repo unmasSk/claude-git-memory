@@ -134,23 +134,23 @@ describe('seedAgentSessions', () => {
     expect(sessions.length).toBe(3);
   });
 
-  it('does not overwrite a non-idle status set by a running agent', () => {
-    // Pre-seed claude as thinking (simulates an active agent)
+  it('does not overwrite an existing row — preserves status and session_id on restart', () => {
+    // Simulate an agent that finished a turn before the server restarted
     currentDb
       .query(
         `INSERT INTO agent_sessions (agent_name, room_id, session_id, model, status)
-         VALUES ('claude', 'default', 'sess-abc', 'claude-opus-4-6', 'thinking')`,
+         VALUES ('claude', 'default', 'sess-abc', 'claude-opus-4-6', 'done')`,
       )
       .run();
 
-    // Re-seeding overwrites — this is the expected upsert behavior (status reset to idle on boot)
+    // Boot-time seed must not reset existing rows — ON CONFLICT DO NOTHING
     seedAgentSessions(SAMPLE_AGENTS);
 
     const claude = getSession(currentDb, 'claude', 'default');
-    // After boot seed, status is reset to idle (intentional: server restarted)
-    expect(claude?.status).toBe('idle');
-    // session_id is also cleared
-    expect(claude?.session_id).toBeNull();
+    // Status must remain 'done' so @everyone can still invoke the agent
+    expect(claude?.status).toBe('done');
+    // session_id must be unchanged
+    expect(claude?.session_id).toBe('sess-abc');
   });
 
   it('seeds into the specified room when roomId is provided', () => {

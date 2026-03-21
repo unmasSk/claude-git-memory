@@ -1,5 +1,5 @@
 import { getDb } from './connection.js';
-import { upsertAgentSession } from './queries.js';
+import { insertAgentSessionIfMissing } from './queries.js';
 import { createLogger } from '../logger.js';
 
 const logger = createLogger('schema');
@@ -60,7 +60,11 @@ export function initializeSchema(): void {
 /**
  * Seed all registered agents into `agent_sessions` for the given room.
  *
- * Idempotent via upsert — existing rows are updated only if status has changed.
+ * Idempotent via INSERT … ON CONFLICT DO NOTHING — only inserts rows that do
+ * not already exist. Existing rows (and their status) are left untouched so a
+ * server restart does not reset a `done` agent back to `idle`, which would
+ * break `@everyone` invocation (which only targets thinking/tool-use/done).
+ *
  * Excludes the 'user' entry because users are human participants, not agent sessions.
  * Called once after `initializeSchema()` so the sidebar shows all agents on first load.
  *
@@ -73,13 +77,7 @@ export function seedAgentSessions(
 ): void {
   for (const agent of agents) {
     if (agent.name === 'user') continue;
-    upsertAgentSession({
-      agentName: agent.name,
-      roomId,
-      sessionId: null,
-      model: agent.model,
-      status: 'idle',
-    });
+    insertAgentSessionIfMissing(agent.name, roomId, agent.model);
   }
   logger.info({ count: agents.filter((a) => a.name !== 'user').length, roomId }, 'agent sessions seeded');
 }

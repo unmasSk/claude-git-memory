@@ -271,6 +271,29 @@ export function incrementAgentTurnCount(agentName: string, roomId: string): void
 }
 
 /**
+ * Insert an agent session row only if no row already exists for this agent+room.
+ *
+ * Uses `ON CONFLICT DO NOTHING` so existing rows (and their status) are left
+ * untouched. This is the correct seed behaviour: a server restart must not
+ * reset a `done` agent back to `idle` and break `@everyone` invocation.
+ *
+ * @param agentName - Agent name (lowercase)
+ * @param roomId - Room ID
+ * @param model - Model identifier string
+ */
+export function insertAgentSessionIfMissing(agentName: string, roomId: string, model: string): void {
+  getDb()
+    .query<void, [string, string, string]>(
+      `
+      INSERT INTO agent_sessions (agent_name, room_id, session_id, model, status, last_active)
+      VALUES (?, ?, NULL, ?, 'idle', datetime('now'))
+      ON CONFLICT (agent_name, room_id) DO NOTHING
+    `,
+    )
+    .run(agentName, roomId, model);
+}
+
+/**
  * Clear the session_id for an agent so the next invocation starts fresh.
  *
  * Called when a stale `--resume` session is detected (FIX 2). Clearing
