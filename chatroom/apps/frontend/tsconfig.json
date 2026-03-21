@@ -8,5 +8,5 @@
     "rootDir": "src",
     "noEmit": true
   },
-  "include": ["src/**/*", "vite.config.ts", "index.html"]
+  "include": ["src/**/*"]
 }
