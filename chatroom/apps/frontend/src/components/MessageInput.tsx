@@ -1,6 +1,6 @@
 import '../styles/components/ChatInput.css';
 import { useState, useRef, useCallback } from 'react';
-import { Paperclip, Image, ArrowRight, Zap, Brain } from 'lucide-react';
+import { Paperclip, Image, ArrowUp, Zap, Brain } from 'lucide-react';
 import { useWsStore } from '../stores/ws-store';
 import { useAgentStore } from '../stores/agent-store';
 import { useMentionAutocomplete, replaceMention } from '../hooks/useMentionAutocomplete';
@@ -143,7 +143,7 @@ export function MessageInput() {
               disabled={!value.trim() || status !== 'connected'}
               aria-label="Send message"
             >
-              <ArrowRight size={14} />
+              <ArrowUp size={14} />
             </button>
           </div>
         </div>
