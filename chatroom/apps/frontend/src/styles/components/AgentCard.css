@@ -29,7 +29,7 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
   display: grid;
   grid-template-columns: 1fr 54px;
   grid-template-rows: 1fr 1fr 1fr;
-  overflow: hidden;
+  overflow: visible;
   transform-origin: left center;
   transition:
     width 300ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -151,7 +151,7 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
   justify-content: center;
   padding-left: 6px;
   transition: opacity 200ms;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cell-status svg {
@@ -209,11 +209,12 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
 /* ── External card-wrap glow — lives outside .card so overflow: hidden doesn't clip it ── */
 @keyframes neon-card-glow {
   0%, 100% { box-shadow: none; }
-  50%       { box-shadow: 0 0 14px var(--ac), 0 0 28px color-mix(in srgb, var(--ac) 50%, transparent); }
+  50%       { box-shadow: 0 0 14px 4px var(--ac), 0 0 32px 8px color-mix(in srgb, var(--ac) 35%, transparent); }
 }
 
 .card-wrap:has(.neon-active) {
   animation: neon-card-glow 2.5s ease-in-out infinite;
+  border-color: transparent;
 }
 
 .neon-active {
