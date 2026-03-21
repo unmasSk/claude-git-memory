@@ -85,20 +85,20 @@ describe('ParticipantItem — card class based on agent state', () => {
     expect(card).toHaveClass('active-card');
   });
 
-  it('uses active-card when status is Done', () => {
+  it('uses off-card when status is Done', () => {
     const { container } = render(<ParticipantItem agent={makeAgent(AgentState.Done)} />);
     const card = container.querySelector('.card');
-    expect(card).toHaveClass('active-card');
+    expect(card).toHaveClass('off-card');
   });
 
-  it('uses active-card when status is Error', () => {
+  it('uses off-card when status is Error', () => {
     const { container } = render(<ParticipantItem agent={makeAgent(AgentState.Error)} />);
     const card = container.querySelector('.card');
-    expect(card).toHaveClass('active-card');
+    expect(card).toHaveClass('off-card');
   });
 
-  it('wraps card in agent-name CSS class on the outer div', () => {
-    const { container } = render(<ParticipantItem agent={makeAgent(AgentState.Idle, 'dante')} />);
+  it('wraps card in agent-name CSS class on the outer div when previously invoked', () => {
+    const { container } = render(<ParticipantItem agent={makeAgent(AgentState.Done, 'dante')} />);
     const wrap = container.querySelector('.card-wrap');
     expect(wrap).toHaveClass('agent-dante');
   });

@@ -167,6 +167,11 @@ export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean
   const timeoutHandle = makeTimeoutHandle(proc, agentName, roomId);
   const sr = await readAgentStream(proc, agentName, roomId, timeoutHandle);
   activeProcesses.delete(flightKey);
+  // Fallback: if CLI didn't emit model_usage.contextWindow, infer from model name
+  if (sr.resultContextWindow === 0) {
+    if (model.includes('haiku')) sr.resultContextWindow = 200_000;
+    else sr.resultContextWindow = 1_000_000; // sonnet + opus
+  }
   return handleAgentResult(sr, roomId, agentName, model, context);
 }
 
@@ -256,6 +261,14 @@ export async function postSystemMessage(roomId: string, content: string): Promis
   });
 }
 
+interface StatusMetrics {
+  durationMs?: number;
+  numTurns?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  contextWindow?: number;
+}
+
 /**
  * Update an agent's status in the database and broadcast an agent_status event to the room.
  *
@@ -263,12 +276,14 @@ export async function postSystemMessage(roomId: string, content: string): Promis
  * @param roomId - The room the agent is active in.
  * @param status - The new AgentState value (e.g. Thinking, ToolUse, Done, Error).
  * @param detail - Optional detail string (tool name for ToolUse, error message for Error).
+ * @param metrics - Optional result metrics (only passed when status === Done from persistAndBroadcast).
  */
 export async function updateStatusAndBroadcast(
   agentName: string,
   roomId: string,
   status: AgentState,
   detail?: string,
+  metrics?: StatusMetrics,
 ): Promise<void> {
   updateAgentStatus(agentName, roomId, status);
 
@@ -277,5 +292,6 @@ export async function updateStatusAndBroadcast(
     agent: agentName,
     status,
     detail,
+    ...metrics,
   });
 }

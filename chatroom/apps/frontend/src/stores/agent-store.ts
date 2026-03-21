@@ -10,7 +10,7 @@ interface AgentState_ {
   setRoom: (room: Room) => void;
   setAgents: (agents: AgentStatus[]) => void;
   setConnectedUsers: (users: ConnectedUser[]) => void;
-  updateStatus: (agentName: string, status: AgentState, detail?: string) => void;
+  updateStatus: (agentName: string, status: AgentState, detail?: string, metrics?: { durationMs?: number; numTurns?: number; inputTokens?: number; outputTokens?: number; contextWindow?: number }) => void;
   getOnlineAgents: () => AgentStatus[];
 }
 
@@ -26,12 +26,22 @@ export const useAgentStore = create<AgentState_>((set, get) => ({
 
   setConnectedUsers: (users) => set({ connectedUsers: users }),
 
-  updateStatus: (agentName, status, _detail?) =>
+  updateStatus: (agentName, status, _detail?, metrics?) =>
     set((state) => {
       const agents = new Map(state.agents);
       const existing = agents.get(agentName);
+      const metricsUpdate = metrics ?? {};
       if (existing) {
-        agents.set(agentName, { ...existing, status, lastActive: new Date().toISOString() });
+        agents.set(agentName, {
+          ...existing, status, lastActive: new Date().toISOString(),
+          ...(metrics ? {
+            lastDurationMs: metrics.durationMs,
+            lastNumTurns: metrics.numTurns,
+            lastInputTokens: metrics.inputTokens,
+            lastOutputTokens: metrics.outputTokens,
+            lastContextWindow: metrics.contextWindow,
+          } : {}),
+        });
       } else {
         // Create a minimal placeholder if we haven't seen this agent yet
         agents.set(agentName, {
@@ -43,6 +53,13 @@ export const useAgentStore = create<AgentState_>((set, get) => ({
           lastActive: new Date().toISOString(),
           totalCost: 0,
           turnCount: 0,
+          ...(metrics ? {
+            lastDurationMs: metrics.durationMs,
+            lastNumTurns: metrics.numTurns,
+            lastInputTokens: metrics.inputTokens,
+            lastOutputTokens: metrics.outputTokens,
+            lastContextWindow: metrics.contextWindow,
+          } : {}),
         });
       }
       return { agents };

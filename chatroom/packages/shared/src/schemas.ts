@@ -59,6 +59,11 @@ export const AgentStatusSchema = z.object({
   lastActive: z.string().nullable(),
   totalCost: z.number(),
   turnCount: z.number(),
+  lastDurationMs: z.number().optional(),
+  lastNumTurns: z.number().optional(),
+  lastInputTokens: z.number().optional(),
+  lastOutputTokens: z.number().optional(),
+  lastContextWindow: z.number().optional(),
 });
 
 // ---------------------------------------------------------------------------
@@ -141,6 +146,11 @@ export const ServerAgentStatusSchema = z.object({
     AgentState.Error,
   ]),
   detail: z.string().optional(),
+  durationMs: z.number().int().nonnegative().optional(),
+  numTurns: z.number().int().nonnegative().optional(),
+  inputTokens: z.number().int().nonnegative().optional(),
+  outputTokens: z.number().int().nonnegative().optional(),
+  contextWindow: z.number().int().nonnegative().optional(),
 });
 
 export const ServerToolEventSchema = z.object({

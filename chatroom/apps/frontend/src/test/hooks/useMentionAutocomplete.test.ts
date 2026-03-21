@@ -11,7 +11,7 @@ import { AGENT_REGISTRY } from '@agent-chatroom/shared';
 
 // Derived from the hook's source so tests stay in sync with production values
 const INVOKABLE_NAMES = AGENT_REGISTRY
-  .filter((a) => a.invokable)
+  .filter((a) => a.invokable && a.name !== 'claude')
   .map((a) => a.name);
 
 // -------------------------------------------------------------------------

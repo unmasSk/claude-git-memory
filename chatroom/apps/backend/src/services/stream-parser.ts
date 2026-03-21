@@ -82,7 +82,7 @@ interface ResultEventRaw {
     cache_read_input_tokens?: number;
   };
   permission_denials?: Array<{ tool_name?: string; input?: unknown }>;
-  modelUsage?: Record<string, { contextWindow?: number }>;
+  model_usage?: Record<string, { contextWindow?: number }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -186,15 +186,15 @@ function parseResultEvent(event: ResultEventRaw): ResultEvent | null {
   const permissionDenials: PermissionDenial[] = Array.isArray(event.permission_denials)
     ? event.permission_denials.map((d) => ({ toolName: d.tool_name ?? 'unknown', input: d.input }))
     : [];
-  // contextWindow lives under modelUsage[<modelId>].contextWindow — pick the first entry
-  const modelUsageValues = event.modelUsage ? Object.values(event.modelUsage) : [];
+  // contextWindow lives under model_usage[<modelId>].contextWindow — pick the first entry
+  const modelUsageValues = event.model_usage ? Object.values(event.model_usage) : [];
   const rawContextWindow =
     modelUsageValues.length > 0 && typeof modelUsageValues[0]?.contextWindow === 'number'
       ? modelUsageValues[0].contextWindow
       : 0;
-  // Fallback: when the CLI reports 0, infer from the model name in the modelUsage key.
+  // Fallback: when the CLI reports 0, infer from the model name in the model_usage key.
   // This covers cases where the CLI omits contextWindow for known model families.
-  const contextWindow = rawContextWindow > 0 ? rawContextWindow : inferContextWindow(event.modelUsage);
+  const contextWindow = rawContextWindow > 0 ? rawContextWindow : inferContextWindow(event.model_usage);
 
   return {
     type: 'result',

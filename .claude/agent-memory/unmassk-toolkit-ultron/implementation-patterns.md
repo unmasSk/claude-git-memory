@@ -555,3 +555,11 @@ Added to: `validateSessionId`, `sanitizePromptContent`, `buildPrompt`, `getGitDi
 
 ### Change 7: maybeTruncate — Buffer-safe truncation
 `text.slice(0, MAX_AGENT_RESPONSE_BYTES)` → `Buffer.from(text).subarray(0, MAX_AGENT_RESPONSE_BYTES).toString('utf-8')`. Handles multi-byte UTF-8 chars safely — decoder skips incomplete trailing sequences.
+
+## truncatePath helper in agent-prompt.ts (2026-03-21)
+
+`truncatePath(path, maxLen=60)` lives just above `formatToolDescription` in `agent-prompt.ts`.
+Logic: if path ≤ maxLen return as-is; otherwise slice the last maxLen chars, find first `/` in
+that slice (if any) to cut at a clean segment boundary, prepend `…` (U+2026).
+Applied only to `file_path` and `path` branches — `pattern` and `command` branches untouched.
+Golden tests use short paths (< 60 chars) so they pass through unchanged — no test updates needed.

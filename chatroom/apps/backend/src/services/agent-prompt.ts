@@ -179,10 +179,11 @@ export function getGitDiffStat(): string {
 /**
  * Format a tool_use block into a human-readable description for the UI.
  * Handles common Claude tool input shapes (file_path, path, pattern, command).
+ * Full paths are returned untruncated — the UI handles overflow with CSS (direction: rtl).
  *
  * @param toolName - The name of the tool being invoked (e.g. "Read", "Bash", "Grep").
  * @param input    - The raw input object from the tool_use stream event.
- * @returns A short human-readable string describing the tool call; falls back to toolName alone.
+ * @returns A human-readable string describing the tool call; falls back to toolName alone.
  */
 export function formatToolDescription(toolName: string, input: unknown): string {
   if (typeof input !== 'object' || input === null) {

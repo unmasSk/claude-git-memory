@@ -56,6 +56,12 @@ export interface AgentStatus {
   lastActive: string | null;
   totalCost: number;
   turnCount: number;
+  /** Last invocation metrics — populated from the result event when agent reaches Done */
+  lastDurationMs?: number;
+  lastNumTurns?: number;
+  lastInputTokens?: number;
+  lastOutputTokens?: number;
+  lastContextWindow?: number;
 }
 
 /**
@@ -139,6 +145,12 @@ export interface ServerAgentStatus {
   agent: string;
   status: AgentState;
   detail?: string;
+  /** Metrics from the result event — only present when status === Done */
+  durationMs?: number;
+  numTurns?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  contextWindow?: number;
 }
 
 export interface ServerToolEvent {

@@ -177,9 +177,14 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
 .bar-fill {
   height: 100%;
   border-radius: 2px;
-  background: linear-gradient(90deg, var(--bar-fill) 0%, #6a6a6a 50%, var(--bar-fill) 100%);
+  background: var(--bar-fill);
+  transition: width 0.6s ease;
+}
+
+.bar-fill.bar-fill-animated {
+  background: linear-gradient(90deg, var(--bar-fill) 0%, #8a8aff 50%, var(--bar-fill) 100%);
   background-size: 200px 100%;
-  animation: shimmer 2.5s ease-in-out infinite;
+  animation: shimmer 1.2s ease-in-out infinite;
 }
 
 .bar-pct {

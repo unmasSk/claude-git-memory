@@ -1,5 +1,5 @@
 import '../styles/components/AgentCard.css';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import type { AgentStatus } from '@agent-chatroom/shared';
 import { AgentState, getModelBadge } from '@agent-chatroom/shared';
 import { agentColorClass } from '../lib/colors';
@@ -8,6 +8,11 @@ import { useWsStore } from '../stores/ws-store';
 
 interface ParticipantItemProps {
   agent: AgentStatus;
+}
+
+function fmtTok(n: number | undefined): string {
+  if (n === undefined || n === 0) return '\u2014';
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 
 export const ParticipantItem = memo(function ParticipantItem({ agent }: ParticipantItemProps) {
@@ -21,11 +26,23 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
   const isAnimating = isActive;
   const agentNameLower = agent.agentName.toLowerCase();
 
+  const ctxPct = (agent.lastInputTokens && agent.lastContextWindow && agent.lastContextWindow > 0)
+    ? Math.round((agent.lastInputTokens / agent.lastContextWindow) * 100)
+    : null;
+
   const send = useWsStore((s) => s.send);
 
   // T1: Local toggle so the same button acts as Pause or Resume depending on current state.
-  // The server tracks the authoritative paused flag; this mirrors it optimistically in the UI.
+  // Optimistic local state — reset when server confirms the agent is running again.
   const [isPaused, setIsPaused] = useState(false);
+
+  // Sync: if another client resumes the agent, the server broadcasts Thinking/ToolUse/Done.
+  // Reset isPaused so the button correctly shows "Pause" instead of "Resume".
+  useEffect(() => {
+    if (agent.status === AgentState.Thinking || agent.status === AgentState.ToolUse || agent.status === AgentState.Done) {
+      setIsPaused(false);
+    }
+  }, [agent.status]);
 
   const handlePlay = useCallback(() => {
     send({ type: 'invoke_agent', agent: agent.agentName, prompt: `@${agent.agentName} please continue.` });
@@ -98,13 +115,15 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
             {agentNameLower}
           </span>
           <span className="model">{modelBadge}</span>
-          <span className="pct">&mdash;</span>
+          <span className="pct">
+            {ctxPct !== null ? `${ctxPct}%` : '\u2014'}
+          </span>
         </div>
 
         {/* Cell 2: context bar */}
         <div className="cell-bar">
           <div className="bar-track">
-            <div className="bar-fill" style={{ width: '0%' }} />
+            <div className={`bar-fill${isActive ? ' bar-fill-animated' : ''}`} style={{ width: ctxPct !== null ? `${ctxPct}%` : '0%' }} />
           </div>
         </div>
 
@@ -114,26 +133,26 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
             <svg className="icon-tiny" viewBox="0 0 10 10">
               <polygon points="5,1 9,7 1,7" fill="var(--text-3)" stroke="none" />
             </svg>
-            &mdash;
+            {fmtTok(agent.lastOutputTokens)}
           </span>
           <span className="metric">
             <svg className="icon-tiny" viewBox="0 0 10 10">
               <polygon points="5,9 9,3 1,3" fill="var(--text-3)" stroke="none" />
             </svg>
-            &mdash;
+            {fmtTok(agent.lastInputTokens)}
           </span>
           <span className="metric">
             <svg className="icon-tiny" viewBox="0 0 10 10">
               <path d="M8 2.5A4 4 0 1 0 8.5 7" />
               <path d="M9 1v2.5H6.5" />
             </svg>
-            &mdash;
+            {agent.lastNumTurns ?? '\u2014'}
           </span>
           <span className="metric">
             <svg className="icon-tiny" viewBox="0 0 10 10">
               <path d="M2 1h6M2 9h6M2 1l3 4-3 4M8 1L5 5l3 4" />
             </svg>
-            &mdash;
+            {agent.lastDurationMs ? `${(agent.lastDurationMs / 1000).toFixed(1)}s` : '\u2014'}
           </span>
         </div>
 
@@ -144,7 +163,7 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
               <Icon className="icon-status" />
             </div>
           ) : (
-            <Icon className="icon-status" />
+            <Icon className="icon-status" style={neverInvoked ? { opacity: 0.3 } : undefined} />
           )}
         </div>
       </div>

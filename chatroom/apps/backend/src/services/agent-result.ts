@@ -264,5 +264,11 @@ export async function persistAndBroadcast(
   upsertAgentSession({ agentName, roomId, sessionId: sr.resultSessionId, model, status: 'done' });
   if (sr.resultCostUsd > 0) incrementAgentCost(agentName, roomId, sr.resultCostUsd);
   incrementAgentTurnCount(agentName, roomId);
-  await updateStatusAndBroadcast(agentName, roomId, AgentState.Done);
+  await updateStatusAndBroadcast(agentName, roomId, AgentState.Done, undefined, {
+    durationMs: sr.resultDurationMs,
+    numTurns: sr.resultNumTurns,
+    inputTokens: sr.resultInputTokens,
+    outputTokens: sr.resultOutputTokens,
+    contextWindow: sr.resultContextWindow,
+  });
 }

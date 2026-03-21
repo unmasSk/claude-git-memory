@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { ServerMessage, ClientMessage, Message } from '@agent-chatroom/shared';
+import { ServerMessageSchema } from '@agent-chatroom/shared';
 import { useChatStore } from './chat-store';
 import { useAgentStore } from './agent-store';
 
@@ -57,7 +58,13 @@ function getReconnectDelay(): number {
 function handleServerMessage(event: MessageEvent) {
   let parsed: ServerMessage;
   try {
-    parsed = JSON.parse(event.data as string) as ServerMessage;
+    const raw = JSON.parse(event.data as string);
+    const result = ServerMessageSchema.safeParse(raw);
+    if (!result.success) {
+      console.warn('[ws-store] Invalid server message:', result.error.issues);
+      return;
+    }
+    parsed = result.data;
   } catch {
     console.warn('[ws-store] Failed to parse message:', event.data);
     return;
@@ -84,7 +91,13 @@ function handleServerMessage(event: MessageEvent) {
       break;
 
     case 'agent_status':
-      agentStore.updateStatus(parsed.agent, parsed.status, parsed.detail);
+      agentStore.updateStatus(parsed.agent, parsed.status, parsed.detail, {
+        durationMs: parsed.durationMs,
+        numTurns: parsed.numTurns,
+        inputTokens: parsed.inputTokens,
+        outputTokens: parsed.outputTokens,
+        contextWindow: parsed.contextWindow,
+      });
       break;
 
     case 'tool_event': {

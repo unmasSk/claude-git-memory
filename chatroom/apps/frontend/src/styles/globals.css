@@ -180,9 +180,11 @@
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-2);
+  direction: rtl;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  unicode-bidi: plaintext;
 }
 
 /* Per-agent tool event colors (border + bg + badge tint) */
