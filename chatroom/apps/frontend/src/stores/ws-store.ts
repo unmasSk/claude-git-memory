@@ -129,15 +129,19 @@ function handleServerMessage(event: MessageEvent) {
       scheduleFlush();
       break;
 
-    case 'agent_status':
-      agentStore.updateStatus(parsed.agent, parsed.status, parsed.detail, {
-        durationMs: parsed.durationMs,
-        numTurns: parsed.numTurns,
-        inputTokens: parsed.inputTokens,
-        outputTokens: parsed.outputTokens,
-        contextWindow: parsed.contextWindow,
-      });
+    case 'agent_status': {
+      // Filter undefined fields — only pass metrics that actually arrived in this event.
+      // Passing an object with all-undefined fields was the root cause of metrics being
+      // cleared on each 'thinking' update (the ternary in agent-store was always truthy).
+      const m: { durationMs?: number; numTurns?: number; inputTokens?: number; outputTokens?: number; contextWindow?: number } = {};
+      if (parsed.durationMs !== undefined) m.durationMs = parsed.durationMs;
+      if (parsed.numTurns !== undefined) m.numTurns = parsed.numTurns;
+      if (parsed.inputTokens !== undefined) m.inputTokens = parsed.inputTokens;
+      if (parsed.outputTokens !== undefined) m.outputTokens = parsed.outputTokens;
+      if (parsed.contextWindow !== undefined) m.contextWindow = parsed.contextWindow;
+      agentStore.updateStatus(parsed.agent, parsed.status, parsed.detail, Object.keys(m).length > 0 ? m : undefined);
       break;
+    }
 
     case 'tool_event': {
       // Tool events become tool_use messages in the chat

@@ -13,12 +13,12 @@ import userEvent from '@testing-library/user-event';
 import { ParticipantItem } from '../../components/ParticipantItem';
 import { useWsStore } from '../../stores/ws-store';
 import { AgentState } from '@agent-chatroom/shared';
-import type { AgentStatus } from '@agent-chatroom/shared';
+import type { AgentStatusUI } from '../../stores/agent-store';
 
 // Suppress CSS import errors in jsdom
 vi.mock('../../styles/components/AgentCard.css', () => ({}));
 
-function makeAgent(status: AgentState, name = 'bilbo'): AgentStatus {
+function makeAgent(status: AgentState, name = 'bilbo'): AgentStatusUI {
   return {
     agentName: name,
     roomId: 'default',
@@ -28,6 +28,8 @@ function makeAgent(status: AgentState, name = 'bilbo'): AgentStatus {
     lastActive: null,
     totalCost: 0,
     turnCount: 0,
+    completedInputTokens: 0,
+    invocationStartTime: null,
   };
 }
 

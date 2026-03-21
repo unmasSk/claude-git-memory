@@ -192,21 +192,18 @@ export function formatToolDescription(toolName: string, input: unknown): string 
 
   const inp = input as Record<string, unknown>;
 
-  // Common patterns: Read/Edit/Glob use file_path, Grep uses pattern+path
-  // toolName is NOT included — the UI badge already shows it.
   if (typeof inp['file_path'] === 'string') {
-    return inp['file_path'];
+    return `${toolName} ${inp['file_path']}`;
   }
   if (typeof inp['path'] === 'string') {
-    return inp['path'];
+    return `${toolName} ${inp['path']}`;
   }
   if (typeof inp['pattern'] === 'string') {
-    const path = typeof inp['path'] === 'string' ? ` in ${inp['path']}` : '';
-    return `"${inp['pattern']}"${path}`;
+    return `${toolName} "${inp['pattern']}"`;
   }
   if (typeof inp['command'] === 'string') {
-    return (inp['command'] as string).slice(0, 80);
+    return `${toolName}: ${(inp['command'] as string).slice(0, 60)}`;
   }
 
-  return '';
+  return toolName;
 }

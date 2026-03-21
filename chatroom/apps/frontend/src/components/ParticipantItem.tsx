@@ -1,18 +1,25 @@
 import '../styles/components/AgentCard.css';
-import { memo, useCallback, useEffect, useState } from 'react';
-import type { AgentStatus } from '@agent-chatroom/shared';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { AgentState, getModelBadge } from '@agent-chatroom/shared';
+import type { AgentStatusUI } from '../stores/agent-store';
 import { agentColorClass } from '../lib/colors';
 import { getAgentIcon } from '../lib/icons';
 import { useWsStore } from '../stores/ws-store';
 
 interface ParticipantItemProps {
-  agent: AgentStatus;
+  agent: AgentStatusUI;
 }
 
 function fmtTok(n: number | undefined): string {
   if (n === undefined || n === 0) return '\u2014';
   return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+function fmtSecs(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  return `${m}m${s % 60}s`;
 }
 
 export const ParticipantItem = memo(function ParticipantItem({ agent }: ParticipantItemProps) {
@@ -21,16 +28,50 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
   // 4 visual states: active (running now), paused (server-confirmed), invoked (worked before), never (idle/out)
   const isActive = agent.status === AgentState.Thinking || agent.status === AgentState.ToolUse;
   const isPausedFromServer = agent.status === AgentState.Paused;
-  const wasInvoked = agent.status === AgentState.Done || agent.status === AgentState.Error;
   const neverInvoked = agent.status === AgentState.Idle || agent.status === AgentState.Out;
   // Paused: use active-card (tinted background) but NO animation — agent has color but is frozen.
   const cardClass = (isActive || isPausedFromServer) ? 'card active-card' : 'card off-card';
-  const isAnimating = isActive;
   const agentNameLower = agent.agentName.toLowerCase();
 
-  const ctxPct = (agent.lastInputTokens && agent.lastContextWindow && agent.lastContextWindow > 0)
-    ? Math.min(100, Math.max(1, Math.round((agent.lastInputTokens / agent.lastContextWindow) * 100)))
+  // Live elapsed timer — ticks every second while agent is active.
+  const [elapsedMs, setElapsedMs] = useState<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (!isActive || !agent.invocationStartTime) {
+      setElapsedMs(null);
+      return;
+    }
+    // Tick immediately, then every second
+    setElapsedMs(Date.now() - agent.invocationStartTime);
+    intervalRef.current = setInterval(() => {
+      setElapsedMs(Date.now() - agent.invocationStartTime!);
+    }, 1000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [isActive, agent.invocationStartTime]);
+
+  // Context % — accumulated across invocations.
+  // During active: completedInputTokens (past) + lastInputTokens (current progress).
+  // During done/idle: completedInputTokens alone (last invocation already folded in).
+  const displayInputTokens = isActive
+    ? agent.completedInputTokens + (agent.lastInputTokens ?? 0)
+    : agent.completedInputTokens || agent.lastInputTokens;
+  const ctxPct = (displayInputTokens && agent.lastContextWindow && agent.lastContextWindow > 0)
+    ? Math.min(100, Math.max(1, Math.round((displayInputTokens / agent.lastContextWindow) * 100)))
     : null;
+
+  // Duration display: live timer while active, lastDurationMs when done.
+  const durationDisplay = isActive && elapsedMs !== null
+    ? fmtSecs(elapsedMs)
+    : agent.lastDurationMs
+      ? `${(agent.lastDurationMs / 1000).toFixed(1)}s`
+      : '\u2014';
 
   const send = useWsStore((s) => s.send);
 
@@ -150,7 +191,7 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
             <svg className="icon-tiny" viewBox="0 0 10 10">
               <path d="M2 1h6M2 9h6M2 1l3 4-3 4M8 1L5 5l3 4" />
             </svg>
-            {agent.lastDurationMs ? `${(agent.lastDurationMs / 1000).toFixed(1)}s` : '\u2014'}
+            {durationDisplay}
           </span>
         </div>
 
