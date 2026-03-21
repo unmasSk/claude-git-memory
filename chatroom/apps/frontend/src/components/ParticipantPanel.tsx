@@ -1,3 +1,4 @@
+import '../styles/components/Sidebar.css';
 import { useAgentStore } from '../stores/agent-store';
 import { AgentState } from '@agent-chatroom/shared';
 import { ParticipantItem } from './ParticipantItem';
@@ -13,41 +14,32 @@ export function ParticipantPanel() {
   const totalOnline = connectedUsers.length + onlineAgents.length;
 
   return (
-    <div className="panel">
-      <div className="section-label">Online — {totalOnline}</div>
+    <aside className="sidebar">
+      {/* Agent list fills the full sidebar — no header, room info is in titlebar */}
+      <div className="sb-section">Agents — {totalOnline}</div>
 
-      {connectedUsers.length > 0 && (
-        <>
-          <div className="section-label" style={{ fontSize: '10px', opacity: 0.5, paddingTop: '4px' }}>
-            humans
-          </div>
-          {connectedUsers.map((u) => (
-            <div key={u.name + '-' + u.connectedAt} className="participant">
-              <div className={`agent-avatar ${u.name.toLowerCase() === 'claude' ? 'av-claude' : 'av-user'}`}>
-                {u.name.toLowerCase() === 'claude' ? <Bot size={15} /> : <User size={15} />}
-                <div className="status-indicator status-idle" />
-              </div>
-              <div className="participant-info">
-                <div className="participant-name c-user">{u.name}</div>
-                <div className="participant-meta">
-                  <span className="participant-role">{u.name.toLowerCase() === 'claude' ? 'orchestrator' : 'human'}</span>
-                </div>
+      <div className="agent-list">
+        {connectedUsers.map((u) => (
+          <div key={u.name + '-' + u.connectedAt} className="participant">
+            <div className={`agent-avatar ${u.name.toLowerCase() === 'claude' ? 'av-claude' : 'av-user'}`}>
+              {u.name.toLowerCase() === 'claude' ? <Bot size={15} /> : <User size={15} />}
+              <div className="status-indicator status-idle" />
+            </div>
+            <div className="participant-info">
+              <div className="participant-name c-user">{u.name}</div>
+              <div className="participant-meta">
+                <span className="participant-role">
+                  {u.name.toLowerCase() === 'claude' ? 'orchestrator' : 'human'}
+                </span>
               </div>
             </div>
-          ))}
-        </>
-      )}
-
-      {onlineAgents.length > 0 && (
-        <>
-          <div className="section-label" style={{ fontSize: '10px', opacity: 0.5, paddingTop: '4px' }}>
-            agents
           </div>
-          {onlineAgents.map((agent) => (
-            <ParticipantItem key={agent.agentName} agent={agent} />
-          ))}
-        </>
-      )}
-    </div>
+        ))}
+
+        {onlineAgents.map((agent) => (
+          <ParticipantItem key={agent.agentName} agent={agent} />
+        ))}
+      </div>
+    </aside>
   );
 }

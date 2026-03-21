@@ -1,14 +1,18 @@
+import '../styles/components/ChatInput.css';
 import { useState, useRef, useCallback } from 'react';
-import { Send } from 'lucide-react';
+import { Paperclip, Image, ArrowRight, Zap } from 'lucide-react';
 import { useWsStore } from '../stores/ws-store';
 import { useAgentStore } from '../stores/agent-store';
 import { useMentionAutocomplete, replaceMention } from '../hooks/useMentionAutocomplete';
 import { MentionDropdown } from './MentionDropdown';
 import type { AgentDefinition } from '@agent-chatroom/shared';
 
+type InputMode = 'execute' | 'brainstorm';
+
 export function MessageInput() {
   const [value, setValue] = useState('');
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<InputMode>('execute');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const send = useWsStore((s) => s.send);
   const status = useWsStore((s) => s.status);
   const room = useAgentStore((s) => s.room);
@@ -25,9 +29,16 @@ export function MessageInput() {
 
   const roomName = room?.name ?? 'room';
 
-  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  /** Auto-resize textarea to content */
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = '20px';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }
+
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newVal = e.target.value;
     setValue(newVal);
+    autoResize(e.target);
     const pos = e.target.selectionStart ?? newVal.length;
     onInputChange(newVal, pos);
   }, [onInputChange]);
@@ -38,13 +49,17 @@ export function MessageInput() {
     send({ type: 'send_message', content: trimmed });
     setValue('');
     closeDropdown();
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '20px';
+    }
   }, [value, status, send, closeDropdown]);
 
   // T1-01 fix: submit must be declared before this callback to avoid TDZ
-  const handleKeyDownWrapper = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    const currentValue = inputRef.current?.value ?? '';
-    const pos = inputRef.current?.selectionStart ?? currentValue.length;
-    const result = handleKeyDown(e, currentValue, pos);
+  const handleKeyDownWrapper = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const currentValue = textareaRef.current?.value ?? '';
+    const pos = textareaRef.current?.selectionStart ?? currentValue.length;
+    const result = handleKeyDown(e as unknown as React.KeyboardEvent<HTMLInputElement>, currentValue, pos);
     if (result.handled) {
       if (result.newValue !== undefined) {
         setValue(result.newValue);
@@ -60,21 +75,25 @@ export function MessageInput() {
 
   const handleSelectAgent = useCallback((agent: AgentDefinition) => {
     selectAgent(agent);
-    const pos = inputRef.current?.selectionStart ?? value.length;
+    const pos = textareaRef.current?.selectionStart ?? value.length;
     const { newText, newCursor } = replaceMention(value, pos, agent.name);
     setValue(newText);
     // Restore cursor after state update
     requestAnimationFrame(() => {
-      if (inputRef.current) {
-        inputRef.current.selectionStart = newCursor;
-        inputRef.current.selectionEnd = newCursor;
-        inputRef.current.focus();
+      if (textareaRef.current) {
+        textareaRef.current.selectionStart = newCursor;
+        textareaRef.current.selectionEnd = newCursor;
+        textareaRef.current.focus();
       }
     });
   }, [value, selectAgent]);
 
+  function toggleMode() {
+    setMode((m) => (m === 'execute' ? 'brainstorm' : 'execute'));
+  }
+
   return (
-    <div className="input-area">
+    <div className="chat-input">
       {showDropdown && (
         <MentionDropdown
           agents={filteredAgents}
@@ -82,27 +101,54 @@ export function MessageInput() {
           onSelect={handleSelectAgent}
         />
       )}
-      <input
-        ref={inputRef}
-        type="text"
-        className="input-field"
-        placeholder={`Message #${roomName} — use @agent to mention`}
-        value={value}
-        onChange={handleChange}
-        onKeyDown={handleKeyDownWrapper}
-        onBlur={closeDropdown}
-        disabled={status !== 'connected'}
-        autoComplete="off"
-        spellCheck={false}
-      />
-      <button
-        className="send-btn"
-        onClick={submit}
-        disabled={!value.trim() || status !== 'connected'}
-        aria-label="Send message"
-      >
-        <Send size={16} />
-      </button>
+
+      <div className="input-box">
+        <textarea
+          ref={textareaRef}
+          placeholder={`Message #${roomName} — @ for agents`}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDownWrapper}
+          onBlur={closeDropdown}
+          disabled={status !== 'connected'}
+          autoComplete="off"
+          spellCheck={false}
+          rows={1}
+        />
+
+        <div className="input-bottom">
+          <div className="input-controls">
+            <button
+              className={`mode-badge ${mode === 'execute' ? 'mode-execute' : 'mode-brainstorm'}`}
+              onClick={toggleMode}
+              type="button"
+              aria-label="Toggle input mode"
+            >
+              {mode === 'execute' ? <Zap size={14} /> : <span style={{ fontSize: '14px' }}>&#129504;</span>}
+              {mode === 'execute' ? 'Execute' : 'Brainstorm'}
+              <span className="chip-arrow">&#9662;</span>
+            </button>
+          </div>
+
+          <div className="input-icons">
+            <button className="input-icon-btn" type="button" aria-label="Attach file">
+              <Paperclip size={14} />
+            </button>
+            <button className="input-icon-btn" type="button" aria-label="Attach image">
+              <Image size={14} />
+            </button>
+            <button
+              className="input-icon-btn send-btn"
+              type="button"
+              onClick={submit}
+              disabled={!value.trim() || status !== 'connected'}
+              aria-label="Send message"
+            >
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

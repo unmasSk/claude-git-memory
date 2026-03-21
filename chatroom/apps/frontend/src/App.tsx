@@ -1,6 +1,6 @@
 import './styles/globals.css';
 import { useWebSocket } from './hooks/useWebSocket';
-import { TopBar } from './components/TopBar';
+import { Titlebar } from './components/Titlebar';
 import { ParticipantPanel } from './components/ParticipantPanel';
 import { ChatArea } from './components/ChatArea';
 import { StatusBar } from './components/StatusBar';
@@ -13,7 +13,7 @@ export function App() {
 
   return (
     <div className="chatroom">
-      <TopBar />
+      <Titlebar />
       <div className="main">
         <ParticipantPanel />
         <ChatArea />
