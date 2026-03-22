@@ -1,9 +1,11 @@
 import React, { memo, useCallback, Children, isValidElement } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Copy, Check } from 'lucide-react';
+import remarkGfm from 'remark-gfm';
+import { Copy, Check, FileText } from 'lucide-react';
 import { useState } from 'react';
-import type { Message } from '@agent-chatroom/shared';
+import type { Message, Attachment } from '@agent-chatroom/shared';
 import { mentionClass } from '../lib/colors';
+import { formatBytes } from '../lib/format';
 
 // SEC-XSS-001: Allowed URL schemes for markdown links.
 // javascript:, data:, and vbscript: are blocked to prevent XSS.
@@ -139,6 +141,55 @@ function MdCodeBlock({ children }: { children: React.ReactNode }): React.ReactEl
   );
 }
 
+
+/**
+ * Renders file attachments linked to a message.
+ * Images display inline; documents render as download chips.
+ */
+function AttachmentList({ attachments }: { attachments: Attachment[] }): React.ReactElement | null {
+  if (attachments.length === 0) return null;
+  return (
+    <div className="msg-attachments">
+      {attachments.map((att) => {
+        const isImage = att.mimeType.startsWith('image/');
+        if (isImage) {
+          return (
+            <a
+              key={att.id}
+              href={sanitizeHref(att.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="msg-attach-img-wrap"
+              aria-label={att.filename}
+            >
+              <img
+                src={sanitizeHref(att.url)}
+                alt={att.filename}
+                className="msg-attach-img"
+              />
+            </a>
+          );
+        }
+        return (
+          <a
+            key={att.id}
+            href={sanitizeHref(att.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={att.filename}
+            className="msg-attach-chip"
+            aria-label={`Download ${att.filename}`}
+          >
+            <FileText size={13} className="msg-attach-chip-icon" />
+            <span className="msg-attach-chip-name">{att.filename}</span>
+            <span className="msg-attach-chip-size">{formatBytes(att.sizeBytes)}</span>
+          </a>
+        );
+      })}
+    </div>
+  );
+}
+
 function extractText(node: React.ReactNode): string {
   if (typeof node === 'string') return node;
   if (typeof node === 'number') return String(node);
@@ -166,6 +217,7 @@ export const MessageLine = memo(function MessageLine({ message }: MessageLinePro
       </div>
       <div className="msg-text">
         <ReactMarkdown
+          remarkPlugins={[remarkGfm]}
           components={{
             // SEC-XSS-001: Block dangerous URI schemes in links
             a: ({ href, children }) => {
@@ -214,6 +266,9 @@ export const MessageLine = memo(function MessageLine({ message }: MessageLinePro
           {message.content}
         </ReactMarkdown>
       </div>
+      {message.metadata.attachments && message.metadata.attachments.length > 0 && (
+        <AttachmentList attachments={message.metadata.attachments} />
+      )}
       {metrics && (
         <span className="msg-metrics">{metrics}</span>
       )}

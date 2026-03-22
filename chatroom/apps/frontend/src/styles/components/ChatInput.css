@@ -205,6 +205,120 @@
   cursor: not-allowed;
 }
 
+/* ── Drag-over highlight ── */
+.input-box-dragover {
+  border-color: rgba(63, 199, 235, 0.6);
+  background: rgba(63, 199, 235, 0.04);
+}
+
+/* ── Attachment preview strip ── */
+.attach-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 2px 0;
+}
+
+/* Image thumbnail */
+.attach-thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #3d3d3d;
+  flex-shrink: 0;
+}
+
+.attach-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Document chip */
+.attach-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: #1a1a1a;
+  border: 1px solid #3d3d3d;
+  border-radius: 8px;
+  padding: 4px 8px;
+  max-width: 220px;
+  flex-shrink: 0;
+}
+
+.attach-chip-icon {
+  color: var(--text-3);
+  flex-shrink: 0;
+}
+
+.attach-chip-name {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.attach-chip-size {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--text-3);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Remove button — shared by thumb and chip */
+.attach-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ccc;
+  padding: 0;
+  transition: background 120ms;
+}
+
+/* For chips the remove button is inline (not absolute) */
+.attach-chip .attach-remove {
+  position: static;
+  background: transparent;
+  color: var(--text-3);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.attach-remove:hover {
+  background: rgba(255, 95, 87, 0.8);
+  color: #fff;
+}
+
+.attach-chip .attach-remove:hover {
+  background: rgba(255, 95, 87, 0.2);
+  color: #FF5F57;
+}
+
+/* Inline error message */
+.attach-error {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: #FF5F57;
+  padding: 2px 2px 0;
+}
+
 /* Scroll-to-bottom button */
 .scroll-bottom {
   position: absolute;
