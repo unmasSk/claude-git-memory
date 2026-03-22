@@ -40,6 +40,7 @@ function isImageFile(file: File): boolean {
 }
 
 interface PendingFile {
+  id: string;
   file: File;
   /** Object URL for image previews — null for docs. Revoked after send/remove. */
   previewUrl: string | null;
@@ -56,6 +57,8 @@ export function MessageInput() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const docInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  // Synchronous guard against double-submit (useState is async, two Enter presses can race)
+  const isSubmittingRef = useRef(false);
 
   const send = useWsStore((s) => s.send);
   const status = useWsStore((s) => s.status);
@@ -97,6 +100,7 @@ export function MessageInput() {
     }
     setPendingFiles((prev) => {
       const combined = [...prev, ...incoming.map((file) => ({
+        id: crypto.randomUUID(),
         file,
         previewUrl: isImageFile(file) ? URL.createObjectURL(file) : null,
       }))];
@@ -142,61 +146,65 @@ export function MessageInput() {
   const submit = useCallback(async () => {
     const trimmed = value.trim();
     if ((!trimmed && pendingFiles.length === 0) || status !== 'connected') return;
-    if (isUploading) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+    try {
+      let attachmentIds: string[] | undefined;
 
-    let attachmentIds: string[] | undefined;
-
-    if (pendingFiles.length > 0) {
-      const roomId = room?.id;
-      if (!roomId) {
-        setFileError('No active room — cannot upload files.');
-        return;
-      }
-      setIsUploading(true);
-      try {
-        const results: (string | null)[] = [];
-        for (const pf of pendingFiles) {
-          const token = await getUploadToken();
-          if (!token) {
-            setFileError('Could not obtain upload token. Try again.');
+      if (pendingFiles.length > 0) {
+        const roomId = room?.id;
+        if (!roomId) {
+          setFileError('No active room — cannot upload files.');
+          return;
+        }
+        setIsUploading(true);
+        try {
+          const results: (string | null)[] = [];
+          for (const pf of pendingFiles) {
+            const token = await getUploadToken();
+            if (!token) {
+              setFileError('Could not obtain upload token. Try again.');
+              pendingFiles.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+              setPendingFiles([]);
+              return;
+            }
+            results.push(await uploadFile(pf, roomId, token));
+          }
+          const failed = results.filter((id) => id === null).length;
+          if (failed > 0) {
+            setFileError(`${failed} file(s) failed to upload. Message not sent.`);
             pendingFiles.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
             setPendingFiles([]);
             return;
           }
-          results.push(await uploadFile(pf, roomId, token));
+          attachmentIds = results as string[];
+        } finally {
+          setIsUploading(false);
         }
-        const failed = results.filter((id) => id === null).length;
-        if (failed > 0) {
-          setFileError(`${failed} file(s) failed to upload. Message not sent.`);
-          pendingFiles.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
-          setPendingFiles([]);
-          return;
-        }
-        attachmentIds = results as string[];
-      } finally {
-        setIsUploading(false);
       }
-    }
 
-    // Build and send the WS message
-    send({
-      type: 'send_message',
-      content: trimmed || ' ',
-      ...(attachmentIds && attachmentIds.length > 0 ? { attachmentIds } : {}),
-    });
+      // Build and send the WS message
+      send({
+        type: 'send_message',
+        content: trimmed || ' ',
+        ...(attachmentIds && attachmentIds.length > 0 ? { attachmentIds } : {}),
+      });
 
-    // Cleanup
-    pendingFiles.forEach((pf) => {
-      if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
-    });
-    setPendingFiles([]);
-    setFileError(null);
-    setValue('');
-    closeDropdown();
-    if (textareaRef.current) {
-      textareaRef.current.style.height = '20px';
+      // Cleanup
+      pendingFiles.forEach((pf) => {
+        if (pf.previewUrl) URL.revokeObjectURL(pf.previewUrl);
+      });
+      setPendingFiles([]);
+      setFileError(null);
+      setValue('');
+      closeDropdown();
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '20px';
+      }
+    } finally {
+      isSubmittingRef.current = false;
     }
-  }, [value, pendingFiles, status, isUploading, room, send, closeDropdown, uploadFile]);
+  }, [value, pendingFiles, status, room, send, closeDropdown, uploadFile]);
 
   // T1-01 fix: submit must be declared before this callback to avoid TDZ
   const handleKeyDownWrapper = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => { // HTMLTextAreaElement extends HTMLElement — no cast needed
@@ -333,7 +341,7 @@ export function MessageInput() {
           <div className="attach-preview">
             {pendingFiles.map((pf, i) => (
               pf.previewUrl ? (
-                <div key={pf.file.name + pf.file.size} className="attach-thumb">
+                <div key={pf.id} className="attach-thumb">
                   <img src={pf.previewUrl} alt={pf.file.name} className="attach-thumb-img" />
                   <button
                     type="button"
@@ -345,7 +353,7 @@ export function MessageInput() {
                   </button>
                 </div>
               ) : (
-                <div key={pf.file.name + pf.file.size} className="attach-chip">
+                <div key={pf.id} className="attach-chip">
                   <FileText size={12} className="attach-chip-icon" />
                   <span className="attach-chip-name">{pf.file.name}</span>
                   <span className="attach-chip-size">{formatBytes(pf.file.size)}</span>
