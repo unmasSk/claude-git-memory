@@ -215,8 +215,11 @@ export const useWsStore = create<WsState>((set, get) => ({
     // Close existing socket only if it's for a different room or in a bad state
     if (socket) {
       socket.onclose = null; // prevent reconnect loop from old socket
+      socket.onmessage = null; // prevent buffered messages from old room bleeding into new room
+      socket.onerror = null;
       socket.close();
       socket = null;
+      messageBuffer.splice(0, messageBuffer.length); // drain any buffered messages from old room
     }
 
     connectingRoomId = roomId;
@@ -355,8 +358,11 @@ export const useWsStore = create<WsState>((set, get) => ({
     }
     if (socket) {
       socket.onclose = null;
+      socket.onmessage = null;
+      socket.onerror = null;
       socket.close();
       socket = null;
+      messageBuffer.splice(0, messageBuffer.length);
     }
     lastKnownRoomId = null;
     set({ status: 'disconnected', roomId: null });

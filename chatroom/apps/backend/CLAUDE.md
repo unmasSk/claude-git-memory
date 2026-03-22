@@ -17,7 +17,7 @@
 bun test   # from apps/backend/
 ```
 
-535+ tests. All must pass before merging.
+35 test files, 1200+ tests. All must pass before merging.
 
 ## Key Patterns
 
@@ -34,7 +34,7 @@ All routes use Elysia typebox validation. Never skip body/params/headers schemas
 - `POST /api/auth/token` issues a UUID token (rate: 20/min, global bucket `auth-token`)
 - Token is consumed on WS upgrade — single use
 - HTTP routes that mutate state use `peekToken()` — validates without consuming
-- `Authorization: Bearer <token>` header required on: `POST /api/rooms`, `DELETE /api/rooms/:id`, `POST /api/rooms/:id/invite`
+- `Authorization: Bearer <token>` header required on: `POST /api/rooms`, `DELETE /api/rooms/:id`, `POST /api/rooms/:id/invite`, `POST /api/rooms/:id/upload`
 
 ### Rate limiting
 
@@ -46,6 +46,7 @@ Named token buckets — each route has its own so one cannot starve another:
 | `invite` | POST /api/rooms/:id/invite | 20/min |
 | `rooms-create` | POST /api/rooms | 20/min |
 | `rooms-delete` | DELETE /api/rooms/:id | 20/min |
+| `upload` | POST /api/rooms/:id/upload | 30/min |
 
 Global key (not per-IP): X-Forwarded-For is trivially spoofed.
 
@@ -55,10 +56,23 @@ Global key (not per-IP): X-Forwarded-For is trivially spoofed.
 |---|---|---|---|
 | GET | /api/rooms | `Room[]` | All rooms ordered by created_at |
 | GET | /api/rooms/:id | `{ room, participants }` | sessionId stripped from participants (SEC-MED-002) |
-| GET | /api/rooms/:id/messages | `{ messages, hasMore }` | `?limit=50&before=<id>` for pagination |
+| GET | /api/rooms/:id/messages | `{ messages, hasMore }` | `?limit=50&before=<id>` for pagination. Messages include linked attachments. |
 | POST | /api/rooms | `{ room }` 201 | Creates room + seeds all agents. Requires Bearer. |
 | DELETE | /api/rooms/:id | `{ deleted }` 200 | Cascade delete in transaction. 403 on `default`. Requires Bearer. |
 | POST | /api/rooms/:id/invite | `{ added, skipped }` 201 | Dedup agents array before upsert. Requires Bearer. |
+| POST | /api/rooms/:id/upload | `{ attachment }` 201 | Multipart file upload. Max 10 MB. Requires Bearer. |
+| GET | /api/uploads/:roomId/:fileId | file bytes | Serve uploaded file. No auth — UUIDs are unguessable. Immutable cache headers. |
+
+### File uploads — attachment flow
+
+Files are stored on disk under `UPLOADS_DIR` (env: `UPLOADS_DIR`, default: `data/uploads/{roomId}/`). The `attachments` table tracks metadata; files are served via the immutable GET endpoint. Allowed MIME types: `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `text/plain`, `text/markdown`, `application/pdf`, `text/x-typescript`, `text/javascript`, `application/json`, `text/yaml`.
+
+Agent prompts receive attachment references as file-system paths so agents can `Read()` them directly:
+```
+[Attachment: filename.png (image/png, 12345 bytes) → /abs/path/to/file]
+```
+
+`linkAndFetchAttachments()` in `routes/ws-message-handlers.ts` links attachment IDs to messages in the DB and returns the attachment metadata. Called when a human posts a message with `attachmentIds` in the WS payload.
 
 ### deleteRoom — transaction pattern
 
@@ -94,10 +108,15 @@ Never leak stack traces. The global `onError` handler maps validation errors to 
 ### Agent invocation
 
 ```ts
-Bun.spawn(['claude', '-p', prompt, '--session-id', id, ...])
+Bun.spawn(['claude', '-p', prompt, '--model', model, '--allowedTools', tools, ...])
 ```
 
-Never concatenate shell strings. Always array args. Call `sanitizePromptContent()` on any user-supplied content before it enters a prompt.
+Never concatenate shell strings. Always array args (enforced in `agent-runner.ts::buildSpawnArgs`). Call `sanitizePromptContent()` on any user-supplied content before it enters a prompt — it lives in `services/agent-prompt.ts` and is re-exported via `services/agent-invoker.ts`.
+
+`agent-invoker.ts` is a thin facade re-exporting from three split modules:
+- `agent-prompt.ts` — `sanitizePromptContent`, `buildPrompt`, `buildSystemPrompt`, `validateSessionId`, `getGitDiffStat`
+- `agent-runner.ts` — `doInvoke`, `spawnAndParse`, `postSystemMessage`, `updateStatusAndBroadcast`
+- `agent-scheduler.ts` — `invokeAgents`, `scheduleInvocation`, `pauseAgent`, `resumeAgent`, etc.
 
 ### Config
 

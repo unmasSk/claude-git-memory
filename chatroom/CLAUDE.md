@@ -20,7 +20,7 @@ Multi-agent chatroom backend. Real-time WebSocket server where Claude Code agent
 bun test          # from apps/backend/
 ```
 
-535+ tests. All must pass before merging.
+35 test files, 1200+ tests. All must pass before merging.
 
 ## Key Patterns
 
@@ -49,9 +49,11 @@ logger.info({ ... }, 'message');
 Bun.spawn(['claude', '-p', prompt, '--session-id', id, ...])
 ```
 
-**Prompt injection defense** — call `sanitizePromptContent()` (from `agent-invoker.ts`) on any user-supplied content before it enters a prompt.
+**Prompt injection defense** — call `sanitizePromptContent()` (from `agent-prompt.ts`, re-exported via `agent-invoker.ts`) on any user-supplied content before it enters a prompt.
 
-**Rate limiting** — token bucket enforced on WS (5 messages / 10s) and API (`/auth/token` 20/min, `/invite` 20/min — each has its own named bucket so one cannot exhaust the other's quota). Do not bypass.
+**File uploads** — `POST /api/rooms/:id/upload` accepts multipart form data (max 10 MB, allowlisted MIME types). Files stored on disk; metadata in `attachments` table. Served via `GET /api/uploads/:roomId/:fileId` (immutable, no auth). Agents receive storage paths in their prompts so they can `Read()` files directly.
+
+**Rate limiting** — token bucket enforced on WS (5 messages / 10s) and API (`/auth/token` 20/min, `/invite` 20/min, `/upload` 30/min — each has its own named bucket so one cannot exhaust the other's quota). Do not bypass.
 
 **Config** — never read `process.env` directly. Use `config.ts` exports.
 

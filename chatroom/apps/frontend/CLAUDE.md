@@ -32,7 +32,7 @@ App.tsx                    Root layout. Mounts on load: loadRooms(), useWebSocke
 │   │   ├── MessageLine.tsx     User/agent message with mention color rendering
 │   │   ├── ToolLine.tsx        Tool use display — RTL truncation via flex:1, min-width:0
 │   │   └── SystemMessage.tsx
-│   └── MessageInput.tsx   Text input, @mention autocomplete, stop button for running agents
+│   └── MessageInput.tsx   Text input, @mention autocomplete, file attach buttons (image + doc), stop button
 │       └── MentionDropdown.tsx
 └── StatusBar.tsx          Connection status, retry button
 ```
@@ -92,6 +92,14 @@ Three visual states in the sidebar:
 
 `MessageInput.tsx` shows a stop button when an agent is running. Stop sends a SIGSTOP signal to the agent process via the WS. Do not add a kill button — SIGKILL is forbidden (causes Cursor RAM crash when sent from inside Claude Code).
 
+## File Attachments
+
+`MessageInput.tsx` has two attach buttons (paperclip for docs, image icon for images). Files are staged as `PendingFile` entries (UUID-keyed to avoid key collisions) and uploaded via `POST /api/rooms/:id/upload` with a fresh auth token. Attachment IDs are sent alongside the message in the WS payload. Max 5 files per message, max 10 MB per file.
+
+- Never reuse auth tokens across uploads — fetch a fresh one per `getUploadToken()` call.
+- Attachment display in `MessageLine.tsx` uses `sanitizeHref` to allow `/api/uploads/` paths — do not widen the allowlist.
+- `formatBytes` is defined in `src/lib/format.ts` — do not redefine it inline.
+
 ## Styling Conventions
 
 - CSS is split per component into `src/styles/components/`
@@ -105,6 +113,8 @@ Three visual states in the sidebar:
 - Cache auth tokens — always fetch fresh
 - Kill agent processes — use SIGSTOP/SIGCONT (stop button) only
 - Touch `apps/backend/` from frontend changes
+- Widen `sanitizeHref` allowlist beyond `/api/uploads/`
+- Duplicate `formatBytes` — it lives in `src/lib/format.ts`
 
 ## Tests
 

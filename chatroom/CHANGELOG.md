@@ -1,19 +1,27 @@
 # Changelog
 
-All notable changes to the chatroom are documented here.
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
-
----
-
 ## [Unreleased]
 
-### Planned
-- `POST /api/rooms/:id/reset` — reset room messages and agents to idle
-- `@everyone` only invokes agents in `done` state
-- Tauri desktop app packaging
-- Sidebar metrics: duration, tokens, cost from `claude -p` output
+### Added
+- File attachment support: `POST /api/rooms/:id/upload` (multipart, max 10 MB, allowlisted MIME types), `GET /api/uploads/:roomId/:fileId` (immutable, no auth). Metadata stored in new `attachments` table.
+- Agent prompts now include attachment file-system paths so agents can `Read()` images and documents directly from disk.
+- `attachments` DB table with index on `message_id`; messages returned from `/api/rooms/:id/messages` and WS `sendInitialState` are enriched with their linked attachments.
+- Upload rate limiter: separate `upload` bucket (30/min) so uploads cannot starve auth/invite quota.
+- File attachment UI in `MessageInput`: paperclip (docs) and image buttons, max 5 files per message, staged as UUID-keyed `PendingFile` entries.
+- `sanitizeHref` allowlist extended to `/api/uploads/` paths for safe rendering of attachment links.
+- `formatBytes` helper extracted to `src/lib/format.ts` (frontend).
+- Golden snapshot tests for `buildAgentMessage`, `maybeTruncate`, `applyResultEvent`, `readStderr`, `makeTimeoutHandle`.
 
----
+### Changed
+- `agent-runner.ts` refactored for LOC compliance: `linkAndFetchAttachments` and `registerActiveProcess` extracted as private helpers; all exported functions are ≤50 LOC.
+- `agent-invoker.ts` is now a thin facade re-exporting from `agent-prompt.ts`, `agent-runner.ts`, and `agent-scheduler.ts`. Import paths for consumers are unchanged.
+
+### Fixed
+- `AttachmentSchema` added to Zod `MessageMetadataSchema` — `safeParse` was silently stripping `metadata.attachments` from every WS message.
+- `attachments` table added to E2E and golden test databases — `sendInitialState` was crashing on `enrichWithAttachments` when the table was absent.
+- Attachment DB link wrapped in try/catch — a DB failure no longer crashes the WS; the message is broadcast without attachments instead.
+- Frontend agent card: `overflow: hidden` on the shrink-reveal area prevents metrics text from bleeding over action buttons.
+- Frontend submit race condition: `isSubmittingRef` is now set synchronously before the first `await`, preventing double-submit on rapid key presses.
 
 ## [0.4.0] — Room Management
 
@@ -98,7 +106,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Pino logging via `createLogger('module-name')` — `console.log` banned project-wide
 - `bun test` suite with in-memory SQLite (`:memory:`), Arrange/Act/Assert pattern
 
-## [Unreleased — prior]
+## [0.0.x] — Pre-versioned Features
 
 ### Added
 
