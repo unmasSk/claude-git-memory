@@ -9,6 +9,7 @@ export interface RoomRow {
   name: string;
   topic: string;
   created_at: string;
+  cwd: string | null;
 }
 
 /** Raw row from the `messages` table. `metadata` is a JSON string — parse before use. */

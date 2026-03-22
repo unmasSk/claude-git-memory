@@ -99,6 +99,7 @@ export function mapRoomRow(row: RoomRow): Room {
     name: row.name,
     topic: row.topic,
     createdAt: row.created_at,
+    cwd: row.cwd ?? null,
   };
 }
 

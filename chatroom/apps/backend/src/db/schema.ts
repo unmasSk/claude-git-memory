@@ -68,16 +68,17 @@ export function initializeSchema(): void {
     VALUES ('default', 'general', 'Agent chatroom');
   `);
 
-  // Idempotent migrations — add metric columns to existing DBs.
+  // Idempotent migrations — add columns to existing DBs.
   // ALTER TABLE fails with "duplicate column" if already present, so we catch and ignore.
-  const metricCols = [
+  const migrations = [
     'ALTER TABLE agent_sessions ADD COLUMN last_input_tokens INTEGER DEFAULT 0',
     'ALTER TABLE agent_sessions ADD COLUMN last_output_tokens INTEGER DEFAULT 0',
     'ALTER TABLE agent_sessions ADD COLUMN last_context_window INTEGER DEFAULT 0',
     'ALTER TABLE agent_sessions ADD COLUMN last_duration_ms INTEGER DEFAULT 0',
     'ALTER TABLE agent_sessions ADD COLUMN last_num_turns INTEGER DEFAULT 0',
+    'ALTER TABLE rooms ADD COLUMN cwd TEXT DEFAULT NULL',
   ];
-  for (const sql of metricCols) {
+  for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column already exists — safe to ignore */ }
   }
 }

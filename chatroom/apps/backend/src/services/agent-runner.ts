@@ -17,7 +17,7 @@
 import { createLogger } from '../logger.js';
 import { getAgentConfig, BANNED_TOOLS } from './agent-registry.js';
 import { broadcast } from './message-bus.js';
-import { updateAgentStatus, getAgentSession, insertMessage } from '../db/queries.js';
+import { updateAgentStatus, getAgentSession, getRoomById, insertMessage } from '../db/queries.js';
 import { generateId, nowIso } from '../utils.js';
 import { AGENT_TIMEOUT_MS } from '../config.js';
 import { AgentState } from '@agent-chatroom/shared';
@@ -65,6 +65,8 @@ export interface SpawnAndParseOptions {
   systemPrompt: string;
   sessionId: string | null;
   context: InvocationContext;
+  /** Absolute path to use as the agent subprocess cwd. Defaults to server process.cwd(). */
+  cwd?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -122,14 +124,15 @@ export async function doInvoke(
   // FIX 2: Skip --resume on stale-session retries
   const existingSession = getAgentSession(agentName, roomId);
   const sessionId = isRetry ? null : validateSessionId(existingSession?.session_id);
+  const roomCwd = getRoomById(roomId)?.cwd ?? undefined;
   await updateStatusAndBroadcast(agentName, roomId, AgentState.Thinking);
 
   try {
     // For respawned instances (context overflow), pass a high history limit.
     const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
-    const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn, context.mode);
+    const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn, context.mode, roomCwd);
     retryScheduled = await spawnAndParse({
-      roomId, agentName, model: agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context,
+      roomId, agentName, model: agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context, cwd: roomCwd,
     });
   } catch (err: unknown) {
     const message = sanitizePromptContent(err instanceof Error ? err.message : String(err));
@@ -161,10 +164,10 @@ export async function doInvoke(
  * @returns true when a retry was scheduled internally (RACE-002 signal).
  */
 export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean> {
-  const { roomId, agentName, model, allowedTools, prompt, systemPrompt, sessionId, context } = opts;
+  const { roomId, agentName, model, allowedTools, prompt, systemPrompt, sessionId, context, cwd } = opts;
   const args = buildSpawnArgs(model, allowedTools, prompt, systemPrompt, sessionId);
 
-  logger.debug({ agentName, roomId, model, sessionId: sessionId ?? 'new' }, 'spawnAndParse');
+  logger.debug({ agentName, roomId, model, sessionId: sessionId ?? 'new', cwd: cwd ?? 'default' }, 'spawnAndParse');
 
   // FIX 16 / House diagnostic: On Windows, detached + windowsHide are broken in
   // Bun 1.3.11. Piped stdio alone suppresses console windows on Windows.
@@ -173,6 +176,7 @@ export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean
     stdout: 'pipe',
     stderr: 'pipe',
     ...(isUnix ? { detached: true } : {}),
+    ...(cwd ? { cwd } : {}),
   };
   const proc = Bun.spawn(args, spawnOpts);
   logger.debug({ agentName, roomId, pid: proc.pid }, 'subprocess spawned');

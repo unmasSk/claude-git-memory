@@ -294,6 +294,20 @@ export function insertAgentSessionIfMissing(agentName: string, roomId: string, m
 }
 
 /**
+ * Update the cwd for a room.
+ *
+ * @param id - Room ID
+ * @param cwd - Absolute path for agent working directory, or null to reset to server default
+ * @returns True if the row was updated, false if the room does not exist
+ */
+export function updateRoomCwd(id: string, cwd: string | null): boolean {
+  const result = getDb()
+    .query<void, [string | null, string]>('UPDATE rooms SET cwd = ? WHERE id = ?')
+    .run(cwd, id);
+  return (result as unknown as { changes: number }).changes > 0;
+}
+
+/**
  * Insert a new room into the database.
  *
  * @param id - Room ID (UUID or slug)

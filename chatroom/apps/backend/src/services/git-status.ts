@@ -20,8 +20,12 @@ export interface GitStatus {
 const GIT_STATUS_TTL_MS = 10_000;
 let cachedGitStatus: { value: GitStatus; at: number } | null = null;
 
-function spawnGit(args: string[]): string {
-  const result = Bun.spawnSync(['git', ...args], { stdout: 'pipe', stderr: 'pipe' });
+function spawnGit(args: string[], cwd?: string): string {
+  const result = Bun.spawnSync(['git', ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+    ...(cwd ? { cwd } : {}),
+  });
   if (result.exitCode !== 0) return '';
   return new TextDecoder().decode(result.stdout).trim();
 }
@@ -29,36 +33,39 @@ function spawnGit(args: string[]): string {
 /**
  * Returns the current git status, cached for 10 seconds.
  * Non-throwing: returns a safe fallback on any git error.
+ *
+ * @param cwd - Optional working directory. Defaults to server process.cwd().
  */
-export function getGitStatus(): GitStatus {
+export function getGitStatus(cwd?: string): GitStatus {
   const now = Date.now();
-  if (cachedGitStatus && now - cachedGitStatus.at < GIT_STATUS_TTL_MS) return cachedGitStatus.value;
+  // Only cache when using the server default cwd (status bar case)
+  if (!cwd && cachedGitStatus && now - cachedGitStatus.at < GIT_STATUS_TTL_MS) return cachedGitStatus.value;
 
   const fallback: GitStatus = { branch: 'unknown', ahead: 0, behind: 0, dirty: false, repo: '' };
   try {
-    const branch = spawnGit(['rev-parse', '--abbrev-ref', 'HEAD']) || 'unknown';
+    const branch = spawnGit(['rev-parse', '--abbrev-ref', 'HEAD'], cwd) || 'unknown';
 
     let ahead = 0;
     let behind = 0;
-    const aheadBehindRaw = spawnGit(['rev-list', '--count', '--left-right', 'HEAD...@{upstream}']);
+    const aheadBehindRaw = spawnGit(['rev-list', '--count', '--left-right', 'HEAD...@{upstream}'], cwd);
     if (aheadBehindRaw) {
       const parts = aheadBehindRaw.split('\t');
       ahead = parseInt(parts[0] ?? '0', 10) || 0;
       behind = parseInt(parts[1] ?? '0', 10) || 0;
     }
 
-    const porcelain = spawnGit(['status', '--porcelain']);
+    const porcelain = spawnGit(['status', '--porcelain'], cwd);
     const dirty = porcelain.length > 0;
 
-    const topLevel = spawnGit(['rev-parse', '--show-toplevel']);
+    const topLevel = spawnGit(['rev-parse', '--show-toplevel'], cwd);
     const repo = topLevel ? (topLevel.split('/').pop() ?? '') : '';
 
     const value: GitStatus = { branch, ahead, behind, dirty, repo };
-    cachedGitStatus = { value, at: now };
+    if (!cwd) cachedGitStatus = { value, at: now };
     return value;
   } catch (err) {
     logger.warn({ err }, 'getGitStatus failed — returning fallback');
-    cachedGitStatus = { value: fallback, at: now };
+    if (!cwd) cachedGitStatus = { value: fallback, at: now };
     return fallback;
   }
 }

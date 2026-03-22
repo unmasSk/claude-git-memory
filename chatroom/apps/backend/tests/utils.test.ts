@@ -286,6 +286,7 @@ describe('mapRoomRow', () => {
     name: 'general',
     topic: 'Agent chatroom',
     created_at: '2026-03-17T10:00:00.000Z',
+    cwd: null,
   };
 
   it('maps id correctly', () => {
@@ -319,6 +320,7 @@ describe('mapRoomRow', () => {
       name: 'Alpha Channel',
       topic: 'Discussion',
       created_at: '2025-01-01T00:00:00.000Z',
+      cwd: null,
     };
     const room = mapRoomRow(row);
     expect(room).toEqual({
@@ -326,6 +328,7 @@ describe('mapRoomRow', () => {
       name: 'Alpha Channel',
       topic: 'Discussion',
       createdAt: '2025-01-01T00:00:00.000Z',
+      cwd: null,
     });
   });
 });

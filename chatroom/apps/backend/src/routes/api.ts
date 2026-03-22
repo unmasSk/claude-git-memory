@@ -1,11 +1,12 @@
 import { Elysia, t } from 'elysia';
 import { join } from 'node:path';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, statSync } from 'node:fs';
 import {
   listRooms,
   getRoomById,
   createRoom,
   deleteRoom,
+  updateRoomCwd,
   getRecentMessages,
   getMessagesBefore,
   hasMoreMessagesBefore,
@@ -23,6 +24,7 @@ import { ROOM_STATE_MESSAGE_LIMIT, UPLOADS_DIR } from '../config.js';
 import { validateName, issueToken, peekToken } from '../services/auth-tokens.js';
 import { createLogger } from '../logger.js';
 import { createTokenBucket } from '../services/rate-limiter.js';
+import { broadcast } from '../services/message-bus.js';
 import type { Attachment } from '@agent-chatroom/shared';
 
 const log = createLogger('api');
@@ -52,6 +54,9 @@ const checkApiRateLimit = createTokenBucket(20, 60_000);
 
 /** Upload rate limiter — separate bucket so upload bursts cannot starve auth/invite. */
 const checkUploadRateLimit = createTokenBucket(30, 60_000);
+
+/** cwd update rate limiter — separate bucket. */
+const checkCwdRateLimit = createTokenBucket(20, 60_000);
 
 // ---------------------------------------------------------------------------
 // Upload constants
@@ -331,6 +336,69 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
     },
     {
       params: t.Object({ id: t.String() }),
+      headers: t.Object({ authorization: t.Optional(t.String()) }),
+    },
+  )
+
+  // PUT /api/rooms/:id/cwd — set the working directory for agents in this room.
+  // Requires a valid Bearer auth token.
+  // Body: { cwd: string } — must be an absolute path with no ".." traversal.
+  .put(
+    '/rooms/:id/cwd',
+    ({ params, body, set, headers }) => {
+      if (!checkCwdRateLimit('rooms-cwd')) {
+        log.warn({ roomId: params.id }, 'PUT /api/rooms/:id/cwd rate limit exceeded');
+        set.status = 429;
+        return { error: 'Too many requests — try again later', code: 'RATE_LIMIT' };
+      }
+
+      const rawAuth = headers.authorization ?? '';
+      const bearerToken = rawAuth.startsWith('Bearer ') ? rawAuth.slice(7).trim() : undefined;
+      if (!peekToken(bearerToken)) {
+        set.status = 401;
+        return { error: 'Unauthorized. Provide a valid token via Authorization: Bearer <token>', code: 'UNAUTHORIZED' };
+      }
+
+      const room = getRoomById(params.id);
+      if (!room) {
+        set.status = 404;
+        return { error: 'Room not found', code: 'NOT_FOUND' };
+      }
+
+      const { cwd } = body as { cwd: string };
+
+      // Validate: must be absolute, no ".." traversal
+      if (!cwd.startsWith('/')) {
+        set.status = 400;
+        return { error: 'cwd must be an absolute path (must start with /)', code: 'INVALID_CWD' };
+      }
+      if (cwd.includes('..')) {
+        set.status = 400;
+        return { error: 'cwd must not contain ".." path traversal', code: 'INVALID_CWD' };
+      }
+
+      // Validate: directory must exist and be accessible
+      try {
+        const stat = statSync(cwd);
+        if (!stat.isDirectory()) {
+          set.status = 400;
+          return { error: `cwd is not a directory: ${cwd}`, code: 'NOT_A_DIRECTORY' };
+        }
+      } catch {
+        set.status = 400;
+        return { error: `cwd does not exist or is not accessible: ${cwd}`, code: 'CWD_NOT_FOUND' };
+      }
+
+      updateRoomCwd(params.id, cwd);
+      log.info({ roomId: params.id, cwd }, 'PUT /api/rooms/:id/cwd updated');
+
+      void broadcast(params.id, { type: 'room_cwd_changed', roomId: params.id, cwd });
+
+      return { cwd };
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      body: t.Object({ cwd: t.String() }),
       headers: t.Object({ authorization: t.Optional(t.String()) }),
     },
   )

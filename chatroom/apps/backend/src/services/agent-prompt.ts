@@ -146,35 +146,38 @@ export function buildPrompt(roomId: string, triggerContent: string, historyLimit
   return lines.join('\n');
 }
 
-// FIX 2: cached for 30 s; FIX 4: filtered to --stat format lines + sanitized.
+// FIX 2: cached for 30 s per cwd; FIX 4: filtered to --stat format lines + sanitized.
 const DIFF_STAT_DEPTH = 'HEAD~3';
-let cachedDiffStat: { value: string; at: number } | null = null;
+// Cache keyed by cwd (empty string = server process.cwd())
+const diffStatCache = new Map<string, { value: string; at: number }>();
 
 /**
  * Issue #29: Returns a sanitized `git diff --stat HEAD~3`, capped at 50 lines.
- * Result is cached for 30 seconds. Returns empty string on any failure (non-fatal).
+ * Result is cached for 30 seconds per cwd. Returns empty string on any failure (non-fatal).
  *
+ * @param cwd - Optional working directory for git command. Defaults to server process.cwd().
  * @returns A filtered, sanitized diff-stat string; empty string when git is unavailable
  *          or the working tree has no changes relative to HEAD~3.
  */
-export function getGitDiffStat(): string {
-  // FIX 2: Return cached value if still within TTL
+export function getGitDiffStat(cwd?: string): string {
+  const cacheKey = cwd ?? '';
   const now = Date.now();
-  if (cachedDiffStat && now - cachedDiffStat.at < 30_000) return cachedDiffStat.value;
+  const cached = diffStatCache.get(cacheKey);
+  if (cached && now - cached.at < 30_000) return cached.value;
 
   try {
-    // Use Bun.spawnSync for a synchronous, non-shell invocation
     const result = Bun.spawnSync(['git', 'diff', '--stat', DIFF_STAT_DEPTH], {
       stdout: 'pipe',
       stderr: 'pipe',
+      ...(cwd ? { cwd } : {}),
     });
     if (result.exitCode !== 0) {
-      cachedDiffStat = { value: '', at: now };
+      diffStatCache.set(cacheKey, { value: '', at: now });
       return '';
     }
     const raw = new TextDecoder().decode(result.stdout).trim();
     if (!raw) {
-      cachedDiffStat = { value: '', at: now };
+      diffStatCache.set(cacheKey, { value: '', at: now });
       return '';
     }
 
@@ -187,10 +190,10 @@ export function getGitDiffStat(): string {
     const capped = filtered.slice(0, 50);
     if (filtered.length > 50) capped.push(`... (${filtered.length - 50} more lines omitted)`);
     const value = sanitizePromptContent(capped.join('\n'));
-    cachedDiffStat = { value, at: now };
+    diffStatCache.set(cacheKey, { value, at: now });
     return value;
   } catch {
-    cachedDiffStat = { value: '', at: now };
+    diffStatCache.set(cacheKey, { value: '', at: now });
     return '';
   }
 }

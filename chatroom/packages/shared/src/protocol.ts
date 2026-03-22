@@ -9,6 +9,8 @@ export interface Room {
   name: string;
   topic: string;
   createdAt: string;
+  /** Absolute path agents use as working directory. null = server process.cwd() */
+  cwd?: string | null;
 }
 
 /**
@@ -210,6 +212,12 @@ export interface ServerGitStatus {
   repo: string;
 }
 
+export interface ServerRoomCwdChanged {
+  type: 'room_cwd_changed';
+  roomId: string;
+  cwd: string | null;
+}
+
 export type ServerMessage =
   | ServerRoomState
   | ServerNewMessage
@@ -218,4 +226,5 @@ export type ServerMessage =
   | ServerHistoryPage
   | ServerError
   | ServerUserListUpdate
-  | ServerGitStatus;
+  | ServerGitStatus
+  | ServerRoomCwdChanged;

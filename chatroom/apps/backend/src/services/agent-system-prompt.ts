@@ -111,9 +111,9 @@ export function buildChatroomRules(): string[] {
 }
 
 // Issue #29: prefixed with RECENT CODE CHANGES when git diff stat is available.
-export function buildSecurityRules(): string[] {
+export function buildSecurityRules(cwd?: string): string[] {
   const diffLines: string[] = (() => {
-    const stat = getGitDiffStat();
+    const stat = getGitDiffStat(cwd);
     if (!stat) return [];
     return ['RECENT CODE CHANGES (git diff --stat HEAD~3):', stat, ''];
   })();
@@ -223,7 +223,13 @@ export function buildPipelineBlock(agentName: string): string[] {
  *   that this is a fresh instance replacing one that exhausted its context.
  * @param mode — execute (default) or brainstorm. Controls agent behavior.
  */
-export function buildSystemPrompt(agentName: string, role: string, isRespawn = false, mode: 'execute' | 'brainstorm' = 'execute'): string {
+export function buildSystemPrompt(
+  agentName: string,
+  role: string,
+  isRespawn = false,
+  mode: 'execute' | 'brainstorm' = 'execute',
+  cwd?: string,
+): string {
   return [
     ...buildIdentityBlock(agentName, role, isRespawn),
     '',
@@ -232,6 +238,6 @@ export function buildSystemPrompt(agentName: string, role: string, isRespawn = f
     ...buildPipelineBlock(agentName),
     '',
     ...buildChatroomRules(),
-    ...buildSecurityRules(),
+    ...buildSecurityRules(cwd),
   ].join('\n');
 }
