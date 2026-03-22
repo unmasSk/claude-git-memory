@@ -25,7 +25,7 @@ import type { InvocationContext } from './agent-queue.js';
 export { pauseAgent, resumeAgent, isAgentPaused };
 
 // Re-export so existing callers importing from agent-scheduler still work
-export { activeInvocations, inFlight };
+export { activeInvocations, inFlight, activeProcesses };
 export type { InvocationContext };
 
 const logger = createLogger('agent-scheduler');

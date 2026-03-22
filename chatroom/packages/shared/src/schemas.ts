@@ -124,6 +124,10 @@ export const ClientClearQueueSchema = z.object({
   type: z.literal('clear_queue'),
 });
 
+export const ClientStopAllSchema = z.object({
+  type: z.literal('stop_all'),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientSendMessageSchema,
   ClientInvokeAgentSchema,
@@ -133,6 +137,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientResumeAgentSchema,
   ClientReadChatSchema,
   ClientClearQueueSchema,
+  ClientStopAllSchema,
 ]);
 
 // ---------------------------------------------------------------------------

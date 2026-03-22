@@ -3,7 +3,6 @@ import { useState, useRef, useCallback } from 'react';
 import { Paperclip, Image, ArrowUp, Zap, Brain, Square, X, FileText } from 'lucide-react';
 import { useWsStore } from '../stores/ws-store';
 import { useAgentStore } from '../stores/agent-store';
-import { AgentState } from '@agent-chatroom/shared';
 import { useMentionAutocomplete, replaceMention } from '../hooks/useMentionAutocomplete';
 import { MentionDropdown } from './MentionDropdown';
 import type { AgentDefinition } from '@agent-chatroom/shared';
@@ -289,14 +288,7 @@ export function MessageInput() {
   }
 
   const stopAll = useCallback(() => {
-    send({ type: 'clear_queue' });
-    const agents = useAgentStore.getState().agents;
-    const ACTIVE = new Set<AgentState>([AgentState.Thinking, AgentState.ToolUse, AgentState.Paused]);
-    for (const [name, agent] of agents) {
-      if (ACTIVE.has(agent.status)) {
-        send({ type: 'kill_agent', agentName: name });
-      }
-    }
+    send({ type: 'stop_all' });
   }, [send]);
 
   // --- Paste handler ---

@@ -140,7 +140,10 @@ export function pauseAgent(agentName: string, roomId: string): boolean {
     'pauseAgent: looking up process',
   );
   if (!active) {
-    logger.warn({ agentName, roomId }, 'pauseAgent: no active process found');
+    // No active process — clear the flag we just set. Pausing an agent that is not
+    // running has no operational meaning and would block all future invocations permanently.
+    _pausedAgents.delete(`${agentName}:${roomId}`);
+    logger.warn({ agentName, roomId }, 'pauseAgent: no active process found — flag cleared');
     return false;
   }
   if (typeof active.pid !== 'number' || active.pid <= 0) return false;

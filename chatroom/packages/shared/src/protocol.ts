@@ -137,6 +137,10 @@ export interface ClientClearQueue {
   type: 'clear_queue';
 }
 
+export interface ClientStopAll {
+  type: 'stop_all';
+}
+
 export type ClientMessage =
   | ClientSendMessage
   | ClientInvokeAgent
@@ -145,7 +149,8 @@ export type ClientMessage =
   | ClientPauseAgent
   | ClientResumeAgent
   | ClientReadChat
-  | ClientClearQueue;
+  | ClientClearQueue
+  | ClientStopAll;
 
 // ---------------------------------------------------------------------------
 // Server → Client messages

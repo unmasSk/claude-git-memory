@@ -38,6 +38,7 @@ import {
   handlePauseAgent,
   handleResumeAgent,
   handleReadChat,
+  handleStopAll,
 } from './ws-control-handlers.js';
 import { clearQueue } from '../services/agent-invoker.js';
 import { postSystemMessage } from '../services/agent-runner.js';
@@ -246,6 +247,9 @@ export function message(ws: any, rawMessage: unknown): void {
       }
       break;
     }
+    case 'stop_all':
+      handleStopAll(ws, roomId);
+      break;
   }
 }
 

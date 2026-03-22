@@ -11,6 +11,9 @@ import {
   pauseAgent,
   resumeAgent,
   isAgentPaused,
+  clearQueue,
+  inFlight,
+  activeProcesses,
   sanitizePromptContent,
 } from '../services/agent-invoker.js';
 import { getAgentConfig } from '../services/agent-registry.js';
@@ -99,10 +102,9 @@ export function handleKillAgent(ws: any, roomId: string, agentName: string): voi
   logger.info({ agentName, roomId }, 'WS kill_agent');
   const killed = killAgent(agentName, roomId);
 
-  // SEC-MED-002: Only broadcast Out when the agent actually had an active process.
-  // Spurious Out in the wrong room when there is no active process is misleading.
   if (!killed) {
-    logger.info({ agentName, roomId }, 'WS kill_agent: agent not running — no Out broadcast');
+    logger.info({ agentName, roomId }, 'WS kill_agent: agent not running');
+    void postSystemMessage(roomId, `Agent ${agentName} is not currently running.`);
     return;
   }
 
@@ -138,16 +140,15 @@ export function handlePauseAgent(ws: any, roomId: string, agentName: string): vo
 
   logger.info({ agentName, roomId }, 'WS pause_agent');
   const frozen = pauseAgent(agentName, roomId);
-  // Only broadcast Paused state when a process was actually frozen.
-  // If no process was found, the flag is still set (future invocations blocked)
-  // but we do not lie to the frontend by broadcasting a Paused state it cannot act on.
   if (frozen) {
+    // Process was found and SIGSTOP sent — broadcast Paused.
     void updateStatusAndBroadcast(agentName, roomId, AgentState.Paused);
+    void postSystemMessage(roomId, `Agent ${agentName} frozen.`);
+  } else {
+    // No active process (already done or ESRCH) — do NOT broadcast Paused;
+    // the flag was cleared by pauseAgent so invocations remain unblocked.
+    void postSystemMessage(roomId, `Agent ${agentName} is not currently running — nothing to pause.`);
   }
-  const pauseMsg = frozen
-    ? `Agent ${agentName} frozen.`
-    : `Agent ${agentName} paused — new invocations are suspended.`;
-  void postSystemMessage(roomId, pauseMsg);
 }
 
 // ---------------------------------------------------------------------------
@@ -172,16 +173,57 @@ export function handleResumeAgent(ws: any, roomId: string, agentName: string): v
 
   logger.info({ agentName, roomId }, 'WS resume_agent');
   const unfrozen = resumeAgent(agentName, roomId);
-  // Only broadcast Thinking when a process was actually unfrozen.
-  // If no process was found, there is nothing to think — broadcasting a fake
-  // Thinking state would confuse the frontend into showing the wrong status.
-  if (unfrozen) {
-    void updateStatusAndBroadcast(agentName, roomId, AgentState.Thinking);
-  }
+  // Verify the process is still registered after SIGCONT — it may have completed between
+  // the SIGCONT and this point. Stale Thinking broadcast would override a Done that already arrived.
+  const stillAlive = unfrozen && activeProcesses.has(`${agentName}:${roomId}`);
+  void updateStatusAndBroadcast(agentName, roomId, stillAlive ? AgentState.Thinking : AgentState.Idle);
   const resumeMsg = unfrozen
     ? `Agent ${agentName} resumed.`
     : `Agent ${agentName} resumed — invocations enabled.`;
   void postSystemMessage(roomId, resumeMsg);
+}
+
+// ---------------------------------------------------------------------------
+// stop_all
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle a stop_all client message.
+ * Atomically drains the pending queue and kills all in-flight agents for the room.
+ * Replaces the N-message stopAll loop from the frontend, avoiding rate-limiter exposure.
+ *
+ * @param roomId - The room to stop all activity in.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function handleStopAll(ws: any, roomId: string): void {
+  const cleared = clearQueue(roomId);
+
+  // Collect all in-flight agent keys for this room
+  const suffix = `:${roomId}`;
+  const activeAgents: string[] = [];
+  for (const key of inFlight) {
+    if (key.endsWith(suffix)) {
+      activeAgents.push(key.slice(0, key.length - suffix.length));
+    }
+  }
+
+  let killed = 0;
+  for (const agentName of activeAgents) {
+    const wasKilled = killAgent(agentName, roomId);
+    if (wasKilled) {
+      void updateStatusAndBroadcast(agentName, roomId, AgentState.Out);
+      killed++;
+    }
+  }
+
+  logger.info({ roomId, cleared, killed }, 'WS stop_all: queue cleared, agents killed');
+
+  const parts: string[] = [];
+  if (cleared > 0) parts.push(`${cleared} queued agent${cleared === 1 ? '' : 's'} removed`);
+  if (killed > 0) parts.push(`${killed} running agent${killed === 1 ? '' : 's'} terminated`);
+  if (parts.length > 0) {
+    void postSystemMessage(roomId, `Stop all: ${parts.join(', ')}.`);
+  }
 }
 
 // ---------------------------------------------------------------------------

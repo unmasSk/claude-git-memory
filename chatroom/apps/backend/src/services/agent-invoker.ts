@@ -48,6 +48,7 @@ export {
   isAgentPaused,
   inFlight,
   activeInvocations,
+  activeProcesses,
 } from './agent-scheduler.js';
 export type { InvocationContext } from './agent-scheduler.js';
 
