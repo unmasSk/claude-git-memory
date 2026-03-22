@@ -50,6 +50,11 @@ _goldenDb.exec(`
     last_active TEXT, total_cost REAL DEFAULT 0.0, turn_count INTEGER DEFAULT 0,
     PRIMARY KEY (agent_name, room_id)
   );
+  CREATE TABLE IF NOT EXISTS attachments (
+    id TEXT PRIMARY KEY, room_id TEXT NOT NULL, message_id TEXT,
+    filename TEXT NOT NULL, mime_type TEXT NOT NULL, size_bytes INTEGER NOT NULL,
+    storage_path TEXT NOT NULL, created_at TEXT NOT NULL
+  );
   INSERT OR IGNORE INTO rooms (id, name, topic)
   VALUES ('default', 'general', 'Agent chatroom');
   INSERT OR IGNORE INTO rooms (id, name, topic)

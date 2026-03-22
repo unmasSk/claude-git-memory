@@ -14,9 +14,10 @@
  *   - getGitDiffStat — cached git diff stat for system prompt
  */
 
-import { getRecentMessages } from '../db/queries.js';
+import { getRecentMessages, listAttachmentsByMessageIds } from '../db/queries.js';
 import { mapMessageRow } from '../utils.js';
 import { AGENT_HISTORY_LIMIT } from '../config.js';
+import type { AttachmentRow } from '../types.js';
 
 // Re-export system-prompt builders for backward compatibility.
 export {
@@ -87,6 +88,17 @@ export function sanitizePromptContent(s: string): string {
 export function buildPrompt(roomId: string, triggerContent: string, historyLimit?: number): string {
   const rows = getRecentMessages(roomId, historyLimit ?? AGENT_HISTORY_LIMIT);
 
+  // Batch-fetch attachments for all messages — single query, no N+1
+  const messageIds = rows.map((r) => r.id);
+  const attachmentRows = listAttachmentsByMessageIds(messageIds);
+  const attachmentsByMsg = new Map<string, AttachmentRow[]>();
+  for (const att of attachmentRows) {
+    if (!att.message_id) continue;
+    const bucket = attachmentsByMsg.get(att.message_id);
+    if (bucket) bucket.push(att);
+    else attachmentsByMsg.set(att.message_id, [att]);
+  }
+
   const lines: string[] = [];
 
   // SEC-FIX 1 + 7: Wrap history with explicit trust boundary headers
@@ -110,6 +122,13 @@ export function buildPrompt(roomId: string, triggerContent: string, historyLimit
           })
         : '';
       lines.push(`[${time}] ${safeAuthor}: ${safeContent}`);
+      // Append attachment references so agents can Read() the files directly
+      const atts = attachmentsByMsg.get(row.id);
+      if (atts && atts.length > 0) {
+        for (const att of atts) {
+          lines.push(`[Attachment: ${att.filename} (${att.mime_type}, ${att.size_bytes} bytes) → ${att.storage_path}]`);
+        }
+      }
     }
   }
 
