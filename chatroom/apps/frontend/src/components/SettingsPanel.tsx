@@ -54,22 +54,8 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
     setCwdFeedback(null);
   }, [room?.cwd]);
 
-  const handlePickFolder = useCallback(async () => {
-    try {
-      const { open } = await import('@tauri-apps/plugin-dialog');
-      const selected = await open({ directory: true, title: 'Seleccionar proyecto' });
-      if (typeof selected === 'string' && selected) {
-        setCwdInput(selected);
-        setCwdFeedback(null);
-      }
-    } catch {
-      setCwdFeedback({ msg: 'No se pudo abrir el selector de carpetas', ok: false });
-    }
-  }, []);
-
-  const handleSaveCwd = useCallback(async () => {
+  const saveCwd = useCallback(async (path: string) => {
     if (!room) return;
-    const path = cwdInput.trim();
     setCwdFeedback(null);
     setCwdSaving(true);
     try {
@@ -84,9 +70,9 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
         body: JSON.stringify({ cwd: path }),
       });
       if (res.ok) {
-        const data = (await res.json()) as { cwd: string };
-        setCwdInput(data.cwd);
-        setCwdFeedback({ msg: `Guardado: ${data.cwd}`, ok: true });
+        const data = (await res.json()) as { cwd: string | null };
+        setCwdInput(data.cwd ?? '');
+        setCwdFeedback({ msg: data.cwd ? `Proyecto: ${data.cwd.split('/').pop() || data.cwd}` : 'Proyecto guardado', ok: true });
       } else {
         const err = (await res.json()) as { error: string };
         setCwdFeedback({ msg: err.error ?? 'Error al guardar', ok: false });
@@ -96,34 +82,24 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
     } finally {
       setCwdSaving(false);
     }
-  }, [room, cwdInput]);
+  }, [room]);
 
-  const handleResetCwd = useCallback(async () => {
-    if (!room) return;
-    setCwdFeedback(null);
-    setCwdSaving(true);
+  const handlePickFolder = useCallback(async () => {
     try {
-      const token = await getAuthToken();
-      if (!token) { setCwdFeedback({ msg: 'No se pudo obtener token', ok: false }); return; }
-      // Send empty string — backend treats it as server default (process.cwd())
-      const res = await fetch(`/api/rooms/${room.id}/cwd`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ cwd: '' }),
-      });
-      if (res.ok) {
-        setCwdInput('');
-        setCwdFeedback({ msg: 'Reseteado al directorio del servidor', ok: true });
-      } else {
-        const err = (await res.json()) as { error: string };
-        setCwdFeedback({ msg: err.error ?? 'Error', ok: false });
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const selected = await open({ directory: true, title: 'Seleccionar proyecto' });
+      if (typeof selected === 'string' && selected) {
+        setCwdInput(selected);
+        void saveCwd(selected);
       }
     } catch {
-      setCwdFeedback({ msg: 'Error de red', ok: false });
-    } finally {
-      setCwdSaving(false);
+      setCwdFeedback({ msg: 'No se pudo abrir el selector de carpetas', ok: false });
     }
-  }, [room]);
+  }, [saveCwd]);
+
+  const handleSaveCwd = useCallback(async () => {
+    void saveCwd(cwdInput.trim());
+  }, [saveCwd, cwdInput]);
 
   // ── Setup tab state ──
   const [setupResult, setSetupResult] = useState<SetupResult | null>(null);
@@ -193,7 +169,7 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
               </div>
 
               {isTauri ? (
-                /* Tauri: native folder picker */
+                /* Tauri: native folder picker — auto-saves on selection */
                 <div className="settings-actions">
                   <button
                     className="settings-btn settings-btn-primary"
@@ -201,25 +177,7 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
                     onClick={() => void handlePickFolder()}
                     disabled={cwdSaving}
                   >
-                    Seleccionar proyecto
-                  </button>
-                  {cwdInput && (
-                    <button
-                      className="settings-btn settings-btn-primary"
-                      type="button"
-                      onClick={() => void handleSaveCwd()}
-                      disabled={cwdSaving}
-                    >
-                      {cwdSaving ? 'Guardando…' : 'Confirmar'}
-                    </button>
-                  )}
-                  <button
-                    className="settings-btn settings-btn-ghost"
-                    type="button"
-                    onClick={() => void handleResetCwd()}
-                    disabled={cwdSaving || !currentCwd}
-                  >
-                    Quitar proyecto
+                    {cwdSaving ? 'Guardando…' : 'Seleccionar proyecto'}
                   </button>
                 </div>
               ) : (
@@ -245,23 +203,10 @@ export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelPro
                     >
                       {cwdSaving ? 'Guardando…' : 'Guardar'}
                     </button>
-                    <button
-                      className="settings-btn settings-btn-ghost"
-                      type="button"
-                      onClick={() => void handleResetCwd()}
-                      disabled={cwdSaving || !currentCwd}
-                    >
-                      Quitar proyecto
-                    </button>
                   </div>
                 </>
               )}
 
-              {cwdInput && cwdInput !== currentCwd && (
-                <div className="settings-feedback pending">
-                  Seleccionado: {cwdInput.split('/').pop() || cwdInput}
-                </div>
-              )}
               {cwdFeedback && (
                 <div className={`settings-feedback ${cwdFeedback.ok ? 'ok' : 'err'}`}>
                   {cwdFeedback.msg}

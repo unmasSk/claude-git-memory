@@ -26,6 +26,7 @@ import { validateName, issueToken, peekToken } from '../services/auth-tokens.js'
 import { createLogger } from '../logger.js';
 import { createTokenBucket } from '../services/rate-limiter.js';
 import { broadcast } from '../services/message-bus.js';
+import { getGitStatus } from '../services/git-status.js';
 import type { Attachment } from '@agent-chatroom/shared';
 
 const log = createLogger('api');
@@ -409,6 +410,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
       log.info({ roomId: params.id, cwd: resolved }, 'PUT /api/rooms/:id/cwd updated');
 
       void broadcast(params.id, { type: 'room_cwd_changed', roomId: params.id, cwd: resolved });
+      void broadcast(params.id, { type: 'git_status', ...getGitStatus(resolved) });
 
       return { cwd: resolved };
     },

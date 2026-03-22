@@ -153,7 +153,8 @@ export function open(ws: any): void {
   registerConnection(ws, roomId, tokenName);
   try {
     if (sendInitialState(ws, roomId)) {
-      ws.send(JSON.stringify({ type: 'git_status', ...getGitStatus() } satisfies ServerMessage));
+      const roomCwd = getRoomById(roomId)?.cwd ?? undefined;
+      ws.send(JSON.stringify({ type: 'git_status', ...getGitStatus(roomCwd) } satisfies ServerMessage));
     }
   } catch (err) {
     logger.error({ err, roomId }, 'WS open: sendInitialState threw — closing connection');
@@ -164,8 +165,9 @@ export function open(ws: any): void {
 // Broadcast git status to all active rooms every 30 seconds.
 // Starts when the module is first imported (server boot).
 setInterval(() => {
-  const gitMsg: ServerMessage = { type: 'git_status', ...getGitStatus() };
   for (const roomId of roomConns.keys()) {
+    const roomCwd = getRoomById(roomId)?.cwd ?? undefined;
+    const gitMsg: ServerMessage = { type: 'git_status', ...getGitStatus(roomCwd) };
     void broadcast(roomId, gitMsg);
   }
 }, 30_000);
