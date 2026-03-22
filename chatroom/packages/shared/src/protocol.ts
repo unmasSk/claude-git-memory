@@ -95,6 +95,8 @@ export interface ClientSendMessage {
   type: 'send_message';
   content: string;
   attachmentIds?: string[];
+  /** execute = agents act; brainstorm = agents analyze/propose, no code changes */
+  mode?: 'execute' | 'brainstorm';
 }
 
 export interface ClientInvokeAgent {
@@ -129,6 +131,10 @@ export interface ClientReadChat {
   agentName: string;
 }
 
+export interface ClientClearQueue {
+  type: 'clear_queue';
+}
+
 export type ClientMessage =
   | ClientSendMessage
   | ClientInvokeAgent
@@ -136,7 +142,8 @@ export type ClientMessage =
   | ClientKillAgent
   | ClientPauseAgent
   | ClientResumeAgent
-  | ClientReadChat;
+  | ClientReadChat
+  | ClientClearQueue;
 
 // ---------------------------------------------------------------------------
 // Server → Client messages
@@ -194,6 +201,15 @@ export interface ServerUserListUpdate {
   connectedUsers: ConnectedUser[];
 }
 
+export interface ServerGitStatus {
+  type: 'git_status';
+  branch: string;
+  ahead: number;
+  behind: number;
+  dirty: boolean;
+  repo: string;
+}
+
 export type ServerMessage =
   | ServerRoomState
   | ServerNewMessage
@@ -201,4 +217,5 @@ export type ServerMessage =
   | ServerToolEvent
   | ServerHistoryPage
   | ServerError
-  | ServerUserListUpdate;
+  | ServerUserListUpdate
+  | ServerGitStatus;

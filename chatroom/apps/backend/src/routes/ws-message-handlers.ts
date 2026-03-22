@@ -77,7 +77,7 @@ function insertAndBroadcastDirective(ws: any, roomId: string, safeDirective: str
 
 /** Handle the @everyone directive embedded in a send_message. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function handleEveryoneDirective(ws: any, roomId: string, content: string, authorName: string): void {
+function handleEveryoneDirective(ws: any, roomId: string, content: string, authorName: string, mode: 'execute' | 'brainstorm' = 'execute'): void {
   const directive = content.replace(/@everyone\b/gi, '').trim();
   logger.info({ authorName, directive }, 'WS send_message @everyone directive');
 
@@ -104,7 +104,7 @@ function handleEveryoneDirective(ws: any, roomId: string, content: string, autho
     if (activeSessions.length > 0) {
       const agentNames = new Set(activeSessions.map((s) => s.agentName));
       logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking active agents (with resume)');
-      invokeAgents(roomId, agentNames, safeDirective, new Map(), true);
+      invokeAgents(roomId, agentNames, safeDirective, new Map(), true, mode);
     }
   }
 }
@@ -125,7 +125,7 @@ function handleEveryoneDirective(ws: any, roomId: string, content: string, autho
  * @param content - The raw message content from the client.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function handleSendMessage(ws: any, roomId: string, connId: string, content: string, attachmentIds?: string[]): void {
+export function handleSendMessage(ws: any, roomId: string, connId: string, content: string, attachmentIds?: string[], mode: 'execute' | 'brainstorm' = 'execute'): void {
   const room = getRoomById(roomId);
   if (!room) { sendError(ws, 'Room not found', 'ROOM_NOT_FOUND'); return; }
 
@@ -159,7 +159,7 @@ export function handleSendMessage(ws: any, roomId: string, connId: string, conte
   // Cache once — avoids running the regex twice on the same content.
   const everyonePresent = EVERYONE_PATTERN.test(content);
   if (everyonePresent) {
-    handleEveryoneDirective(ws, roomId, content, authorName);
+    handleEveryoneDirective(ws, roomId, content, authorName, mode);
   } else if (isPaused(roomId)) {
     resumeInvocations(roomId);
     logger.info({ authorName }, 'WS send_message: invocations resumed after @everyone stop');
@@ -170,7 +170,7 @@ export function handleSendMessage(ws: any, roomId: string, connId: string, conte
   logger.debug({ authorName, contentLength: content.length, everyonePresent, mentionCount: mentions.size }, 'WS send_message processed');
 
   if (mentions.size > 0) {
-    invokeAgents(roomId, mentions, sanitizePromptContent(content), new Map(), true);
+    invokeAgents(roomId, mentions, sanitizePromptContent(content), new Map(), true, mode);
   }
 }
 

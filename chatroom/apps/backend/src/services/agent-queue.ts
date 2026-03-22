@@ -31,6 +31,8 @@ export interface InvocationContext {
    * agent can situate itself in the conversation.
    */
   isRespawn?: boolean;
+  /** execute = agents act; brainstorm = agents analyze/propose, no code changes. Default: execute */
+  mode?: 'execute' | 'brainstorm';
 }
 
 // ---------------------------------------------------------------------------

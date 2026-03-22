@@ -102,7 +102,17 @@ export async function doInvoke(
   }
 
   // SEC-FIX 3: Filter banned tools (belt-and-suspenders — registry already does this)
-  const allowedTools = agentConfig.allowedTools.filter((t) => !BANNED_TOOLS.includes(t));
+  let allowedTools = agentConfig.allowedTools.filter((t) => !BANNED_TOOLS.includes(t));
+
+  // Brainstorm mode: enforce read-only whitelist via --allowedTools (not just honor system in prompt).
+  // Whitelist: Read, Grep, Glob, Agent. Write/Edit/Bash are stripped so the restriction is real.
+  // Case-insensitive comparison — tool names in the registry are PascalCase but we don't trust future additions.
+  if (context.mode === 'brainstorm') {
+    const BRAINSTORM_WHITELIST = new Set(['read', 'grep', 'glob', 'agent']);
+    allowedTools = allowedTools.filter((t) => BRAINSTORM_WHITELIST.has(t.toLowerCase()));
+    logger.debug({ agentName, roomId, allowedTools }, 'doInvoke brainstorm: tools filtered to read-only whitelist');
+  }
+
   logger.debug({ agentName, roomId, allowedTools, triggerBytes: context.triggerContent.length }, 'doInvoke tools');
   if (allowedTools.length === 0) {
     await postSystemMessage(roomId, `Agent ${agentName} has no permitted tools after security filtering.`);
@@ -117,7 +127,7 @@ export async function doInvoke(
   try {
     // For respawned instances (context overflow), pass a high history limit.
     const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
-    const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn);
+    const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn, context.mode);
     retryScheduled = await spawnAndParse({
       roomId, agentName, model: agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context,
     });

@@ -4,6 +4,7 @@ import { useWsStore } from '../stores/ws-store';
 
 export function StatusBar() {
   const status = useWsStore((s) => s.status);
+  const gitStatus = useWsStore((s) => s.gitStatus);
 
   const dotClass =
     status === 'connected'
@@ -14,18 +15,25 @@ export function StatusBar() {
       ? 'statusbar-dot offline'
       : 'statusbar-dot disconnected';
 
+  const branch = gitStatus ? `${gitStatus.branch}${gitStatus.dirty ? '*' : ''}` : null;
+  const ahead = gitStatus?.ahead ?? 0;
+  const behind = gitStatus?.behind ?? 0;
+  const repo = gitStatus?.repo ?? null;
+
   return (
     <div className="statusbar">
       <div className="sb-left">
         <span className="sb-item sb-git">
           <GitBranch size={12} />
-          <span className="sb-branch">dev*</span>
+          <span className="sb-branch">{branch ?? '—'}</span>
         </span>
         <span className="sb-item">
-          <ArrowDown size={10} />0
-          <ArrowUp size={10} style={{ marginLeft: '2px' }} />3
+          <ArrowDown size={10} />
+          <span className={`sb-git-stat${behind > 0 ? ' deletions' : ''}`}>{behind}</span>
+          <ArrowUp size={10} style={{ marginLeft: '2px' }} />
+          <span className={`sb-git-stat${ahead > 0 ? ' additions' : ''}`}>{ahead}</span>
         </span>
-        <span className="sb-item">claude-toolkit</span>
+        {repo && <span className="sb-item">{repo}</span>}
       </div>
 
       <div className="sb-right">

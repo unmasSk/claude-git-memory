@@ -165,13 +165,14 @@ export function invokeAgents(
   triggerContent: string,
   agentTurns: Map<string, number> = new Map(),
   priority = false,
+  mode: 'execute' | 'brainstorm' = 'execute',
 ): void {
   // Stagger invocations by 600ms per agent to avoid concurrent rate-limit spikes
   // (House diagnostic: @everyone firing 8+ claude processes simultaneously saturates the API)
   let delay = 0;
   for (const agentName of agentNames) {
     setTimeout(() => {
-      scheduleInvocation(roomId, agentName, { triggerContent, agentTurns }, false, priority);
+      scheduleInvocation(roomId, agentName, { triggerContent, agentTurns, mode }, false, priority);
     }, delay);
     delay += 600;
   }

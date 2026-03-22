@@ -85,6 +85,7 @@ export const ClientSendMessageSchema = z.object({
   type: z.literal('send_message'),
   content: z.string().min(1).max(50000),
   attachmentIds: z.array(z.string().uuid()).max(5).optional(),
+  mode: z.enum(['execute', 'brainstorm']).optional(),
 });
 
 export const ClientInvokeAgentSchema = z.object({
@@ -119,6 +120,10 @@ export const ClientReadChatSchema = z.object({
   agentName: z.string().min(1).max(64),
 });
 
+export const ClientClearQueueSchema = z.object({
+  type: z.literal('clear_queue'),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientSendMessageSchema,
   ClientInvokeAgentSchema,
@@ -127,6 +132,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientPauseAgentSchema,
   ClientResumeAgentSchema,
   ClientReadChatSchema,
+  ClientClearQueueSchema,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -191,6 +197,15 @@ export const ServerUserListUpdateSchema = z.object({
   connectedUsers: z.array(ConnectedUserSchema),
 });
 
+export const ServerGitStatusSchema = z.object({
+  type: z.literal('git_status'),
+  branch: z.string(),
+  ahead: z.number().int().nonnegative(),
+  behind: z.number().int().nonnegative(),
+  dirty: z.boolean(),
+  repo: z.string(),
+});
+
 export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerRoomStateSchema,
   ServerNewMessageSchema,
@@ -199,6 +214,7 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerHistoryPageSchema,
   ServerErrorSchema,
   ServerUserListUpdateSchema,
+  ServerGitStatusSchema,
 ]);
 
 // Inferred types (for convenience — prefer the types from protocol.ts)

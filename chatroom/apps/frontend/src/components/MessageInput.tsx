@@ -187,6 +187,7 @@ export function MessageInput() {
       send({
         type: 'send_message',
         content: trimmed || ' ',
+        mode,
         ...(attachmentIds && attachmentIds.length > 0 ? { attachmentIds } : {}),
       });
 
@@ -244,6 +245,7 @@ export function MessageInput() {
   }
 
   const stopAll = useCallback(() => {
+    send({ type: 'clear_queue' });
     const agents = useAgentStore.getState().agents;
     const ACTIVE = new Set<AgentState>([AgentState.Thinking, AgentState.ToolUse, AgentState.Paused]);
     for (const [name, agent] of agents) {

@@ -26,6 +26,8 @@ import {
   getConnectedUsers,
   type WsData,
 } from './ws-state.js';
+import { getGitStatus } from '../services/git-status.js';
+import { broadcast } from '../services/message-bus.js';
 import {
   handleSendMessage,
   handleInvokeAgent,
@@ -37,6 +39,7 @@ import {
   handleResumeAgent,
   handleReadChat,
 } from './ws-control-handlers.js';
+import { clearQueue } from '../services/agent-invoker.js';
 
 // ---------------------------------------------------------------------------
 // open() helpers
@@ -147,12 +150,23 @@ export function open(ws: any): void {
 
   registerConnection(ws, roomId, tokenName);
   try {
-    sendInitialState(ws, roomId);
+    if (sendInitialState(ws, roomId)) {
+      ws.send(JSON.stringify({ type: 'git_status', ...getGitStatus() } satisfies ServerMessage));
+    }
   } catch (err) {
     logger.error({ err, roomId }, 'WS open: sendInitialState threw — closing connection');
     ws.close();
   }
 }
+
+// Broadcast git status to all active rooms every 30 seconds.
+// Starts when the module is first imported (server boot).
+setInterval(() => {
+  const gitMsg: ServerMessage = { type: 'git_status', ...getGitStatus() };
+  for (const roomId of roomConns.keys()) {
+    void broadcast(roomId, gitMsg);
+  }
+}, 30_000);
 
 // ---------------------------------------------------------------------------
 // message()
@@ -203,7 +217,7 @@ export function message(ws: any, rawMessage: unknown): void {
 
   switch (msg.type) {
     case 'send_message':
-      handleSendMessage(ws, roomId, connId, msg.content, msg.attachmentIds);
+      handleSendMessage(ws, roomId, connId, msg.content, msg.attachmentIds, msg.mode);
       break;
     case 'invoke_agent':
       handleInvokeAgent(ws, roomId, connId, msg.agent, msg.prompt);
@@ -222,6 +236,10 @@ export function message(ws: any, rawMessage: unknown): void {
       break;
     case 'read_chat':
       handleReadChat(ws, roomId, msg.agentName);
+      break;
+    case 'clear_queue':
+      clearQueue(roomId);
+      logger.info({ roomId }, 'WS clear_queue: agent queue drained');
       break;
   }
 }

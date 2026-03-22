@@ -162,7 +162,7 @@ export const ParticipantItem = memo(function ParticipantItem({ agent }: Particip
         {/* Cell 2: context bar */}
         <div className="cell-bar">
           <div className="bar-track">
-            <div className={`bar-fill${isActive ? ' bar-fill-animated' : ''}`} style={{ width: ctxPct !== null ? `${ctxPct}%` : '0%' }} />
+            <div className={`bar-fill${isActive && ctxPct !== null ? ' bar-fill-animated' : ''}`} style={{ width: ctxPct !== null ? `${ctxPct}%` : '0%' }} />
           </div>
         </div>
 

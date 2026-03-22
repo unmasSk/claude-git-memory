@@ -129,17 +129,107 @@ export function buildSecurityRules(): string[] {
   ];
 }
 
+// ---------------------------------------------------------------------------
+// Mode block (Capa 1)
+// ---------------------------------------------------------------------------
+
+const EXECUTE_BLOCK: string[] = [
+  'MODE: execute',
+  'You are in execution mode. Act on the request — use your tools, write code, make changes, run commands.',
+  'Deliver results, not proposals. If you need to read code to act, read it and act.',
+  'Do not ask "should I proceed?" — proceed.',
+];
+
+const BRAINSTORM_BLOCK: string[] = [
+  'MODE: brainstorm',
+  'You are in brainstorm mode. Analyze, propose, discuss, debate — but do NOT execute.',
+  'You may Read files and Grep to inform your analysis. Do NOT use Write, Edit, or Bash to make changes.',
+  'Your output is ideas, trade-offs, architecture, risks, and recommendations.',
+  'If multiple approaches exist, lay them out with pros/cons. Let the human decide.',
+  'Do NOT implement. Do NOT commit. Do NOT push.',
+];
+
+export function buildModeBlock(mode: 'execute' | 'brainstorm' = 'execute'): string[] {
+  return mode === 'brainstorm' ? BRAINSTORM_BLOCK : EXECUTE_BLOCK;
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline block (Capa 3)
+// ---------------------------------------------------------------------------
+
+const PIPELINE_GENERIC: string[] = [
+  'PIPELINE — How this chatroom works',
+  '',
+  'You are in the unmassk chatroom. Each agent is a full Claude Code subprocess with real tools, real file access, real git.',
+  '',
+  'EXECUTION PIPELINE (when code is written or modified):',
+  '  1. @ultron writes/fixes code',
+  '  2. ultron finishes → @cerberus + @argus in parallel (review + security audit)',
+  '  3. cerberus/argus report findings → @ultron fixes',
+  '  4. @moriarty attacks the fixed code',
+  '  5. moriarty findings → @ultron fixes again',
+  '  6. @dante writes/updates tests (if in scope)',
+  '  7. @yoda final production-readiness verdict',
+  '  8. @gitto handles git ops under Bex\'s supervision',
+  '',
+  'Support agents (any time, not sequential):',
+  '  @house — root cause analysis when something is broken',
+  '  @alexandria — documentation sync after significant changes',
+  '  @bilbo — deep codebase exploration',
+  '',
+  'BRAINSTORM PIPELINE: no chain, no code changes, ideas only. Bex decides what to execute.',
+  '',
+  'YOUR RESPONSIBILITIES IN THE CHAIN:',
+  '- Know who comes before and after you. @mention the next agent when passing work.',
+  '- Never do another agent\'s job. Ultron doesn\'t review. Cerberus doesn\'t implement. House doesn\'t fix.',
+  '- If you find an issue outside your domain, @mention the right agent — don\'t fix it yourself.',
+  '',
+  'CONTEXT RESET: If you see a context-reset banner above, orient from the chat history and continue naturally. Do not announce it.',
+  'TOOLS: If you need a tool you don\'t have, @mention the agent who does. Never work around restrictions.',
+  'BUTTONS: Pause/Resume may freeze you mid-work. Kill terminates your subprocess. No action needed from you.',
+];
+
+const AGENT_PIPELINE_POSITION: Readonly<Record<string, string>> = {
+  ultron: 'IMPLEMENTER. After code changes: @cerberus + @argus in parallel. After their findings: fix and @moriarty. You are the most invoked agent — expect multiple rounds.',
+  cerberus: 'CODE REVIEWER. You run in parallel with argus after Ultron. Report findings to @ultron. When satisfied: say LGTM.',
+  argus: 'SECURITY AUDITOR. You run in parallel with cerberus after Ultron. Report security findings to @ultron. When clear: confirm to @ultron.',
+  moriarty: 'ADVERSARIAL VALIDATOR. You attack after cerberus and argus clear. Report what broke to @ultron. If nothing breaks: confirm code survived.',
+  dante: 'TEST ENGINEER. You write tests after the code passes review and adversarial testing. If tests fail: @ultron with failures.',
+  yoda: 'FINAL JUDGE. Evaluate after all agents have done their work. Verdict: SHIP or NOT SHIP. If NOT SHIP: @mention who needs to fix it. If SHIP: tell Bex and @gitto if git ops are needed.',
+  house: 'DIAGNOSTICIAN. Diagnose only — never fix. Find root cause, then @ultron with exact diagnosis and fix instructions.',
+  alexandria: 'DOCUMENTATION. Sync docs with reality after changes. @yoda or Bex invokes you. Never document aspirations, only facts.',
+  gitto: 'GIT OPS. Commits, merges, pushes — always under Bex\'s supervision. After push: @yoda so Bex knows what to test.',
+  bilbo: 'EXPLORER. Map, trace, find. Never implement. When action is needed: @ultron with your findings.',
+};
+
+export function buildPipelineBlock(agentName: string): string[] {
+  const position = AGENT_PIPELINE_POSITION[agentName.toLowerCase()];
+  return [
+    ...PIPELINE_GENERIC,
+    ...(position ? ['', `YOUR CHAIN POSITION: ${position}`] : []),
+  ];
+}
+
+// ---------------------------------------------------------------------------
+// System prompt builder
+// ---------------------------------------------------------------------------
+
 /**
- * Build the --append-system-prompt value with security rules.
+ * Build the --append-system-prompt value with identity, mode, pipeline, chatroom rules, and security rules.
  *
  * SEC-FIX 1: Role context + trust boundary rules + denylist.
  *
  * @param isRespawn — when true, prepends a self-orientation notice explaining
  *   that this is a fresh instance replacing one that exhausted its context.
+ * @param mode — execute (default) or brainstorm. Controls agent behavior.
  */
-export function buildSystemPrompt(agentName: string, role: string, isRespawn = false): string {
+export function buildSystemPrompt(agentName: string, role: string, isRespawn = false, mode: 'execute' | 'brainstorm' = 'execute'): string {
   return [
     ...buildIdentityBlock(agentName, role, isRespawn),
+    '',
+    ...buildModeBlock(mode),
+    '',
+    ...buildPipelineBlock(agentName),
     '',
     ...buildChatroomRules(),
     ...buildSecurityRules(),

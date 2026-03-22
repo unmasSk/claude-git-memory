@@ -7,9 +7,18 @@ import logger from '../lib/logger';
 
 export type WsStatus = 'disconnected' | 'connecting' | 'connected' | 'offline';
 
+export interface GitStatusState {
+  branch: string;
+  ahead: number;
+  behind: number;
+  dirty: boolean;
+  repo: string;
+}
+
 interface WsState {
   status: WsStatus;
   roomId: string | null;
+  gitStatus: GitStatusState | null;
 
   connect: (roomId: string) => void;
   disconnect: () => void;
@@ -171,6 +180,10 @@ function handleServerMessage(event: MessageEvent) {
       agentStore.setConnectedUsers(parsed.connectedUsers);
       break;
 
+    case 'git_status':
+      useWsStore.setState({ gitStatus: { branch: parsed.branch, ahead: parsed.ahead, behind: parsed.behind, dirty: parsed.dirty, repo: parsed.repo } });
+      break;
+
     case 'error':
       logger.error('[ws-store] Server error:', parsed.code, parsed.message);
       break;
@@ -180,6 +193,7 @@ function handleServerMessage(event: MessageEvent) {
 export const useWsStore = create<WsState>((set, get) => ({
   status: 'disconnected',
   roomId: null,
+  gitStatus: null,
 
   connect: (roomId) => {
     // Circuit breaker: if too many consecutive auth failures, the server is down.
