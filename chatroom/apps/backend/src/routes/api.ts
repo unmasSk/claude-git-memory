@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia';
 import { join } from 'node:path';
-import { mkdirSync, statSync } from 'node:fs';
+import { mkdirSync, realpathSync, statSync } from 'node:fs';
 import {
   listRooms,
   getRoomById,
@@ -377,24 +377,28 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
         return { error: 'cwd must not contain ".." path traversal', code: 'INVALID_CWD' };
       }
 
-      // Validate: directory must exist and be accessible
+      // Validate: directory must exist and be accessible. Resolve to canonical path
+      // (follows symlinks + normalizes macOS /tmp → /private/tmp) so what is stored
+      // in DB is always the real, absolute path — no symlink bypass, no false positives.
+      let resolved: string;
       try {
         const stat = statSync(cwd);
         if (!stat.isDirectory()) {
           set.status = 400;
           return { error: `cwd is not a directory: ${cwd}`, code: 'NOT_A_DIRECTORY' };
         }
+        resolved = realpathSync(cwd);
       } catch {
         set.status = 400;
         return { error: `cwd does not exist or is not accessible: ${cwd}`, code: 'CWD_NOT_FOUND' };
       }
 
-      updateRoomCwd(params.id, cwd);
-      log.info({ roomId: params.id, cwd }, 'PUT /api/rooms/:id/cwd updated');
+      updateRoomCwd(params.id, resolved);
+      log.info({ roomId: params.id, cwd: resolved }, 'PUT /api/rooms/:id/cwd updated');
 
-      void broadcast(params.id, { type: 'room_cwd_changed', roomId: params.id, cwd });
+      void broadcast(params.id, { type: 'room_cwd_changed', roomId: params.id, cwd: resolved });
 
-      return { cwd };
+      return { cwd: resolved };
     },
     {
       params: t.Object({ id: t.String() }),
