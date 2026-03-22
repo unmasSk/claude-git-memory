@@ -78,8 +78,9 @@ interface ResultEventRaw {
   num_turns?: number;
   usage?: {
     input_tokens?: number;
-    output_tokens?: number;
+    cache_creation_input_tokens?: number;
     cache_read_input_tokens?: number;
+    output_tokens?: number;
   };
   permission_denials?: Array<{ tool_name?: string; input?: unknown }>;
   model_usage?: Record<string, { contextWindow?: number }>;
@@ -179,10 +180,13 @@ function parseResultEvent(event: ResultEventRaw): ResultEvent | null {
   const costUsd = typeof event.total_cost_usd === 'number' ? event.total_cost_usd : 0;
   const durationMs = typeof event.duration_ms === 'number' ? event.duration_ms : 0;
   const numTurns = typeof event.num_turns === 'number' ? event.num_turns : 0;
-  const inputTokens = typeof event.usage?.input_tokens === 'number' ? event.usage.input_tokens : 0;
-  const outputTokens = typeof event.usage?.output_tokens === 'number' ? event.usage.output_tokens : 0;
+  const rawInputTokens = typeof event.usage?.input_tokens === 'number' ? event.usage.input_tokens : 0;
+  const cacheCreationTokens =
+    typeof event.usage?.cache_creation_input_tokens === 'number' ? event.usage.cache_creation_input_tokens : 0;
   const cacheReadTokens =
     typeof event.usage?.cache_read_input_tokens === 'number' ? event.usage.cache_read_input_tokens : 0;
+  const inputTokens = rawInputTokens + cacheCreationTokens + cacheReadTokens;
+  const outputTokens = typeof event.usage?.output_tokens === 'number' ? event.usage.output_tokens : 0;
   const permissionDenials: PermissionDenial[] = Array.isArray(event.permission_denials)
     ? event.permission_denials.map((d) => ({ toolName: d.tool_name ?? 'unknown', input: d.input }))
     : [];
