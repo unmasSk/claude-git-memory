@@ -1,5 +1,5 @@
 import '../styles/components/Titlebar.css';
-import { Settings } from 'lucide-react';
+import { FolderOpen, Settings } from 'lucide-react';
 import { useRoomStore } from '../stores/room-store';
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -14,9 +14,10 @@ if (isTauri) {
 
 interface TitlebarProps {
   onSettingsClick: () => void;
+  onRepoClick: (roomId: string) => void;
 }
 
-export function Titlebar({ onSettingsClick }: TitlebarProps) {
+export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
   const rooms = useRoomStore((s) => s.rooms);
   const activeRoomId = useRoomStore((s) => s.activeRoomId);
   const pendingDeleteId = useRoomStore((s) => s.pendingDeleteId);
@@ -87,6 +88,13 @@ export function Titlebar({ onSettingsClick }: TitlebarProps) {
                 onClick={() => handleTabClick(room.id)}
                 title={isPendingDelete ? 'Click × again to permanently delete' : room.name}
               >
+                <span
+                  className="tb-repo-icon"
+                  onClick={(e) => { e.stopPropagation(); onRepoClick(room.id); }}
+                  title="Select repo"
+                >
+                  <FolderOpen size={11} />
+                </span>
                 #{room.name}
                 {isDeletable && (
                   <span

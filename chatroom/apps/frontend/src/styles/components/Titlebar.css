@@ -21,7 +21,8 @@
 .tb-tab-close,
 .tb-icon,
 .tb-dots,
-.tb-right-group {
+.tb-right-group,
+.tb-repo-icon {
   -webkit-app-region: no-drag;
 }
 
@@ -104,6 +105,17 @@
   height: 1px;
   background: var(--bg-chat);
 }
+
+.tb-repo-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.5;
+  cursor: pointer;
+  transition: opacity 150ms;
+  flex-shrink: 0;
+}
+
+.tb-repo-icon:hover { opacity: 1; }
 
 .tb-tab-close {
   font-size: 13px;

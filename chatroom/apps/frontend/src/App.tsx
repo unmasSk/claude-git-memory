@@ -14,6 +14,7 @@ export function App() {
   const activeRoomId = useRoomStore((s) => s.activeRoomId);
   const loadRooms = useRoomStore((s) => s.loadRooms);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [repoRoomId, setRepoRoomId] = useState<string | null>(null);
 
   // Load all rooms on mount
   useEffect(() => {
@@ -25,7 +26,10 @@ export function App() {
 
   return (
     <div className={`chatroom${isTauri ? ' tauri' : ''}`}>
-      <Titlebar onSettingsClick={() => setSettingsOpen(true)} />
+      <Titlebar
+        onSettingsClick={() => setSettingsOpen(true)}
+        onRepoClick={(roomId) => setRepoRoomId(roomId)}
+      />
       <div className="main">
         <ParticipantPanel />
         <ChatArea />
