@@ -146,7 +146,12 @@ export function open(ws: any): void {
   if (tokenName === null) return;
 
   registerConnection(ws, roomId, tokenName);
-  sendInitialState(ws, roomId);
+  try {
+    sendInitialState(ws, roomId);
+  } catch (err) {
+    logger.error({ err, roomId }, 'WS open: sendInitialState threw — closing connection');
+    ws.close();
+  }
 }
 
 // ---------------------------------------------------------------------------
