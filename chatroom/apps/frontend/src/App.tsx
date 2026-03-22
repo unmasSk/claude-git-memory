@@ -14,6 +14,7 @@ export function App() {
   const activeRoomId = useRoomStore((s) => s.activeRoomId);
   const loadRooms = useRoomStore((s) => s.loadRooms);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsInitialTab, setSettingsInitialTab] = useState<'repo' | 'setup' | 'settings'>('repo');
   const [repoRoomId, setRepoRoomId] = useState<string | null>(null);
 
   // Load all rooms on mount
@@ -27,15 +28,15 @@ export function App() {
   return (
     <div className={`chatroom${isTauri ? ' tauri' : ''}`}>
       <Titlebar
-        onSettingsClick={() => setSettingsOpen(true)}
-        onRepoClick={(roomId) => setRepoRoomId(roomId)}
+        onSettingsClick={() => { setSettingsInitialTab('repo'); setSettingsOpen(true); }}
+        onRepoClick={(roomId) => { setRepoRoomId(roomId); setSettingsInitialTab('repo'); setSettingsOpen(true); }}
       />
       <div className="main">
         <ParticipantPanel />
         <ChatArea />
       </div>
       <StatusBar />
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel initialTab={settingsInitialTab} onClose={() => { setSettingsOpen(false); setRepoRoomId(null); }} />}
     </div>
   );
 }

@@ -36,10 +36,11 @@ interface SetupResult {
 
 interface SettingsPanelProps {
   onClose: () => void;
+  initialTab?: Tab;
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
-  const [tab, setTab] = useState<Tab>('repo');
+export function SettingsPanel({ onClose, initialTab = 'repo' }: SettingsPanelProps) {
+  const [tab, setTab] = useState<Tab>(initialTab);
   const room = useAgentStore((s) => s.room);
 
   // ── Repo tab state ──
