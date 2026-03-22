@@ -18,7 +18,7 @@ import {
 import { getAllAgents, getAgentConfig } from '../services/agent-registry.js';
 import { seedAgentSessions } from '../db/schema.js';
 import { generateRoomName } from '../utils-name.js';
-import { mapMessageRow, mapRoomRow, mapAgentSessionRow, safeMessage } from '../utils.js';
+import { mapMessageRow, mapRoomRow, mapAgentSessionRow, safeMessage, enrichWithAttachments } from '../utils.js';
 import { ROOM_STATE_MESSAGE_LIMIT, UPLOADS_DIR } from '../config.js';
 import { validateName, issueToken, peekToken } from '../services/auth-tokens.js';
 import { createLogger } from '../logger.js';
@@ -149,14 +149,14 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
         const hasMore = pivotCreatedAt ? hasMoreMessagesBefore(params.id, pivotCreatedAt) : false;
         // getMessagesBefore returns DESC — reverse to chronological order
         return {
-          messages: rows.reverse().map(mapMessageRow).map(safeMessage),
+          messages: enrichWithAttachments(rows.reverse().map(mapMessageRow)).map(safeMessage),
           hasMore,
         };
       }
 
       const rows = getRecentMessages(params.id, limit);
       return {
-        messages: rows.map(mapMessageRow).map(safeMessage),
+        messages: enrichWithAttachments(rows.map(mapMessageRow)).map(safeMessage),
         hasMore: false,
       };
     },

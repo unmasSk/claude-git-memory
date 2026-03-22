@@ -1,7 +1,8 @@
 import { randomBytes } from 'node:crypto';
 import type { MessageRow, AgentSessionRow, RoomRow } from './types.js';
-import type { Message, AgentStatus, Room } from '@agent-chatroom/shared';
+import type { Message, AgentStatus, Room, Attachment } from '@agent-chatroom/shared';
 import { createLogger } from './logger.js';
+import { listAttachmentsByMessageIds } from './db/queries.js';
 
 const logger = createLogger('utils');
 
@@ -114,4 +115,38 @@ export function mapRoomRow(row: RoomRow): Room {
 export function safeMessage(msg: Message): Message {
   const { sessionId: _omit, ...safeMetadata } = msg.metadata;
   return { ...msg, metadata: safeMetadata };
+}
+
+/**
+ * Batch-enrich a list of messages with their attachments from the DB.
+ * Uses a single IN query — no N+1.
+ *
+ * @param messages - Messages to enrich
+ * @returns Same messages with `metadata.attachments` populated where applicable
+ */
+export function enrichWithAttachments(messages: Message[]): Message[] {
+  if (messages.length === 0) return messages;
+  const rows = listAttachmentsByMessageIds(messages.map((m) => m.id));
+  if (rows.length === 0) return messages;
+
+  const byMessage = new Map<string, Attachment[]>();
+  for (const row of rows) {
+    if (!row.message_id) continue;
+    const att: Attachment = {
+      id: row.id,
+      filename: row.filename,
+      mimeType: row.mime_type,
+      sizeBytes: row.size_bytes,
+      url: `/api/uploads/${row.room_id}/${row.id}`,
+    };
+    const bucket = byMessage.get(row.message_id);
+    if (bucket) bucket.push(att);
+    else byMessage.set(row.message_id, [att]);
+  }
+
+  return messages.map((msg) => {
+    const attachments = byMessage.get(msg.id);
+    if (!attachments || attachments.length === 0) return msg;
+    return { ...msg, metadata: { ...msg.metadata, attachments } };
+  });
 }

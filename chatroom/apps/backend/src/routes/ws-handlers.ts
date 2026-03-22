@@ -7,7 +7,7 @@ import {
   getRecentMessages,
   listAgentSessions,
 } from '../db/queries.js';
-import { mapMessageRow, mapAgentSessionRow, nowIso, safeMessage } from '../utils.js';
+import { mapMessageRow, mapAgentSessionRow, nowIso, safeMessage, enrichWithAttachments } from '../utils.js';
 import { validateToken } from '../services/auth-tokens.js';
 import { ClientMessageSchema } from '@agent-chatroom/shared';
 import type { ServerMessage, ClientMessage } from '@agent-chatroom/shared';
@@ -114,7 +114,7 @@ function sendInitialState(ws: any, roomId: string): boolean {
   const roomState: ServerMessage = {
     type: 'room_state',
     room: mapRoomRow(room),
-    messages: messageRows.map((row) => safeMessage(mapMessageRow(row))),
+    messages: enrichWithAttachments(messageRows.map(mapMessageRow)).map(safeMessage),
     agents: agentRows.map((row) => {
       const status = mapAgentSessionRow(row);
       // SEC-FIX 5: Never send sessionId to clients

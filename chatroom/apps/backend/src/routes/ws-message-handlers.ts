@@ -25,7 +25,7 @@ import {
   sanitizePromptContent,
 } from '../services/agent-invoker.js';
 import { getAgentConfig } from '../services/agent-registry.js';
-import { mapMessageRow, mapAgentSessionRow, generateId, nowIso, safeMessage } from '../utils.js';
+import { mapMessageRow, mapAgentSessionRow, generateId, nowIso, safeMessage, enrichWithAttachments } from '../utils.js';
 import type { Message, ServerMessage, Attachment } from '@agent-chatroom/shared';
 import { logger, connStates, EVERYONE_PATTERN, sendError } from './ws-state.js';
 
@@ -249,7 +249,7 @@ export function handleLoadHistory(ws: any, roomId: string, before: string, limit
   const hasMore = pivotCreatedAt ? hasMoreMessagesBefore(roomId, pivotCreatedAt) : false;
 
   // getMessagesBefore returns DESC — reverse to chronological order
-  const safeMessages = rows.reverse().map((row) => safeMessage(mapMessageRow(row)));
+  const safeMessages = enrichWithAttachments(rows.reverse().map(mapMessageRow)).map(safeMessage);
   ws.send(JSON.stringify({ type: 'history_page', messages: safeMessages, hasMore } satisfies ServerMessage));
 }
 

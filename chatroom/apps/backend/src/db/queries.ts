@@ -456,6 +456,23 @@ export function listAttachmentsByMessage(messageId: string): AttachmentRow[] {
 }
 
 /**
+ * Fetch all attachments for a batch of message IDs in a single query.
+ * Returns an empty array if messageIds is empty.
+ *
+ * @param messageIds - Array of message IDs to query attachments for
+ * @returns All attachment rows for the given messages, ordered by creation time
+ */
+export function listAttachmentsByMessageIds(messageIds: string[]): AttachmentRow[] {
+  if (messageIds.length === 0) return [];
+  const placeholders = messageIds.map(() => '?').join(', ');
+  return getDb()
+    .query<AttachmentRow, string[]>(
+      `SELECT * FROM attachments WHERE message_id IN (${placeholders}) ORDER BY created_at ASC`,
+    )
+    .all(...messageIds);
+}
+
+/**
  * Set message_id on a batch of attachment rows, linking them to a sent message.
  *
  * Only updates attachments that have no message_id yet (unlinked) and belong to
