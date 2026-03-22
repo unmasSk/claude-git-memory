@@ -165,25 +165,13 @@ export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean
     ...(isUnix ? { detached: true } : {}),
   };
   const proc = Bun.spawn(args, spawnOpts);
-
   logger.debug({ agentName, roomId, pid: proc.pid }, 'subprocess spawned');
 
-  // Register the process handle so kill_agent can SIGTERM it and pause_agent can freeze it.
-  // Create the timeout handle first so it is included in the activeEntry at registration time.
-  // Registering first and assigning later would leave a window where pauseAgent finds
-  // timeoutHandle === undefined and cannot cancel the timeout correctly.
-  const flightKey = `${agentName}:${roomId}`;
-  const timeoutHandle = makeTimeoutHandle(proc, agentName, roomId);
-  const activeEntry: import('./agent-queue.js').ActiveProcess = {
-    pid: proc.pid,
-    kill: () => proc.kill(),
-    timeoutHandle,
-    remainingTimeoutMs: AGENT_TIMEOUT_MS,
-    startedAt: Date.now(),
-  };
-  activeProcesses.set(flightKey, activeEntry);
+  // registerActiveProcess creates the timeout handle and registers it atomically so
+  // pauseAgent always finds a valid timeoutHandle at registration time.
+  const { entry: activeEntry, flightKey } = registerActiveProcess(proc, agentName, roomId);
 
-  const sr = await readAgentStream(proc, agentName, roomId, timeoutHandle);
+  const sr = await readAgentStream(proc, agentName, roomId, activeEntry.timeoutHandle!);
   // Cancel whichever timeout is currently in activeEntry — resumeAgent may have replaced
   // the original handle with a shorter one after a pause/resume cycle.
   if (activeEntry.timeoutHandle !== undefined) {
@@ -229,6 +217,24 @@ function buildSpawnArgs(
   // FIX 2 + SEC-FIX 4: Only add --resume if we have a valid UUID session ID
   if (sessionId) args.push('--resume', sessionId);
   return args;
+}
+
+function registerActiveProcess(
+  proc: { pid: number | undefined; kill: () => void },
+  agentName: string,
+  roomId: string,
+): { entry: import('./agent-queue.js').ActiveProcess; flightKey: string } {
+  const flightKey = `${agentName}:${roomId}`;
+  const timeoutHandle = makeTimeoutHandle(proc, agentName, roomId);
+  const entry: import('./agent-queue.js').ActiveProcess = {
+    pid: proc.pid,
+    kill: () => proc.kill(),
+    timeoutHandle,
+    remainingTimeoutMs: AGENT_TIMEOUT_MS,
+    startedAt: Date.now(),
+  };
+  activeProcesses.set(flightKey, entry);
+  return { entry, flightKey };
 }
 
 function makeTimeoutHandle(

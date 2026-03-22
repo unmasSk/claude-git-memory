@@ -35,6 +35,24 @@ import { logger, connStates, EVERYONE_PATTERN, sendError } from './ws-state.js';
 
 const STOP_DIRECTIVE = /\b(stop|para|callaos|silence|quiet)\b/i;
 
+/** Link attachment IDs to a message and return mapped Attachment objects. Returns [] on failure. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function linkAndFetchAttachments(messageId: string, roomId: string, attachmentIds: string[]): Attachment[] {
+  try {
+    linkAttachmentsToMessage(attachmentIds, messageId, roomId);
+    return listAttachmentsByMessage(messageId).map((row) => ({
+      id: row.id,
+      filename: row.filename,
+      mimeType: row.mime_type,
+      sizeBytes: row.size_bytes,
+      url: `/api/uploads/${roomId}/${row.id}`,
+    }));
+  } catch (err) {
+    logger.warn({ err, roomId, messageId }, 'WS send_message: attachment linking failed — broadcasting message without attachments');
+    return [];
+  }
+}
+
 /**
  * Persist a system directive message to DB and broadcast it to the room.
  * Returns false (and sends DB_ERROR) if the insert fails.
@@ -130,21 +148,9 @@ export function handleSendMessage(ws: any, roomId: string, connId: string, conte
     return;
   }
 
-  let attachments: Attachment[] = [];
-  if (attachmentIds && attachmentIds.length > 0) {
-    try {
-      linkAttachmentsToMessage(attachmentIds, id, roomId);
-      attachments = listAttachmentsByMessage(id).map((row) => ({
-        id: row.id,
-        filename: row.filename,
-        mimeType: row.mime_type,
-        sizeBytes: row.size_bytes,
-        url: `/api/uploads/${roomId}/${row.id}`,
-      }));
-    } catch (err) {
-      logger.warn({ err, roomId, messageId: id }, 'WS send_message: attachment linking failed — broadcasting message without attachments');
-    }
-  }
+  const attachments: Attachment[] = (attachmentIds && attachmentIds.length > 0)
+    ? linkAndFetchAttachments(id, roomId, attachmentIds)
+    : [];
 
   const newMsg: Message = { id, roomId, author: authorName, authorType: 'human', content, msgType: 'message', parentId: null, metadata: { attachments: attachments.length > 0 ? attachments : undefined }, createdAt };
   broadcastSync(roomId, { type: 'new_message', message: newMsg }, ws);
