@@ -43,6 +43,7 @@ svg.icon-tiny   { width: 10px; height: 10px; stroke: var(--text-3); fill: none; 
   width: calc(100% - 66px);
   grid-template-columns: 1fr 0px;
   border-color: color-mix(in srgb, var(--ac) 50%, transparent);
+  overflow: hidden;
 }
 
 .card-wrap:hover .card .cell-status {
