@@ -40,6 +40,7 @@ import {
   handleReadChat,
 } from './ws-control-handlers.js';
 import { clearQueue } from '../services/agent-invoker.js';
+import { postSystemMessage } from '../services/agent-runner.js';
 
 // ---------------------------------------------------------------------------
 // open() helpers
@@ -237,10 +238,14 @@ export function message(ws: any, rawMessage: unknown): void {
     case 'read_chat':
       handleReadChat(ws, roomId, msg.agentName);
       break;
-    case 'clear_queue':
-      clearQueue(roomId);
-      logger.info({ roomId }, 'WS clear_queue: agent queue drained');
+    case 'clear_queue': {
+      const cleared = clearQueue(roomId);
+      logger.info({ roomId, cleared }, 'WS clear_queue: agent queue drained');
+      if (cleared > 0) {
+        void postSystemMessage(roomId, `Queue cleared — ${cleared} pending agent${cleared === 1 ? '' : 's'} removed.`);
+      }
       break;
+    }
   }
 }
 
