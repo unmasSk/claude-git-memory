@@ -4,6 +4,10 @@ description: Patterns and lessons from the Agent Chatroom frontend (React + Vite
 type: project
 ---
 
+## Room tab display name (2026-03-23)
+
+Tab shows `getRepoName(room.cwd) ?? room.name`. `getRepoName` is a module-level helper in `Titlebar.tsx` — no `node:path` import, pure string split on `/` and `\`. The `Room` type (from `RoomSchema` in shared) has `cwd: string | null | undefined` (`.nullish()`). When `cwd` is set, the basename of the path is shown; otherwise falls back to the random adjective-animal name. Both the visible label (`#displayName`) and the `title` attribute use `displayName`.
+
 ## Bug fix — Claude agent card accent color (2026-03-21)
 
 ### Root cause

@@ -6,6 +6,10 @@ type: feedback
 
 ## Intentional Patterns (do NOT flag)
 
+- `getRepoName(cwd)` helper in Titlebar.tsx — normalizes both `\` and `/` separators, strips trailing slashes, returns last segment. Works correctly for Windows and Unix paths. Fallback `?? room.name` handles null cwd. This is the canonical tab display name function. Old adjective-animal name code from commit fcd6e9c was fully replaced — `room.name` is only kept as a fallback, not the primary display. Do not flag `room.name` fallback as dead code — it handles the no-cwd case.
+- `room.cwd` field — comes from `RoomSchema` in `@agent-chatroom/shared` as `z.string().nullish()`. Frontend type infers `string | null | undefined`. The `getRepoName` signature correctly accepts all three states.
+
+
 - `StrictMode WebSocket protection` — ws-store.ts uses connectingRoomId guard + AbortController. The old 2s debounce was removed (incompatible with StrictMode). Do not flag as "unnecessary complexity".
 - `circuit breaker in ws-store` — `consecutiveAuthFailures` counter, resets ONLY on `room_state` message (not onopen — phantom Vite proxy opens are not proof of backend availability). `AbortSignal.any([signal, AbortSignal.timeout(5000)])` on auth fetch is intentional and correct. Do not flag as over-engineering.
 - `reconnectAttempts` not reset in `onopen` — intentional: phantom proxy onopen fires before backend is ready. Only `room_state` resets it. Do not flag.

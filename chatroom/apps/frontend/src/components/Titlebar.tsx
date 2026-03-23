@@ -4,6 +4,15 @@ import { useRoomStore } from '../stores/room-store';
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+/** Returns the last path segment of a cwd string, or null when cwd is falsy. */
+function getRepoName(cwd: string | null | undefined): string | null {
+  if (!cwd) return null;
+  // Normalize both separators, strip trailing slashes, then take last segment.
+  const normalized = cwd.replace(/\\/g, '/').replace(/\/+$/, '');
+  const last = normalized.split('/').pop();
+  return last || null;
+}
+
 // Eager import — resolved at module load time so the handler is sync at click time.
 let startDragging: (() => void) | null = null;
 if (isTauri) {
@@ -81,12 +90,14 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
             const isPendingDelete = room.id === pendingDeleteId;
             const isDeletable = room.id !== 'default';
 
+            const displayName = getRepoName(room.cwd) ?? room.name;
+
             return (
               <div
                 key={room.id}
                 className={`tb-tab${isActive ? ' active' : ''}${isPendingDelete ? ' pending-delete' : ''}`}
                 onClick={() => handleTabClick(room.id)}
-                title={isPendingDelete ? 'Click × again to permanently delete' : room.name}
+                title={isPendingDelete ? 'Click × again to permanently delete' : displayName}
               >
                 <span
                   className="tb-repo-icon"
@@ -95,7 +106,7 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
                 >
                   <FolderOpen size={11} />
                 </span>
-                #{room.name}
+                #{displayName}
                 {isDeletable && (
                   <span
                     className={`tb-tab-close${isPendingDelete ? ' close-confirm' : ''}`}
