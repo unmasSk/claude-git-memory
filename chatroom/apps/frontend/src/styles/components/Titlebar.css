@@ -109,13 +109,84 @@
 .tb-repo-icon {
   display: flex;
   align-items: center;
-  opacity: 0.5;
+  color: var(--text-2);
+  opacity: 0.7;
   cursor: pointer;
-  transition: opacity 150ms;
+  transition: opacity 150ms, transform 150ms;
   flex-shrink: 0;
 }
 
-.tb-repo-icon:hover { opacity: 1; }
+/* Configured: static, hover = opacity + subtle scale */
+.tb-repo-icon:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* Unconfigured: pulse + glow to draw attention */
+.tb-repo-icon.unconfigured {
+  opacity: 1;
+  animation: repo-pulse 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 4px var(--text-2));
+}
+
+.tb-repo-icon.unconfigured:hover {
+  animation: none;
+  filter: drop-shadow(0 0 6px var(--text-2));
+  transform: scale(1.15);
+}
+
+@keyframes repo-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Runway lights — one element visible at a time, right-to-left, ending with arrow */
+.tb-runway {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-left: -5px;
+  cursor: pointer;
+}
+
+.tb-runway-arrow {
+  font-size: 13px;
+  color: var(--text-2);
+  opacity: 0;
+  position: relative;
+  top: 0;
+  animation: runway-flash 0.8s ease infinite;
+  animation-delay: 0.9s;
+}
+
+.tb-runway-dash {
+  width: 6px;
+  height: 1.5px;
+  background: var(--text-2);
+  opacity: 0;
+  position: relative;
+  top: 1px;
+  animation: runway-flash 0.8s ease infinite;
+}
+
+/* One at a time: dash3 → dash2 → dash1 → arrow */
+.tb-runway-dash:nth-child(3) { animation-delay: 0s; left: -2px; }
+.tb-runway-dash:nth-child(2) { animation-delay: 0.1s; left: -2px; }
+.tb-runway-arrow { animation-delay: 0.2s; }
+
+@keyframes runway-flash {
+  0% { opacity: 0.9; }
+  40% { opacity: 0.9; }
+  50% { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* "no repo" label */
+.tb-no-repo {
+  color: var(--text-3);
+  font-style: italic;
+  opacity: 0.6;
+}
 
 .tb-tab-close {
   font-size: 13px;

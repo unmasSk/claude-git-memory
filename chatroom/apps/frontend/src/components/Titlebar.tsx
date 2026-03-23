@@ -1,5 +1,6 @@
 import '../styles/components/Titlebar.css';
-import { FolderOpen, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
+import { FaGitAlt } from 'react-icons/fa6';
 import { useRoomStore } from '../stores/room-store';
 
 const isTauri = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
@@ -100,13 +101,20 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
                 title={isPendingDelete ? 'Click × again to permanently delete' : displayName}
               >
                 <span
-                  className="tb-repo-icon"
+                  className={`tb-repo-icon${room.cwd ? '' : ' unconfigured'}`}
                   onClick={(e) => { e.stopPropagation(); onRepoClick(room.id); }}
-                  title="Select repo"
+                  title={room.cwd ? 'Change repo' : 'Config repo'}
                 >
-                  <FolderOpen size={11} />
+                  <FaGitAlt size={16} />
                 </span>
-                #{displayName}
+                {!room.cwd && (
+                  <span className="tb-runway" onClick={(e) => { e.stopPropagation(); onRepoClick(room.id); }}>
+                    <span className="tb-runway-arrow">&#x2190;</span>
+                    <span className="tb-runway-dash" />
+                    <span className="tb-runway-dash" />
+                  </span>
+                )}
+                {room.cwd ? displayName : <span className="tb-no-repo">no repo</span>}
                 {isDeletable && (
                   <span
                     className={`tb-tab-close${isPendingDelete ? ' close-confirm' : ''}`}

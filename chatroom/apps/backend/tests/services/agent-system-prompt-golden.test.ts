@@ -562,8 +562,8 @@ describe('GOLDEN — buildPipelineBlock generic section (agent-system-prompt.ts)
     expect(buildPipelineBlock('bilbo').join('\n')).toContain('PIPELINE — How this chatroom works');
   });
 
-  it('contains "EXECUTION PIPELINE" section', () => {
-    expect(buildPipelineBlock('bilbo').join('\n')).toContain('EXECUTION PIPELINE');
+  it('contains "PHASE 0" context phase section', () => {
+    expect(buildPipelineBlock('bilbo').join('\n')).toContain('PHASE 0');
   });
 
   it('contains "BRAINSTORM PIPELINE" section', () => {
@@ -626,9 +626,9 @@ describe('GOLDEN — buildPipelineBlock per-agent position (agent-system-prompt.
     expect(joined).toContain('SECURITY AUDITOR');
   });
 
-  it('moriarty: CHAIN POSITION references adversarial validation', () => {
+  it('moriarty: CHAIN POSITION references adversarial role', () => {
     const joined = buildPipelineBlock('moriarty').join('\n');
-    expect(joined).toContain('ADVERSARIAL VALIDATOR');
+    expect(joined).toContain('ADVERSARIAL');
   });
 
   it('dante: CHAIN POSITION references test writing and @ultron on failure', () => {
@@ -637,16 +637,14 @@ describe('GOLDEN — buildPipelineBlock per-agent position (agent-system-prompt.
     expect(joined).toContain('@ultron');
   });
 
-  it('yoda: CHAIN POSITION includes SHIP / NOT SHIP verdict', () => {
+  it('yoda: CHAIN POSITION identifies yoda as leader and judge', () => {
     const joined = buildPipelineBlock('yoda').join('\n');
-    expect(joined).toContain('SHIP');
-    expect(joined).toContain('NOT SHIP');
+    expect(joined).toContain('LEADER AND JUDGE');
   });
 
-  it('house: CHAIN POSITION says "Diagnose only — never fix"', () => {
+  it('house: CHAIN POSITION identifies house as diagnostician', () => {
     const joined = buildPipelineBlock('house').join('\n');
-    expect(joined).toContain('Diagnose only');
-    expect(joined).toContain('never fix');
+    expect(joined).toContain('DIAGNOSTICIAN');
   });
 
   it('alexandria: CHAIN POSITION references documentation', () => {
@@ -659,9 +657,9 @@ describe('GOLDEN — buildPipelineBlock per-agent position (agent-system-prompt.
     expect(joined).toContain('@yoda');
   });
 
-  it('bilbo: CHAIN POSITION says "Never implement"', () => {
+  it('bilbo: CHAIN POSITION identifies bilbo as explorer', () => {
     const joined = buildPipelineBlock('bilbo').join('\n');
-    expect(joined).toContain('Never implement');
+    expect(joined).toContain('EXPLORER');
   });
 
   it('unknown agent: no YOUR CHAIN POSITION line appended', () => {
