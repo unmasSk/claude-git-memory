@@ -252,3 +252,25 @@ export function resumeAgent(agentName: string, roomId: string): boolean {
 export function isAgentPaused(agentName: string, roomId: string): boolean {
   return _pausedAgents.has(`${agentName}:${roomId}`);
 }
+
+// ---------------------------------------------------------------------------
+// Per-agent kill tracking — prevents in-flight promise from overwriting Out status
+// ---------------------------------------------------------------------------
+
+/**
+ * Agents that have been killed via SIGTERM but whose in-flight promise is still running.
+ * Keyed by "${agentName}:${roomId}". Cleared after the in-flight cleanup path reads it.
+ */
+const _killedAgents = new Set<string>();
+
+export function markAgentKilled(agentName: string, roomId: string): void {
+  _killedAgents.add(`${agentName}:${roomId}`);
+}
+
+export function isAgentKilled(agentName: string, roomId: string): boolean {
+  return _killedAgents.has(`${agentName}:${roomId}`);
+}
+
+export function clearKilledAgent(agentName: string, roomId: string): void {
+  _killedAgents.delete(`${agentName}:${roomId}`);
+}

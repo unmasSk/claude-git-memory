@@ -37,18 +37,24 @@ const NEVER_INVOKE = new Set(['user', 'system', 'claude', 'everyone']);
 export function extractMentions(content: string): Set<string> {
   logger.debug({ contentLength: content.length }, 'extractMentions');
 
+  // Strip fenced code blocks and inline code before scanning for @mentions
+  // to avoid invoking agents that are only referenced inside code examples.
+  const stripped = content
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`[^`]*`/g, '');
+
   const mentions = new Set<string>();
 
   let match: RegExpExecArray | null;
   MENTION_RE.lastIndex = 0; // reset stateful regex
 
-  while ((match = MENTION_RE.exec(content)) !== null) {
+  while ((match = MENTION_RE.exec(stripped)) !== null) {
     const name = match[1]!.toLowerCase();
     const matchStart = match.index;
 
     // Filter email-like patterns: if the char before '@' is alphanumeric, skip
     if (matchStart > 0) {
-      const before = content[matchStart - 1]!;
+      const before = stripped[matchStart - 1]!;
       if (/[a-zA-Z0-9]/.test(before)) {
         continue;
       }

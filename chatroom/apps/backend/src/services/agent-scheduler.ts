@@ -19,10 +19,13 @@ import {
   pauseAgent,
   resumeAgent,
   isAgentPaused,
+  markAgentKilled,
+  isAgentKilled,
+  clearKilledAgent,
 } from './agent-queue.js';
 import type { InvocationContext } from './agent-queue.js';
 
-export { pauseAgent, resumeAgent, isAgentPaused };
+export { pauseAgent, resumeAgent, isAgentPaused, isAgentKilled, clearKilledAgent };
 
 // Re-export so existing callers importing from agent-scheduler still work
 export { activeInvocations, inFlight, activeProcesses };
@@ -51,6 +54,13 @@ export function drainActiveInvocations(): Promise<void> {
  * to halt all agent invocations across every room. Now scoped to roomId.
  */
 const _pausedRooms = new Set<string>();
+
+/**
+ * Rooms where the stop button was pressed. Prevents in-flight agents that complete
+ * after handleStopAll from re-triggering new invocations via scheduleChainMentions.
+ * Cleared when the next human message arrives in the room.
+ */
+export const stoppedRooms = new Set<string>();
 
 /**
  * Pause all new agent invocations for a room (triggered by @everyone stop).
@@ -126,6 +136,8 @@ export function killAgent(agentName: string, roomId: string): boolean {
   if (proc.timeoutHandle !== undefined) clearTimeout(proc.timeoutHandle);
   inFlight.delete(key);
   activeProcesses.delete(key);
+  // Mark as killed so the in-flight promise does not overwrite Out status with Done/Error.
+  markAgentKilled(agentName, roomId);
 
   logger.info({ agentName, roomId, pid: proc.pid }, 'killAgent: sending SIGTERM');
   try {

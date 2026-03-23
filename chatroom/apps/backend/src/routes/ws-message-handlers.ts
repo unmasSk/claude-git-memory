@@ -24,6 +24,7 @@ import {
   isPaused,
   sanitizePromptContent,
 } from '../services/agent-invoker.js';
+import { stoppedRooms } from '../services/agent-scheduler.js';
 import { getAgentConfig } from '../services/agent-registry.js';
 import { mapMessageRow, mapAgentSessionRow, generateId, nowIso, safeMessage, enrichWithAttachments } from '../utils.js';
 import type { Message, ServerMessage, Attachment } from '@agent-chatroom/shared';
@@ -88,22 +89,21 @@ function handleEveryoneDirective(ws: any, roomId: string, content: string, autho
     logger.info({ cleared }, 'WS @everyone stop: queue cleared, invocations paused');
   }
 
-  if (!directive) return;
-
-  // FIX 5: Sanitize before storage to prevent double-framing injection.
+  // Fix 1: only skip saving if there is no directive text — do not return early,
+  // so a bare @everyone still proceeds to invoke all agents below.
   const safeDirective = sanitizePromptContent(directive);
-  if (!insertAndBroadcastDirective(ws, roomId, safeDirective)) return;
+  if (directive && !insertAndBroadcastDirective(ws, roomId, safeDirective)) return;
 
   if (!isStopDirective) {
+    // Fix 2: invoke agents that have been activated at least once (status !== idle OR turnCount > 0).
+    // Excludes agents seeded on room creation but never invoked.
     const agentSessions = listAgentSessions(roomId);
-    // Only invoke agents that have been active this session (not 'out' or 'idle')
-    const activeStatuses = new Set(['thinking', 'tool-use', 'done']);
-    const activeSessions = agentSessions
+    const activatedSessions = agentSessions
       .map((row) => mapAgentSessionRow(row))
-      .filter((s) => activeStatuses.has(s.status));
-    if (activeSessions.length > 0) {
-      const agentNames = new Set(activeSessions.map((s) => s.agentName));
-      logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking active agents (with resume)');
+      .filter((s) => s.status !== 'idle' || s.turnCount > 0);
+    if (activatedSessions.length > 0) {
+      const agentNames = new Set(activatedSessions.map((s) => s.agentName));
+      logger.debug({ agentNames: [...agentNames] }, 'WS @everyone: invoking activated agents');
       invokeAgents(roomId, agentNames, safeDirective, new Map(), true, mode);
     }
   }
@@ -126,6 +126,7 @@ function handleEveryoneDirective(ws: any, roomId: string, content: string, autho
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function handleSendMessage(ws: any, roomId: string, connId: string, content: string, attachmentIds?: string[], mode: 'execute' | 'brainstorm' = 'execute'): void {
+  stoppedRooms.delete(roomId);
   const room = getRoomById(roomId);
   if (!room) { sendError(ws, 'Room not found', 'ROOM_NOT_FOUND'); return; }
 

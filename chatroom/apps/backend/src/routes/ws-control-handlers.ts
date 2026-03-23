@@ -16,6 +16,7 @@ import {
   activeProcesses,
   sanitizePromptContent,
 } from '../services/agent-invoker.js';
+import { stoppedRooms } from '../services/agent-scheduler.js';
 import { getAgentConfig } from '../services/agent-registry.js';
 import { mapMessageRow, generateId, nowIso, safeMessage } from '../utils.js';
 import { updateStatusAndBroadcast, postSystemMessage } from '../services/agent-runner.js';
@@ -196,6 +197,7 @@ export function handleResumeAgent(ws: any, roomId: string, agentName: string): v
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function handleStopAll(ws: any, roomId: string): void {
+  stoppedRooms.add(roomId);
   const cleared = clearQueue(roomId);
 
   // Collect all in-flight agent keys for this room

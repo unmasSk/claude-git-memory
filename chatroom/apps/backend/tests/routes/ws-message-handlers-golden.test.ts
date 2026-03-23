@@ -632,6 +632,111 @@ describe('GOLDEN — EVERYONE_PATTERN word boundary (inline mirror of ws-state.t
 });
 
 // ---------------------------------------------------------------------------
+// GOLDEN: activated agent filter (inline mirror of handleEveryoneDirective Fix 2)
+//
+// @everyone only invokes agents that have been activated at least once.
+// Contract: status !== 'idle' || turnCount > 0
+// Agents seeded on room creation but never invoked (idle, turnCount=0) are excluded.
+// ---------------------------------------------------------------------------
+
+describe('GOLDEN — @everyone activated agent filter (inline mirror of handleEveryoneDirective Fix 2)', () => {
+  const isActivated = (s: { status: string; turnCount: number }): boolean =>
+    s.status !== 'idle' || s.turnCount > 0;
+
+  it('idle agent with turnCount=0 is excluded (never activated)', () => {
+    expect(isActivated({ status: 'idle', turnCount: 0 })).toBe(false);
+  });
+
+  it('idle agent with turnCount>0 is included (was activated, returned to idle)', () => {
+    expect(isActivated({ status: 'idle', turnCount: 1 })).toBe(true);
+  });
+
+  it('idle agent with turnCount=5 is included', () => {
+    expect(isActivated({ status: 'idle', turnCount: 5 })).toBe(true);
+  });
+
+  it('thinking agent with turnCount=0 is included (status beats idle check)', () => {
+    expect(isActivated({ status: 'thinking', turnCount: 0 })).toBe(true);
+  });
+
+  it('tool-use agent is included', () => {
+    expect(isActivated({ status: 'tool-use', turnCount: 1 })).toBe(true);
+  });
+
+  it('done agent is included', () => {
+    expect(isActivated({ status: 'done', turnCount: 3 })).toBe(true);
+  });
+
+  it('room with zero activated agents → activatedSessions.length === 0', () => {
+    const sessions = [
+      { status: 'idle', turnCount: 0 },
+      { status: 'idle', turnCount: 0 },
+      { status: 'idle', turnCount: 0 },
+    ];
+    expect(sessions.filter(isActivated).length).toBe(0);
+  });
+
+  it('mixed room: only non-idle and previously-invoked agents pass through', () => {
+    const sessions = [
+      { status: 'idle', turnCount: 0 },   // seeded, never invoked — excluded
+      { status: 'idle', turnCount: 2 },   // was active — included
+      { status: 'thinking', turnCount: 1 }, // currently active — included
+      { status: 'done', turnCount: 4 },   // finished — included
+    ];
+    const activated = sessions.filter(isActivated);
+    expect(activated.length).toBe(3);
+    expect(activated.every((s) => !(s.status === 'idle' && s.turnCount === 0))).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GOLDEN: bare @everyone proceeds without inserting directive (Fix 1)
+//
+// Old behavior: `if (!directive) return;` — returned immediately, no agent invocation.
+// New behavior: bare @everyone skips directive storage but continues to agent invocation.
+// Observable: no system message inserted, no error sent, function completes.
+// ---------------------------------------------------------------------------
+
+describe('GOLDEN — bare @everyone proceeds past directive check (Fix 1)', () => {
+  const ROOM = 'wsmh-golden-room';
+  const CONN_ID = 'wsmh-conn-bare-001';
+
+  it('bare @everyone: no system directive message inserted', () => {
+    const ws = makeFakeWs();
+    // Capture DB state before
+    const rowsBefore = getMessagesInRoom(ROOM).filter((r) => r.msg_type === 'system');
+    handleSendMessage(ws, ROOM, CONN_ID, '@everyone');
+    const rowsAfter = getMessagesInRoom(ROOM).filter((r) => r.msg_type === 'system');
+    // No new system message added (no directive text to store)
+    expect(rowsAfter.length).toBe(rowsBefore.length);
+  });
+
+  it('bare @everyone: no error message sent to client', () => {
+    const ws = makeFakeWs();
+    handleSendMessage(ws, ROOM, CONN_ID, '@everyone');
+    const hasError = ws._sent.some((m: string) => {
+      try { return JSON.parse(m).type === 'error'; } catch { return false; }
+    });
+    expect(hasError).toBe(false);
+  });
+
+  it('bare @everyone: does NOT pause the room', () => {
+    resumeInvocations(ROOM); // ensure clean state
+    const ws = makeFakeWs();
+    handleSendMessage(ws, ROOM, CONN_ID, '@everyone');
+    expect(isPaused(ROOM)).toBe(false);
+  });
+
+  it('@everyone with whitespace only: treated same as bare @everyone (no directive stored)', () => {
+    const ws = makeFakeWs();
+    const rowsBefore = getMessagesInRoom(ROOM).filter((r) => r.msg_type === 'system');
+    handleSendMessage(ws, ROOM, CONN_ID, '@everyone   ');
+    const rowsAfter = getMessagesInRoom(ROOM).filter((r) => r.msg_type === 'system');
+    expect(rowsAfter.length).toBe(rowsBefore.length);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // GOLDEN: stop directive detection (inline mirror of handleEveryoneDirective)
 //
 // The exact stop-word list and regex must survive any refactor.

@@ -29,7 +29,7 @@ import { extractMentions } from './mention-parser.js';
 import { updateStatusAndBroadcast, postSystemMessage } from './agent-runner.js';
 import type { InvocationContext } from './agent-scheduler.js';
 import type { AgentStreamResult } from './agent-stream.js';
-import { isAgentPaused } from './agent-queue.js';
+import { isAgentPaused, isAgentKilled, clearKilledAgent } from './agent-queue.js';
 
 const logger = createLogger('agent-result');
 
@@ -130,8 +130,12 @@ export async function scheduleChainMentions(resultText: string, agentName: strin
     await postSystemMessage(roomId, `Agent(s) ${blockedAgents.join(', ')} reached max turns (5). Mentions not invoked.`);
   }
   if (chainedMentions.size > 0) {
-    const { invokeAgents } = await import('./agent-scheduler.js');
-    invokeAgents(roomId, chainedMentions, sanitizePromptContent(resultText), updatedTurns);
+    const { invokeAgents, stoppedRooms } = await import('./agent-scheduler.js');
+    if (stoppedRooms.has(roomId)) {
+      logger.info({ roomId, chainedMentions: [...chainedMentions] }, 'scheduleChainMentions: room stopped — chain suppressed');
+    } else {
+      invokeAgents(roomId, chainedMentions, sanitizePromptContent(resultText), updatedTurns);
+    }
   }
 }
 
@@ -185,6 +189,10 @@ export async function handleFailedResult(
   }
 
   const errorMsg = sanitizePromptContent(sr.resultText || 'Agent returned an error result');
+  const killed = isAgentKilled(agentName, roomId);
+  clearKilledAgent(agentName, roomId);
+  // Suppress error output for killed agents — Out status was already set by killAgent.
+  if (killed) return false;
   // Fix 4: do not overwrite Paused status when agent completed while frozen.
   if (!isAgentPaused(agentName, roomId)) {
     await updateStatusAndBroadcast(agentName, roomId, AgentState.Error, errorMsg);
@@ -233,9 +241,14 @@ export async function handleEmptyResult(
     return false;
   }
 
-  await postSystemMessage(roomId, `Agent ${agentName} returned no response.`);
+  const killed = isAgentKilled(agentName, roomId);
+  clearKilledAgent(agentName, roomId);
+  // Suppress output for killed agents — Out status was already set by killAgent.
+  if (!killed) {
+    await postSystemMessage(roomId, `Agent ${agentName} returned no response.`);
+  }
   // Fix 4: do not overwrite Paused status when agent completed while frozen.
-  if (!isAgentPaused(agentName, roomId)) {
+  if (!isAgentPaused(agentName, roomId) && !killed) {
     await updateStatusAndBroadcast(agentName, roomId, AgentState.Done);
   }
   return false;
@@ -272,16 +285,21 @@ export async function persistAndBroadcast(
     content: resultText, msgType: 'message', parentId: null, metadata: JSON.stringify(meta) });
 
   await broadcast(roomId, { type: 'new_message', message });
-  await scheduleChainMentions(resultText, agentName, roomId, context);
+
+  // Read the pause/kill flags once — avoids races between checks.
+  // Must be done before scheduleChainMentions to gate chain invocations on killed agents.
+  const isPaused = isAgentPaused(agentName, roomId);
+  const isKilled = isAgentKilled(agentName, roomId);
+  clearKilledAgent(agentName, roomId);
+
+  // T3: do not chain mentions from a killed agent — SIGTERM raced with result production.
+  if (!isKilled) await scheduleChainMentions(resultText, agentName, roomId, context);
 
   // SEC-CRT-002: advance the checkpoint AFTER chain mentions are enqueued so that
   // chained agents see the full context including this message when they are invoked.
   updateLastSeenMessage(agentName, roomId, message.id);
 
-  // Read the pause flag once — avoids a race where resumeAgent fires between the two checks
-  // and causes the DB write and the broadcast decision to disagree.
-  const isPaused = isAgentPaused(agentName, roomId);
-  const finalStatus = isPaused ? 'paused' : 'done';
+  const finalStatus = isPaused ? 'paused' : isKilled ? 'out' : 'done';
   upsertAgentSession({ agentName, roomId, sessionId: sr.resultSessionId, model, status: finalStatus });
   if (sr.resultCostUsd > 0) incrementAgentCost(agentName, roomId, sr.resultCostUsd);
   incrementAgentTurnCount(agentName, roomId);
@@ -295,7 +313,8 @@ export async function persistAndBroadcast(
   });
 
   // Fix 4: do not overwrite Paused status when the agent completes while frozen.
-  if (!isPaused) {
+  // Kill guard: do not overwrite Out status when the agent completed a result after SIGTERM.
+  if (!isPaused && !isKilled) {
     await updateStatusAndBroadcast(agentName, roomId, AgentState.Done, undefined, {
       durationMs: sr.resultDurationMs,
       numTurns: sr.resultNumTurns,
