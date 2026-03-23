@@ -77,9 +77,22 @@ export function initializeSchema(): void {
     'ALTER TABLE agent_sessions ADD COLUMN last_duration_ms INTEGER DEFAULT 0',
     'ALTER TABLE agent_sessions ADD COLUMN last_num_turns INTEGER DEFAULT 0',
     'ALTER TABLE rooms ADD COLUMN cwd TEXT DEFAULT NULL',
+    // delta-messages: tracks the last message this agent has already seen.
+    // NULL on first invocation → full history is sent; set after each response.
+    'ALTER TABLE agent_sessions ADD COLUMN last_seen_message_id TEXT DEFAULT NULL',
   ];
   for (const sql of migrations) {
-    try { db.exec(sql); } catch { /* column already exists — safe to ignore */ }
+    try {
+      db.exec(sql);
+    } catch (err: unknown) {
+      // SEC-MED-002: only swallow expected "duplicate column" errors from idempotent
+      // ALTER TABLE migrations. All other errors (corrupt DB, permission denied, etc.)
+      // are re-thrown so the server fails fast rather than silently masking data loss.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes('duplicate column name')) {
+        throw err;
+      }
+    }
   }
 }
 

@@ -19,6 +19,7 @@ import {
   insertMessage,
   clearAgentSession,
   updateAgentMetrics,
+  updateLastSeenMessage,
 } from '../db/queries.js';
 import { generateId, nowIso } from '../utils.js';
 import type { Message } from '@agent-chatroom/shared';
@@ -154,6 +155,10 @@ export async function scheduleChainMentions(resultText: string, agentName: strin
  * @returns true when a stale-session retry was scheduled (caller must skip cleanup);
  *          false for all other failure modes.
  */
+// Note: handleFailedResult and handleEmptyResult intentionally do NOT advance
+// the last_seen_message_id checkpoint. Only persistAndBroadcast (the happy path)
+// advances the checkpoint — failed/empty runs leave it in place so the agent
+// will re-process the same message window on the next invocation.
 export async function handleFailedResult(
   sr: AgentStreamResult,
   roomId: string,
@@ -268,6 +273,10 @@ export async function persistAndBroadcast(
 
   await broadcast(roomId, { type: 'new_message', message });
   await scheduleChainMentions(resultText, agentName, roomId, context);
+
+  // SEC-CRT-002: advance the checkpoint AFTER chain mentions are enqueued so that
+  // chained agents see the full context including this message when they are invoked.
+  updateLastSeenMessage(agentName, roomId, message.id);
 
   // Read the pause flag once — avoids a race where resumeAgent fires between the two checks
   // and causes the DB write and the broadcast decision to disagree.

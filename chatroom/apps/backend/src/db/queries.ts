@@ -108,6 +108,81 @@ export function getMessagesBefore(roomId: string, beforeId: string, limit: numbe
 }
 
 /**
+ * Get messages in a room that were created after the given message ID (delta-messages).
+ *
+ * Uses rowid instead of created_at to avoid 1-second timestamp granularity issues
+ * (BREAK-1 + BREAK-2 fix). When the checkpoint message has been deleted (NULL subquery),
+ * COALESCE(..., 0) returns 0 so all messages are returned — same as first invocation.
+ *
+ * When sinceMessageId is null (first invocation), all messages up to `limit` are returned
+ * using the same subquery pattern as getRecentMessages.
+ *
+ * hasMore is true when the result count equals the limit — indicates rows were truncated.
+ *
+ * @param roomId         - Target room ID
+ * @param sinceMessageId - Exclusive lower bound by message ID; null means return all (first run)
+ * @param limit          - Maximum number of messages to return (default: 200)
+ * @returns Object with message rows (oldest-first) and hasMore flag
+ */
+export function getMessagesSince(
+  roomId: string,
+  sinceMessageId: string | null,
+  limit = 200,
+): { messages: MessageRow[]; hasMore: boolean } {
+  if (sinceMessageId === null) {
+    // First invocation: same behaviour as getRecentMessages.
+    // FIX 4: SELECT rowid, * in the subquery is required here because the outer ORDER BY rowid
+    // references a derived table — SQLite needs rowid projected into the subquery result set
+    // for the outer ORDER BY to resolve it. The extra rowid column is stripped by bun:sqlite
+    // when it maps results to MessageRow because the type has no rowid field declared;
+    // the column is silently ignored (numeric shadow column, not in the mapped interface).
+    const messages = getDb()
+      .query<MessageRow, [string, number]>(
+        `SELECT * FROM (
+           SELECT rowid, * FROM messages WHERE room_id = ? ORDER BY rowid DESC LIMIT ?
+         ) ORDER BY rowid ASC`,
+      )
+      .all(roomId, limit);
+    return { messages, hasMore: messages.length === limit };
+  }
+  // BREAK-1/BREAK-2 fix: use rowid for ordering (monotonic, not timestamp).
+  // COALESCE(..., 0) handles deleted checkpoint: NULL rowid → 0 → returns all messages.
+  // FIX 3: `? IS NULL` branch removed — this path only runs when sinceMessageId is not null.
+  // FIX 4: SELECT * omits rowid from the result set; SQLite allows ORDER BY rowid on the base
+  //         table without projecting it, so MessageRow types remain unaffected.
+  const messages = getDb()
+    .query<MessageRow, [string, string, number]>(
+      `SELECT * FROM messages
+       WHERE room_id = ?
+         AND rowid > COALESCE((SELECT rowid FROM messages WHERE id = ?), 0)
+       ORDER BY rowid ASC
+       LIMIT ?`,
+    )
+    .all(roomId, sinceMessageId, limit);
+  return { messages, hasMore: messages.length === limit };
+}
+
+/**
+ * Update the last_seen_message_id for an agent session (delta-messages).
+ *
+ * Called after an agent finishes a successful invocation. The next call to
+ * buildPrompt will use this ID as the lower bound, sending only new messages.
+ *
+ * @param agentName - Agent name
+ * @param roomId    - Room ID
+ * @param messageId - The most recent message ID the agent just processed
+ */
+export function updateLastSeenMessage(agentName: string, roomId: string, messageId: string): void {
+  getDb()
+    .query<void, [string, string, string]>(
+      `UPDATE agent_sessions
+       SET last_seen_message_id = ?
+       WHERE agent_name = ? AND room_id = ?`,
+    )
+    .run(messageId, agentName, roomId);
+}
+
+/**
  * Look up the created_at timestamp for a message by ID.
  *
  * @param id - Message ID

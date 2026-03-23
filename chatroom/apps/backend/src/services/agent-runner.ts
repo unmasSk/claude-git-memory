@@ -47,12 +47,22 @@ const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 // ---------------------------------------------------------------------------
 
 /**
- * Spawn options type for Bun.spawn with piped stdout/stderr.
- * Uses the concrete SpawnOptions type so all fields (stdout, stderr, cwd,
- * detached) are statically known. `detached` is already part of BaseOptions
- * in bun-types — this alias just pins the generic IO types to "pipe".
+ * Spawn options bag for Bun.spawn with piped stdout/stderr and Uint8Array stdin.
+ * stdin is a Uint8Array containing the prompt, avoiding Windows CreateProcess
+ * command-line length limits (~32 767 chars) that caused ENAMETOOLONG when
+ * chat history grew large (FIX: stdin-prompt).
+ *
+ * Typed as a plain object rather than the generic SpawnOptions alias so that
+ * Uint8Array (a valid Writable value at runtime) does not conflict with the
+ * literal-union constraint in bun-types' generic parameter.
  */
-type BunSpawnOptionsWithDetached = Bun.Spawn.SpawnOptions<"inherit", "pipe", "pipe"> & { detached?: boolean };
+interface BunSpawnOptionsWithDetached {
+  stdin: Uint8Array;
+  stdout: 'pipe';
+  stderr: 'pipe';
+  detached?: boolean;
+  cwd?: string;
+}
 
 /** Options bag for spawnAndParse — replaces the 8-argument positional signature. */
 export interface SpawnAndParseOptions {
@@ -130,7 +140,8 @@ export async function doInvoke(
 
   try {
     // For respawned instances (context overflow), pass a high history limit.
-    const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined);
+    // delta-messages: pass agentName so buildPrompt can use the last_seen checkpoint.
+    const prompt = buildPrompt(roomId, context.triggerContent, context.isRespawn ? 2000 : undefined, agentName);
     const systemPrompt = buildSystemPrompt(agentName, agentConfig.role, context.isRespawn, context.mode, sanitizedRoomCwd);
     retryScheduled = await spawnAndParse({
       roomId, agentName, model: agentConfig.model, allowedTools, prompt, systemPrompt, sessionId, context, cwd: roomCwd,
@@ -166,14 +177,18 @@ export async function doInvoke(
  */
 export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean> {
   const { roomId, agentName, model, allowedTools, prompt, systemPrompt, sessionId, context, cwd } = opts;
-  const args = buildSpawnArgs(model, allowedTools, prompt, systemPrompt, sessionId);
+  const args = buildSpawnArgs(model, allowedTools, systemPrompt, sessionId);
 
   logger.debug({ agentName, roomId, model, sessionId: sessionId ?? 'new', cwd: cwd ?? 'default' }, 'spawnAndParse');
 
   // FIX 16 / House diagnostic: On Windows, detached + windowsHide are broken in
   // Bun 1.3.11. Piped stdio alone suppresses console windows on Windows.
+  // FIX stdin-prompt: prompt is passed via stdin instead of -p to avoid Windows
+  // CreateProcess command-line limit (~32 767 chars). The claude CLI reads from
+  // stdin when -p is not present.
   const isUnix = process.platform !== 'win32';
   const spawnOpts: BunSpawnOptionsWithDetached = {
+    stdin: new TextEncoder().encode(prompt),
     stdout: 'pipe',
     stderr: 'pipe',
     ...(isUnix ? { detached: true } : {}),
@@ -212,18 +227,41 @@ export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean
 // Private spawn helpers
 // ---------------------------------------------------------------------------
 
+// SEC-HIGH-002: Guard --append-system-prompt CLI arg length. On Windows the
+// CreateProcess command line has a ~32 767 char limit. Truncating here prevents
+// ENAMETOOLONG failures if the system prompt grows unexpectedly large.
+const MAX_SYSTEM_PROMPT_CLI_LENGTH = 8000;
+
 function buildSpawnArgs(
   model: string,
   allowedTools: string[],
-  prompt: string,
   systemPrompt: string,
   sessionId: string | null,
 ): string[] {
-  // NEVER use shell string concatenation — always array args (injection defense)
+  // NEVER use shell string concatenation — always array args (injection defense).
+  // FIX stdin-prompt: -p and the prompt string are omitted here; the prompt is
+  // passed via stdin in spawnOpts to avoid Windows CreateProcess length limits.
+  let safeSystemPrompt = systemPrompt;
+  if (systemPrompt.length > MAX_SYSTEM_PROMPT_CLI_LENGTH) {
+    logger.error(
+      { promptLength: systemPrompt.length, cap: MAX_SYSTEM_PROMPT_CLI_LENGTH },
+      'SEC-HIGH-002: system prompt exceeds CLI length cap — truncating from start to preserve security rules',
+    );
+    // Slice from the END so the security rules (appended last) are preserved.
+    // Dropping preamble/identity text is safer than silently losing the security rules.
+    safeSystemPrompt = systemPrompt.slice(-MAX_SYSTEM_PROMPT_CLI_LENGTH);
+  }
+
+  // SEC-LOW-001: Validate model matches expected pattern before passing to subprocess.
+  const MODEL_RE = /^claude-[a-z0-9][a-z0-9-.]*$/;
+  if (!MODEL_RE.test(model)) {
+    throw new Error(`SEC-LOW-001: Invalid model identifier — does not match allowed pattern`);
+  }
+
   const args: string[] = [
-    'claude', '-p', prompt,
+    'claude',
     '--model', model,
-    '--append-system-prompt', systemPrompt,
+    '--append-system-prompt', safeSystemPrompt,
     '--output-format', 'stream-json',
     '--verbose',
     '--allowedTools', allowedTools.join(','),

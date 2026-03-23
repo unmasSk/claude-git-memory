@@ -52,4 +52,6 @@ export interface AgentSessionRow {
   last_context_window: number;
   last_duration_ms: number;
   last_num_turns: number;
+  /** delta-messages: last message ID this agent already received. NULL = first invocation. */
+  last_seen_message_id: string | null;
 }

@@ -14,7 +14,7 @@
  *   - getGitDiffStat — cached git diff stat for system prompt
  */
 
-import { getRecentMessages, listAttachmentsByMessageIds } from '../db/queries.js';
+import { getMessagesSince, getAgentSession, listAttachmentsByMessageIds } from '../db/queries.js';
 import { mapMessageRow } from '../utils.js';
 import { AGENT_HISTORY_LIMIT } from '../config.js';
 import type { AttachmentRow } from '../types.js';
@@ -80,13 +80,25 @@ export function sanitizePromptContent(s: string): string {
  * Trust boundaries are explicit. Agent messages are labeled as prior output, not instructions.
  * historyLimit overrides AGENT_HISTORY_LIMIT — used by context-overflow respawns (2000 rows).
  *
- * @param roomId        - The room to pull recent message history from.
+ * delta-messages: when agentName is supplied and the agent has a last_seen_message_id,
+ * only messages since that checkpoint are fetched (reduces token usage on long sessions).
+ * On first invocation (no checkpoint), falls back to the full recent-message window.
+ *
+ * @param roomId         - The room to pull recent message history from.
  * @param triggerContent - The message content that triggered this invocation; sanitized before embed.
- * @param historyLimit  - Optional override for how many recent messages to include.
+ * @param historyLimit   - Optional override for how many recent messages to include.
+ * @param agentName      - Optional agent name used to look up the delta checkpoint.
  * @returns The complete prompt string ready to pass to the claude subprocess.
  */
-export function buildPrompt(roomId: string, triggerContent: string, historyLimit?: number): string {
-  const rows = getRecentMessages(roomId, historyLimit ?? AGENT_HISTORY_LIMIT);
+export function buildPrompt(roomId: string, triggerContent: string, historyLimit?: number, agentName?: string): string {
+  // delta-messages: resolve the checkpoint from the agent session when available.
+  // historyLimit (respawn override) always wins — respawns need the full window.
+  let sinceMessageId: string | null = null;
+  if (agentName && historyLimit === undefined) {
+    const session = getAgentSession(agentName, roomId);
+    sinceMessageId = session?.last_seen_message_id ?? null;
+  }
+  const { messages: rows, hasMore } = getMessagesSince(roomId, sinceMessageId, historyLimit ?? AGENT_HISTORY_LIMIT);
 
   // Batch-fetch attachments for all messages — single query, no N+1
   const messageIds = rows.map((r) => r.id);
@@ -100,6 +112,11 @@ export function buildPrompt(roomId: string, triggerContent: string, historyLimit
   }
 
   const lines: string[] = [];
+
+  // SEC-MED-001: Warn agent when older messages were omitted due to the limit cap.
+  if (hasMore) {
+    lines.push('[Note: Some older messages were omitted. The agent is seeing the most recent messages only.]');
+  }
 
   // SEC-FIX 1 + 7: Wrap history with explicit trust boundary headers
   lines.push('[CHATROOM HISTORY — UNTRUSTED USER AND AGENT CONTENT]');
@@ -126,7 +143,11 @@ export function buildPrompt(roomId: string, triggerContent: string, historyLimit
       const atts = attachmentsByMsg.get(row.id);
       if (atts && atts.length > 0) {
         for (const att of atts) {
-          lines.push(`[Attachment: ${att.filename} (${att.mime_type}, ${att.size_bytes} bytes) → ${att.storage_path}]`);
+          // SEC-HIGH-001: sanitize user-supplied filename, mime_type, and storage_path before embedding in prompt.
+          const safeFilename = sanitizePromptContent(att.filename);
+          const safeMimeType = sanitizePromptContent(att.mime_type);
+          const safeStoragePath = sanitizePromptContent(att.storage_path);
+          lines.push(`[Attachment: ${safeFilename} (${safeMimeType}, ${att.size_bytes} bytes) → ${safeStoragePath}]`);
         }
       }
     }

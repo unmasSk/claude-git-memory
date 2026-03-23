@@ -4,6 +4,11 @@
  * Strategy: each describe block (or test) creates a fresh in-memory Database,
  * patches the connection singleton, applies the schema, then exercises queries.
  * This avoids any file I/O and keeps tests fully isolated.
+ *
+ * Note: tests inline the schema SQL rather than importing the production migration
+ * runner. This is intentional — it decouples test lifecycle from migration side-effects
+ * (auto-seeding, WAL pragmas targeting real files) and lets each test suite start from
+ * a known-clean state without relying on file-system setup or teardown.
  */
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Database } from 'bun:sqlite';
@@ -568,6 +573,145 @@ describe('DB queries — agent sessions', () => {
     expect(ultron!.session_id).toBe('sess-u');
     expect(bilbo!.status).toBe('thinking');
     expect(ultron!.status).toBe('idle');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// delta-messages: getMessagesSince + updateLastSeenMessage
+// ---------------------------------------------------------------------------
+
+describe('DB queries — getMessagesSince', () => {
+  let db: Database;
+
+  // Inline helpers mirroring the production queries added for delta-messages.
+  // Updated to use rowid (BREAK-1 + BREAK-2 fix) and return { messages, hasMore }.
+  function getMessagesSince(
+    db: Database,
+    roomId: string,
+    sinceId: string | null,
+    limit = 200,
+  ): { messages: { id: string; content: string }[]; hasMore: boolean } {
+    if (sinceId === null) {
+      const messages = db
+        .query<{ id: string; content: string }, [string, number]>(
+          `SELECT id, content FROM (
+             SELECT rowid, id, content FROM messages WHERE room_id = ? ORDER BY rowid DESC LIMIT ?
+           ) ORDER BY rowid ASC`,
+        )
+        .all(roomId, limit);
+      return { messages, hasMore: messages.length === limit };
+    }
+    // COALESCE(..., 0): if checkpoint deleted, rowid > 0 → returns all messages (safe fallback).
+    const messages = db
+      .query<{ id: string; content: string }, [string, string, string, number]>(
+        `SELECT id, content FROM messages
+         WHERE room_id = ?
+           AND (? IS NULL OR rowid > COALESCE((SELECT rowid FROM messages WHERE id = ?), 0))
+         ORDER BY rowid ASC LIMIT ?`,
+      )
+      .all(roomId, sinceId, sinceId, limit);
+    return { messages, hasMore: messages.length === limit };
+  }
+
+  function updateLastSeenMessage(db: Database, agentName: string, roomId: string, messageId: string): void {
+    db.query<void, [string, string, string]>(
+      `UPDATE agent_sessions SET last_seen_message_id = ? WHERE agent_name = ? AND room_id = ?`,
+    ).run(messageId, agentName, roomId);
+  }
+
+  function getLastSeen(db: Database, agentName: string, roomId: string): string | null {
+    const row = db
+      .query<{ last_seen_message_id: string | null }, [string, string]>(
+        `SELECT last_seen_message_id FROM agent_sessions WHERE agent_name = ? AND room_id = ?`,
+      )
+      .get(agentName, roomId);
+    return row?.last_seen_message_id ?? null;
+  }
+
+  beforeEach(() => {
+    db = makeTestDb();
+    // Add last_seen_message_id column (migration applied at runtime; not in makeTestDb schema)
+    try { db.exec('ALTER TABLE agent_sessions ADD COLUMN last_seen_message_id TEXT DEFAULT NULL'); } catch { /* already exists */ }
+    // Seed three messages with distinct timestamps
+    db.exec(`
+      INSERT INTO messages (id, room_id, author, author_type, content, msg_type, parent_id, metadata, created_at)
+      VALUES
+        ('m1', 'default', 'user', 'human', 'first',  'message', NULL, '{}', '2026-01-01T00:00:01'),
+        ('m2', 'default', 'user', 'human', 'second', 'message', NULL, '{}', '2026-01-01T00:00:02'),
+        ('m3', 'default', 'user', 'human', 'third',  'message', NULL, '{}', '2026-01-01T00:00:03');
+    `);
+    db.exec(`INSERT OR IGNORE INTO agent_sessions (agent_name, room_id, session_id, model, status) VALUES ('bilbo', 'default', NULL, 'test-model', 'idle')`);
+  });
+
+  afterEach(() => { db.close(); });
+
+  it('sinceMessageId=null returns all messages (first invocation)', () => {
+    const { messages } = getMessagesSince(db, 'default', null);
+    expect(messages.length).toBe(3);
+  });
+
+  it('sinceMessageId=null returns messages in chronological order', () => {
+    const { messages } = getMessagesSince(db, 'default', null);
+    expect(messages[0]!.id).toBe('m1');
+    expect(messages[1]!.id).toBe('m2');
+    expect(messages[2]!.id).toBe('m3');
+  });
+
+  it('sinceMessageId=m1 returns only m2 and m3', () => {
+    const { messages } = getMessagesSince(db, 'default', 'm1');
+    expect(messages.length).toBe(2);
+    expect(messages[0]!.id).toBe('m2');
+    expect(messages[1]!.id).toBe('m3');
+  });
+
+  it('sinceMessageId=m2 returns only m3', () => {
+    const { messages } = getMessagesSince(db, 'default', 'm2');
+    expect(messages.length).toBe(1);
+    expect(messages[0]!.id).toBe('m3');
+  });
+
+  it('sinceMessageId=m3 (latest) returns empty array', () => {
+    const { messages } = getMessagesSince(db, 'default', 'm3');
+    expect(messages.length).toBe(0);
+  });
+
+  it('limit is respected when sinceMessageId is null', () => {
+    const { messages, hasMore } = getMessagesSince(db, 'default', null, 2);
+    expect(messages.length).toBe(2);
+    expect(hasMore).toBe(true);
+  });
+
+  it('limit is respected when sinceMessageId is provided', () => {
+    const { messages } = getMessagesSince(db, 'default', 'm1', 1);
+    expect(messages.length).toBe(1);
+  });
+
+  it('hasMore is false when result count is below the limit', () => {
+    const { messages, hasMore } = getMessagesSince(db, 'default', null, 10);
+    expect(messages.length).toBe(3);
+    expect(hasMore).toBe(false);
+  });
+
+  it('unknown sinceMessageId falls back to full history (COALESCE rowid=0)', () => {
+    // BREAK-1 fix: deleted checkpoint → COALESCE(NULL, 0) → rowid > 0 → all messages returned.
+    // This prevents agents from going permanently blind when a checkpoint message is deleted.
+    const { messages } = getMessagesSince(db, 'default', 'nonexistent-id');
+    expect(messages.length).toBe(3);
+  });
+
+  it('updateLastSeenMessage sets last_seen_message_id on the agent session', () => {
+    updateLastSeenMessage(db, 'bilbo', 'default', 'm2');
+    expect(getLastSeen(db, 'bilbo', 'default')).toBe('m2');
+  });
+
+  it('updateLastSeenMessage overwrites a previous value', () => {
+    updateLastSeenMessage(db, 'bilbo', 'default', 'm1');
+    updateLastSeenMessage(db, 'bilbo', 'default', 'm3');
+    expect(getLastSeen(db, 'bilbo', 'default')).toBe('m3');
+  });
+
+  it('last_seen_message_id defaults to NULL for new agent sessions', () => {
+    expect(getLastSeen(db, 'bilbo', 'default')).toBeNull();
   });
 });
 

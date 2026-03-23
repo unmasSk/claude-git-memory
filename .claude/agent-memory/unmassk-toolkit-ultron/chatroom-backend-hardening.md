@@ -245,6 +245,153 @@ Fixed to `Bun.Spawn.SpawnOptions<"inherit", "pipe", "pipe">`.
 Both `oven-sh/setup-bun@v2` steps now have `with: bun-version: "1.3.11"` to prevent
 non-deterministic builds from floating Bun version upgrades.
 
+---
+
+## Session 11 fixes — 2026-03-23 (stdin-prompt + delta-messages)
+
+### FIX: stdin instead of -p for prompt (agent-runner.ts)
+Removed `-p` and the prompt string from `buildSpawnArgs()`. The prompt is now passed
+via `stdin: new TextEncoder().encode(prompt)` in `spawnOpts`. Avoids Windows CreateProcess
+command-line limit (~32 767 chars) which caused ENAMETOOLONG on long chat histories.
+
+`BunSpawnOptionsWithDetached` was changed from the generic `SpawnOptions<...>` alias to
+a plain `interface` with explicit fields (`stdin: Uint8Array`, `stdout: 'pipe'`, `stderr: 'pipe'`,
+`detached?: boolean`, `cwd?: string`). This avoids the bun-types `ArrayBufferView` constraint
+conflict (`DataView` is in the union but `ArrayBufferView<ArrayBufferLike>` != `DataView`).
+The generic alias approach does NOT work for non-string stdin — use plain interface instead.
+
+`buildSpawnArgs()` signature: removed `prompt: string` parameter.
+Call site in `spawnAndParse()`: removed `prompt` from `buildSpawnArgs(...)` call.
+
+### FIX: delta-messages — only send new messages to agents (multi-file)
+
+**schema.ts**: Added migration:
+```ts
+'ALTER TABLE agent_sessions ADD COLUMN last_seen_message_id TEXT DEFAULT NULL'
+```
+Uses try/catch pattern already in place — safe for existing DBs.
+
+**types.ts**: Added `last_seen_message_id: string | null` to `AgentSessionRow`.
+
+**queries.ts**: Added two new functions:
+- `getMessagesSince(roomId, sinceMessageId, limit=200)` — when sinceMessageId is null,
+  returns all messages (first invocation); otherwise returns messages created after that ID's timestamp.
+- `updateLastSeenMessage(agentName, roomId, messageId)` — updates `last_seen_message_id`.
+
+**agent-prompt.ts**: `buildPrompt(roomId, triggerContent, historyLimit?, agentName?)` — new
+optional `agentName` param. When provided and `historyLimit` is not set (no respawn override),
+calls `getAgentSession(agentName, roomId)?.last_seen_message_id` and passes it to `getMessagesSince`.
+Respawn path (`historyLimit = 2000`) bypasses delta logic — always uses full window.
+
+**agent-result.ts**: In `persistAndBroadcast`, after `insertMessage`, calls
+`updateLastSeenMessage(agentName, roomId, message.id)` to advance the checkpoint.
+The agent's own message ID is the natural upper bound.
+
+**agent-runner.ts**: `doInvoke` passes `agentName` as 4th arg to `buildPrompt`.
+
+---
+
+## Session 12 fixes — 2026-03-23 (Argus + Moriarty T1 findings)
+
+### FIX 1 (BREAK-1/BREAK-2/SEC-CRIT-001): getMessagesSince uses rowid, not created_at (queries.ts)
+
+Changed `getMessagesSince` to use `rowid` instead of `created_at`. Two bugs fixed:
+1. 1-second timestamp granularity (BREAK-2): same-second messages were excluded by strict `>`.
+2. Deleted checkpoint (BREAK-1): subquery returning NULL caused `created_at > NULL` = false → 0 rows.
+
+New query for sinceMessageId branch:
+```sql
+SELECT * FROM messages
+WHERE room_id = ?
+  AND (? IS NULL OR rowid > COALESCE((SELECT rowid FROM messages WHERE id = ?), 0))
+ORDER BY rowid ASC LIMIT ?
+```
+COALESCE(..., 0): if checkpoint deleted → rowid > 0 → all messages returned (safe fallback).
+
+For the null branch (first invocation), the subquery must include `rowid` in SELECT list so
+outer ORDER BY can reference it:
+```sql
+SELECT * FROM (SELECT rowid, * FROM messages WHERE room_id = ? ORDER BY rowid DESC LIMIT ?) ORDER BY rowid ASC
+```
+Without `rowid` in subquery SELECT, SQLite errors: "no such column: rowid" at outer ORDER BY.
+
+### FIX 2 (SEC-CRIT-002): updateLastSeenMessage moved after scheduleChainMentions (agent-result.ts)
+
+In `persistAndBroadcast`, `updateLastSeenMessage` was called between `insertMessage` and `broadcast`.
+Moved to after `scheduleChainMentions` so chained agents see the full context including the triggering
+message when they run. Order is now: insertMessage → broadcast → scheduleChainMentions → updateLastSeenMessage.
+
+### FIX 3 (SEC-HIGH-001): attachment filename/mime_type sanitized (agent-prompt.ts)
+
+Applied `sanitizePromptContent` to `att.filename` and `att.mime_type` before embedding in prompt.
+User-supplied attachment metadata could have contained prompt injection markers.
+
+### FIX 4 (SEC-HIGH-002): system prompt CLI length guard (agent-runner.ts)
+
+Added `MAX_SYSTEM_PROMPT_CLI_LENGTH = 8000` constant. In `buildSpawnArgs`, if `systemPrompt.length > 8000`,
+log a warn and truncate. Windows CreateProcess limit is ~32K but prompt + other args stack up.
+
+### FIX 5 (SEC-MED-002): migration catch narrowed (schema.ts)
+
+Changed `catch { /* ignore */ }` to re-throw all errors except `'duplicate column name'`.
+Prevents silently swallowing corrupt DB, permission errors, or malformed SQL.
+
+### FIX 6 (T2/SEC-MED-001): getMessagesSince returns { messages, hasMore } (queries.ts + agent-prompt.ts)
+
+`getMessagesSince` now returns `{ messages: MessageRow[], hasMore: boolean }` instead of `MessageRow[]`.
+`hasMore` is true when result count equals the limit.
+In `buildPrompt`, if `hasMore` is true, a note is prepended: `[Note: Some older messages were omitted...]`.
+All callers and tests updated.
+
+### FIX 7 (SEC-LOW-001): model validated against regex before spawn (agent-runner.ts)
+
+Added `MODEL_RE = /^claude-[a-z0-9-.]+$/` check in `buildSpawnArgs`. Throws if model does not match.
+Uses regex, not hardcoded model names, so new models are automatically valid.
+
+---
+
+## Session 13 fixes — 2026-03-23 (Cerberus + Argus + Moriarty round 2)
+
+### FIX 1 (SEC-HIGH-003): storage_path sanitized before embedding in prompt (agent-prompt.ts)
+Applied `sanitizePromptContent(att.storage_path)` alongside filename and mime_type.
+The storage_path field was the only user-influenced attachment field not yet sanitized.
+Pattern: always sanitize ALL attachment fields before prompt embedding, not just filename/type.
+
+### FIX 2 (T2): Generic throw Error leaks raw model value (agent-runner.ts)
+Changed error message from `model "${model}" does not match...` to
+`Invalid model identifier — does not match allowed pattern` (no raw model in message).
+The caller's catch already calls sanitizePromptContent() on the error message, but
+not leaking the raw value is defense-in-depth.
+
+### FIX 3 (T2): Dead `? IS NULL` branch removed from getMessagesSince non-null path (queries.ts)
+The sinceMessageId non-null branch had `AND (? IS NULL OR rowid > COALESCE(...))` with
+3 bind params. Since the branch only runs when sinceMessageId is not null, `? IS NULL`
+is always false. Simplified to `AND rowid > COALESCE(...)` with 2 bind params.
+If you see a 3-param call in tests, update to 2-param.
+
+### FIX 4 (T2): SELECT rowid, * kept in subquery only; base query uses SELECT * (queries.ts)
+Non-null branch now uses `SELECT *` — SQLite allows ORDER BY rowid on the base table
+without projecting rowid into SELECT (rowid is implicit on base table queries).
+The null branch (subquery) MUST keep `SELECT rowid, *` because outer ORDER BY rowid
+on a derived table requires rowid to be projected into the subquery result set.
+
+### FIX 5 (T3): Comments added (agent-result.ts + tests/db/queries.test.ts)
+- queries.test.ts top-level docblock: explains why tests inline schema SQL instead of
+  importing the production migration runner (decouples from migration side-effects).
+- agent-result.ts: comment above handleFailedResult noting checkpoint is intentionally
+  NOT advanced on failed/empty results — only persistAndBroadcast advances it.
+
+### FIX 6 (T2/Moriarty): Truncation changed to slice from END (agent-runner.ts)
+`systemPrompt.slice(0, MAX_SYSTEM_PROMPT_CLI_LENGTH)` → `systemPrompt.slice(-MAX_SYSTEM_PROMPT_CLI_LENGTH)`.
+Security rules are appended last by buildSystemPrompt, so slicing from the end
+preserves them. Silently dropping security rules is worse than dropping preamble.
+Log level changed from warn to error (T2 obligation — not just a note).
+
+### FIX 7 (T2): MODEL_RE tightened to block leading dot/hyphen (agent-runner.ts)
+Changed `/^claude-[a-z0-9-.]+$/` to `/^claude-[a-z0-9][a-z0-9-.]*$/`.
+The first char after `claude-` must be alphanumeric. Blocks `claude-..--shell` while
+still matching `claude-3.5-sonnet`, `claude-opus-4-5`, etc.
+
 ### Fix 4: Completion handlers must not overwrite Paused status (agent-result.ts + agent-stream.ts)
 Import `isAgentPaused` from `agent-queue.ts` in both files.
 Guard every `updateStatusAndBroadcast(Done/Error)` call with `if (!isAgentPaused(...))`.
