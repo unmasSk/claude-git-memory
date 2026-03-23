@@ -6,6 +6,14 @@ import { dirname } from 'node:path';
 let _db: Database | null = null;
 
 /**
+ * Resets the singleton so the next getDb() call creates a fresh connection.
+ * Only exported for test isolation — never call in production code.
+ */
+export function resetDb(): void {
+  _db = null;
+}
+
+/**
  * Returns the singleton SQLite database instance, creating it on first call.
  *
  * Applies WAL mode, busy_timeout=5000ms, and synchronous=NORMAL on first access.
