@@ -47,13 +47,12 @@ const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 // ---------------------------------------------------------------------------
 
 /**
- * Extends Bun's readable spawn options with the `detached` flag, which is
- * supported by the Bun runtime on Unix but absent from its public TypeScript
- * typings. Using this interface avoids the `as any` cast on Bun.spawn.
+ * Spawn options type for Bun.spawn with piped stdout/stderr.
+ * Uses the concrete SpawnOptions type so all fields (stdout, stderr, cwd,
+ * detached) are statically known. `detached` is already part of BaseOptions
+ * in bun-types — this alias just pins the generic IO types to "pipe".
  */
-interface BunSpawnOptionsWithDetached extends Bun.SpawnOptions.Readable {
-  detached?: boolean;
-}
+type BunSpawnOptionsWithDetached = Bun.Spawn.SpawnOptions<"ignore", "pipe", "pipe"> & { detached?: boolean };
 
 /** Options bag for spawnAndParse — replaces the 8-argument positional signature. */
 export interface SpawnAndParseOptions {

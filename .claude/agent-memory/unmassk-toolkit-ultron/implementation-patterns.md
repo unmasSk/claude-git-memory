@@ -4,6 +4,23 @@ description: Key patterns for chatroom backend WS handlers, process tracking, an
 type: project
 ---
 
+## Bun.spawn type alias pattern (2026-03-23)
+
+`Bun.SpawnOptions.Readable` is a union type (string | BunFile | ...), NOT an object/interface.
+A TypeScript `interface` cannot `extends` a union type — TS2312.
+
+**Wrong:**
+```ts
+interface BunSpawnOptionsWithDetached extends Bun.SpawnOptions.Readable { detached?: boolean; }
+```
+
+**Correct:** use `type` alias with `Bun.Spawn.SpawnOptions<In, Out, Err>` (which IS an interface extending BaseOptions):
+```ts
+type BunSpawnOptionsWithDetached = Bun.Spawn.SpawnOptions<"ignore", "pipe", "pipe"> & { detached?: boolean };
+```
+
+Note: `detached` is already in `BaseOptions` in bun-types 1.3.11, so the `& { detached?: boolean }` is redundant but harmless. The generic type params pin stdout/stderr to "pipe" so callers get the right ReadableStream types.
+
 ## Extending the WS protocol (Issue #24, 2026-03-21)
 
 Adding new client message types requires 4 coordinated changes:
