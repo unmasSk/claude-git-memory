@@ -242,6 +242,19 @@ MdParagraph calls `Children.map(children, (child, i) => highlightMentionsInNode(
 This correctly handles mentions inside bold/italic sibling nodes too.
 Imports needed: `Children, isValidElement` from 'react'.
 
+## SystemMessage formatContent — duplicate agent name fix (2026-03-23)
+
+`formatContent` previously replaced `Agent X` with the capitalized name, causing the name to appear twice:
+once in `.te-agent` (from `extractAgent`) and once at the start of `.te-desc`.
+
+Fixed by stripping the `Agent X` prefix entirely:
+```ts
+return content.replace(/^Agent\s+\w+\s*/i, '').replace(/^\.\s*/, '');
+```
+The second `.replace` handles the edge case `"Agent Foo. Some message."` where a lone period+space is left over.
+
+Test file: `src/test/components/SystemMessage.test.tsx` (8 cases, pure DOM assertions via `document.querySelector`).
+
 ## Lessons
 - Memory writes must use `$GIT_ROOT` = `/Users/unmassk/Workspace/claude-toolkit`, not the cwd subdirectory.
   The cwd was `chatroom/apps/frontend` but git root is two levels up.

@@ -16,12 +16,10 @@ function extractAgent(content: string): string | null {
   return match?.[1]?.toLowerCase() ?? null;
 }
 
-/** Strip "Agent X" prefix, capitalize agent name */
+/** Strip "Agent X" prefix — the name is already shown in the te-agent label */
 function formatContent(content: string): string {
   if (content.startsWith('[DIRECTIVE FROM USER')) return 'directiva';
-  return content.replace(/^Agent\s+(\w+)/i, (_, name) =>
-    name.charAt(0).toUpperCase() + name.slice(1)
-  );
+  return content.replace(/^Agent\s+\w+\s*/i, '').replace(/^\.\s*/, '');
 }
 
 function _getIcon(content: string, size = 11) {
