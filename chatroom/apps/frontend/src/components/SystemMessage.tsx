@@ -19,7 +19,8 @@ function extractAgent(content: string): string | null {
 /** Strip "Agent X" prefix — the name is already shown in the te-agent label */
 function formatContent(content: string): string {
   if (content.startsWith('[DIRECTIVE FROM USER')) return 'directiva';
-  return content.replace(/^Agent\s+\w+\s*/i, '').replace(/^\.\s*/, '');
+  const stripped = content.replace(/^Agent\s+\w+\s*/i, '').replace(/^\.\s*/, '');
+  return stripped.charAt(0).toUpperCase() + stripped.slice(1);
 }
 
 function _getIcon(content: string, size = 11) {
@@ -90,7 +91,7 @@ export const SystemMessage = memo(function SystemMessage({ message }: SystemMess
       <span className={`te-agent ${colorClass}`}>{label}</span>
       <span className="te-arrow">›</span>
       <span className="te-badge">{getEventType(message.content)}</span>
-      <span className="te-desc">{formatContent(message.content)}</span>
+      <span className="te-desc te-desc-ltr">{formatContent(message.content)}</span>
     </div>
   );
 });

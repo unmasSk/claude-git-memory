@@ -255,6 +255,10 @@
   min-width: 0;
 }
 
+.te-desc-ltr {
+  direction: ltr;
+}
+
 /* Per-agent tool event colors (border + bg + badge tint) */
 .te-ultron    { border-left-color: color-mix(in srgb, var(--color-ultron) 40%, transparent);    background: color-mix(in srgb, var(--color-ultron) 3%, transparent); }
 .te-cerberus  { border-left-color: color-mix(in srgb, var(--color-cerberus) 40%, transparent);  background: color-mix(in srgb, var(--color-cerberus) 3%, transparent); }

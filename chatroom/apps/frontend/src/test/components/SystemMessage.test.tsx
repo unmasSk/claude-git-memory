@@ -29,19 +29,19 @@ describe('SystemMessage — formatContent strips duplicate agent name', () => {
   it('strips "Agent House " prefix from queued message', () => {
     render(<SystemMessage message={makeMessage('Agent House is busy. Message queued (3 pending).')} />);
     const desc = document.querySelector('.te-desc');
-    expect(desc?.textContent).toBe('is busy. Message queued (3 pending).');
+    expect(desc?.textContent).toBe('Is busy. Message queued (3 pending).');
   });
 
   it('strips "Agent house " prefix (lowercase)', () => {
     render(<SystemMessage message={makeMessage('Agent house is busy. Message queued (1 pending).')} />);
     const desc = document.querySelector('.te-desc');
-    expect(desc?.textContent).toBe('is busy. Message queued (1 pending).');
+    expect(desc?.textContent).toBe('Is busy. Message queued (1 pending).');
   });
 
   it('strips "AGENT BILBO " prefix (uppercase)', () => {
     render(<SystemMessage message={makeMessage('AGENT BILBO is running.')} />);
     const desc = document.querySelector('.te-desc');
-    expect(desc?.textContent).toBe('is running.');
+    expect(desc?.textContent).toBe('Is running.');
   });
 
   it('does not duplicate the agent name in te-agent and te-desc', () => {
