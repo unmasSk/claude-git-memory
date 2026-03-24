@@ -86,6 +86,34 @@ Correct: `import { existsSync, globSync } from 'node:fs'`
 
 The `ServerRoomStateSchema` is referenced in 3 test objects (ServerRoomStateSchema tests x2, ServerMessageSchema union test x1). When adding a required field, all 3 need updating. Find with: `grep -n "room_state" packages/shared/src/schemas.test.ts`
 
+## Bun 1.3.11 mock.module() leaks across test files — use DB-state assertions instead
+
+`mock.module('module.js', ...)` replaces that module globally for the entire bun test session. If module A is mocked in test file 1, every subsequent test file that imports module A for real will get the mock instead.
+
+**Safe to mock:** `db/connection.js` (use a unique in-memory DB instance), `index.js` (stub server — no other file needs real behavior).
+**NOT safe to mock:** `agent-runner.js`, `message-bus.js` — many other tests need real behavior from these.
+
+**Replacement strategy:** Instead of spying on function calls, query DB state:
+- `countSystemMessages(roomId, substring)` → `SELECT COUNT(*) FROM messages WHERE msg_type='system' AND content LIKE ?`
+- `getAgentStatus(agentName, roomId)` → `SELECT status FROM agent_sessions WHERE ...`
+- Use `ensureAgentSession(agentName, roomId, 'running')` before status-change assertions.
+
+## Bun test order: fire-and-forget invocations leak global scheduler state
+
+`agent-invoker-schedule.test.ts` calls real `invokeAgents('default', new Set(['bilbo']), ...)`, spawning real claude subprocesses. These leave entries in the global `activeInvocations` Map. Tests running after this file that call `drainActiveInvocations()` wait forever (5 s timeout).
+
+**Fix:** In the intervening test file, import and forcibly clear the global state after all tests:
+```typescript
+import { activeInvocations, inFlight } from '../../src/services/agent-scheduler.js';
+afterAll(() => {
+  activeInvocations.clear();
+  inFlight.clear();
+});
+```
+The orphaned subprocesses complete in the background without affecting test correctness.
+
+**Diagnostic pattern:** When removing a mock.module() to fix a leak, check if the mock was accidentally masking a different isolation bug (e.g., the mock made `doInvoke` undefined → TypeError → quick failure → pending invocations cleaned up). Always run targeted two-file test pairs to find the source of unexpected failures.
+
 ## React StrictMode: second connect() call kills a CONNECTING socket
 
 StrictMode lifecycle: mount → connect(WS1) → unmount → cleanup(schedules disconnect 100ms) →

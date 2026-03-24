@@ -127,3 +127,31 @@ SIGSTOP DOES freeze the `claude` process (confirmed: `ps` shows state `T` on PID
 **Detection:** When a control button "doesn't work" but the system message confirms the handler ran, check: (a) `ps -o state` on the process — is it actually `T`? (b) are child processes also stopped? (c) does the timeout fire while paused? (d) does the completion path check pause state?
 
 **Key insight:** The SIGSTOP mechanism fundamentally works (confirmed by runtime test). The real bugs are: missing process-group signal, no timeout suspension during pause, and unconditional status overwrite on completion.
+
+## Pattern: bun:test mock.module() Global Leak Across Test Files
+
+**Project:** agent-chatroom
+**First seen:** 2026-03-24
+
+`mock.module()` in bun 1.3.11 affects the **global module registry**, not just the declaring test file. When file A mocks `../../src/services/agent-runner.js` with a stub, file B (which imports the real `agent-runner.js` and has its own mock.module for different modules) gets file A's stub instead of the real implementation.
+
+**Root cause:** bun test runs all test files in the same thread with a shared module cache. `mock.module()` replaces entries in this shared cache. Once replaced, ALL subsequent imports of that module path resolve to the mock, regardless of which test file does the importing.
+
+**Symptoms:**
+- Mock capture arrays (`_publishCalls`, `_broadcasts`) stay empty
+- DB queries return 0 rows despite functions that insert data
+- Tests pass in isolation but fail in full suite
+- One specific test file causes ALL other mock-dependent tests to fail
+
+**Detection:**
+1. Run failing test file in isolation -- if it passes, this is the pattern
+2. Binary search: `bun test fileA.test.ts fileB.test.ts` to find the poisoning file
+3. Check if the poisoning file mocks a module that OTHER test files import directly (not just transitively)
+4. The poisoning file's mock.module replaces the real implementation; downstream files get the stub
+
+**Key test:** `bun test $(ls tests/**/*.test.ts | grep -v <poisoning-file>)` -- if 0 failures, confirmed.
+
+**Fix pattern:** The poisoning test file must NOT use `mock.module()` on modules that other test files import for real behavior. Options:
+1. Mock at a higher level (mock the functions, not the module)
+2. Use dependency injection so the test can pass stubs without `mock.module`
+3. Restructure so the poisoning test uses `jest.fn()`/`mock()` on individual functions rather than replacing entire modules
