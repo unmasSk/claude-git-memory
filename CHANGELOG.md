@@ -4,9 +4,14 @@
 
 ### Added
 - `compliance-legal-docs` skill: SKILL.md created with 42-reference routing table organized by category (contract review, GDPR/privacy, risk assessment, litigation, French employment law, vendor due diligence, document processing, legal ops)
+- V2 system prompts for all 10 agents (alexandria, argus, bilbo, cerberus, dante, gitto, house, moriarty, ultron, yoda): universal format with The Team table, EXHAUSTION PROTOCOL, plain agent names (no @mentions), and no chatroom references — prompts work in any Claude Code context. Each agent self-reviewed their V2 draft and restored load-bearing V1 content that the initial rewrite lost.
+- V2 prompts applied to both project source (`unmassk-toolkit/agents/`) and chatroom root (`chatroom/*-system-prompt-v2.md`) — V2 is now canonical in both locations.
+- 5-phase agent pipeline: `PIPELINE_GENERIC` and `AGENT_PIPELINE_POSITION` rewritten. Each agent has an explicit chain position entry covering role, when to act, and when to skip.
 
 ### Fixed
 - Boot hook now skips tombstoned entries when merging glossary remembers and memos into the session summary — `Resolved-Remember:` and `Resolved-Memo:` tombstones are respected on the glossary merge path, not just on the recent-commits path.
+- Mention parser now strips fenced and inline code blocks before regex matching — prevents phantom @mentions inside code samples from triggering agent invocations.
+- `stoppedRooms` guard added in `agent-scheduler`, `agent-result`, and `ws-control-handlers` — prevents agent cascade after a stop command.
 
 ## [1.6.0] - 2026-03-16 (unmassk-crew)
 
