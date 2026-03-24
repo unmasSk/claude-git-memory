@@ -8,14 +8,19 @@ type: project
 
 | Path | Last verified | Status |
 |------|--------------|--------|
-| `CLAUDE.md` (root) | 2026-03-13 | Exists — not yet audited by Alexandria |
+| `CLAUDE.md` (root) | 2026-03-24 | Managed block only — no drift possible |
+| `chatroom/CLAUDE.md` | 2026-03-24 | Updated — added brainstorm mode pattern |
+| `chatroom/apps/backend/CLAUDE.md` | 2026-03-24 | Updated — added WS message types table, brainstorm mode section |
+| `chatroom/apps/frontend/CLAUDE.md` | 2026-03-24 | Verified current — no changes needed |
 
 ## Other documentation
 
 | Path | Type | Status |
 |------|------|--------|
-| `CHANGELOG.md` | Changelog | Created 2026-03-13 — covers 1.0.0 through 3.6.0 |
-| `README.md` | Project readme | Rewritten 2026-03-13 — full audit against codebase, all claims verified |
+| `CHANGELOG.md` (root) | Changelog | Audited 2026-03-24 — latest: [1.1.1], [Unreleased] added, duplicate [1.1.0] disambiguated |
+| `chatroom/CHANGELOG.md` | Changelog | Audited 2026-03-24 — [Unreleased] Removed section corrected (V2 files all deleted) |
+| `README.md` (root) | Project readme | Verified 2026-03-24 — accurate |
+| `chatroom/README.md` | Project readme | Updated 2026-03-24 — test count corrected 535+ → 1200+ |
 
 ## unmassk-design docs
 
