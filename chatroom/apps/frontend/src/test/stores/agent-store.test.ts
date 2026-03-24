@@ -30,6 +30,7 @@ describe('agent-store — agent status updates', () => {
       agents: new Map(),
       room: null,
       connectedUsers: [],
+      agentsOutOfContext: new Set<string>(),
     });
   });
 
@@ -125,5 +126,139 @@ describe('agent-store — agent status updates', () => {
     ]);
     const online = useAgentStore.getState().getOnlineAgents();
     expect(online).toHaveLength(5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// agentsOutOfContext — addOutOfContext, clearOutOfContext, clearAllOutOfContext
+// ---------------------------------------------------------------------------
+
+describe('agent-store — agentsOutOfContext: initial state', () => {
+  beforeEach(() => {
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(),
+    });
+  });
+
+  it('initial agentsOutOfContext is an empty Set', () => {
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(0);
+  });
+});
+
+describe('agent-store — agentsOutOfContext: addOutOfContext', () => {
+  beforeEach(() => {
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(),
+    });
+  });
+
+  it('addOutOfContext adds an agent name to the Set', () => {
+    useAgentStore.getState().addOutOfContext('ultron');
+    expect(useAgentStore.getState().agentsOutOfContext.has('ultron')).toBe(true);
+  });
+
+  it('addOutOfContext grows Set size by 1 per unique agent', () => {
+    useAgentStore.getState().addOutOfContext('ultron');
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(1);
+  });
+
+  it('addOutOfContext is idempotent — adding same agent twice yields size 1', () => {
+    useAgentStore.getState().addOutOfContext('cerberus');
+    useAgentStore.getState().addOutOfContext('cerberus');
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(1);
+  });
+
+  it('addOutOfContext can hold multiple different agents', () => {
+    useAgentStore.getState().addOutOfContext('ultron');
+    useAgentStore.getState().addOutOfContext('cerberus');
+    useAgentStore.getState().addOutOfContext('argus');
+    const set = useAgentStore.getState().agentsOutOfContext;
+    expect(set.size).toBe(3);
+    expect(set.has('ultron')).toBe(true);
+    expect(set.has('cerberus')).toBe(true);
+    expect(set.has('argus')).toBe(true);
+  });
+
+  it('addOutOfContext does not disturb other agents already in Set', () => {
+    useAgentStore.getState().addOutOfContext('bilbo');
+    useAgentStore.getState().addOutOfContext('dante');
+    // bilbo should still be present after adding dante
+    expect(useAgentStore.getState().agentsOutOfContext.has('bilbo')).toBe(true);
+  });
+});
+
+describe('agent-store — agentsOutOfContext: clearOutOfContext', () => {
+  beforeEach(() => {
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(['ultron', 'cerberus']),
+    });
+  });
+
+  it('clearOutOfContext removes the named agent from the Set', () => {
+    useAgentStore.getState().clearOutOfContext('ultron');
+    expect(useAgentStore.getState().agentsOutOfContext.has('ultron')).toBe(false);
+  });
+
+  it('clearOutOfContext leaves other agents in the Set untouched', () => {
+    useAgentStore.getState().clearOutOfContext('ultron');
+    expect(useAgentStore.getState().agentsOutOfContext.has('cerberus')).toBe(true);
+  });
+
+  it('clearOutOfContext reduces Set size by 1 when agent was present', () => {
+    useAgentStore.getState().clearOutOfContext('ultron');
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(1);
+  });
+
+  it('clearOutOfContext on an absent agent does not throw', () => {
+    expect(() => useAgentStore.getState().clearOutOfContext('nonexistent-agent')).not.toThrow();
+  });
+
+  it('clearOutOfContext on absent agent leaves existing agents intact', () => {
+    useAgentStore.getState().clearOutOfContext('nonexistent-agent');
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(2);
+  });
+});
+
+describe('agent-store — agentsOutOfContext: clearAllOutOfContext', () => {
+  beforeEach(() => {
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(['ultron', 'cerberus', 'argus']),
+    });
+  });
+
+  it('clearAllOutOfContext empties the Set', () => {
+    useAgentStore.getState().clearAllOutOfContext();
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(0);
+  });
+
+  it('clearAllOutOfContext produces an empty Set (not null or undefined)', () => {
+    useAgentStore.getState().clearAllOutOfContext();
+    const set = useAgentStore.getState().agentsOutOfContext;
+    expect(set).toBeDefined();
+    expect(set instanceof Set).toBe(true);
+  });
+
+  it('clearAllOutOfContext on an already-empty Set does not throw', () => {
+    useAgentStore.setState({ agentsOutOfContext: new Set<string>() });
+    expect(() => useAgentStore.getState().clearAllOutOfContext()).not.toThrow();
+  });
+
+  it('clearAllOutOfContext allows subsequent addOutOfContext to work', () => {
+    useAgentStore.getState().clearAllOutOfContext();
+    useAgentStore.getState().addOutOfContext('bilbo');
+    expect(useAgentStore.getState().agentsOutOfContext.has('bilbo')).toBe(true);
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(1);
   });
 });

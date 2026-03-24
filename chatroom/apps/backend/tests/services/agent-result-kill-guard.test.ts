@@ -278,6 +278,14 @@ describe('REGRESSION — kill guard: handleFailedResult (agent-result.ts)', () =
 
 // ---------------------------------------------------------------------------
 // REGRESSION: persistAndBroadcast — killed agent (race: finished just before SIGTERM)
+//
+// TODO: broadcast contract (message-bus.broadcast()) is untested here.
+// The stub server's publish() is a no-op so we cannot observe broadcast calls
+// directly. Bun 1.3.11 mock.module() leaks globally — mocking message-bus.js
+// here would break 32 other test files that need real behavior from it.
+// Tracked gap: verify that broadcast() is called with the correct room and
+// message payload after a successful persistAndBroadcast() run.
+// Unblock when Bun supports per-test module isolation or a mock-reset API.
 // ---------------------------------------------------------------------------
 
 describe('REGRESSION — kill guard: persistAndBroadcast (agent-result.ts)', () => {
@@ -395,6 +403,13 @@ describe('kill flag contract (agent-queue.ts exports)', () => {
 // ---------------------------------------------------------------------------
 
 afterAll(() => {
+  // Order-dependency: this cleanup MUST run after agent-invoker-schedule.test.ts
+  // (which fires real invokeAgents() calls and leaves stale entries in these Maps)
+  // and BEFORE agent-scheduler-golden.test.ts (which calls drainActiveInvocations()
+  // and would time out waiting for the orphaned subprocesses). Bun runs test files
+  // in filesystem order — this file sits between those two alphabetically, making
+  // it the correct insertion point. Do not move this afterAll to a different file
+  // without verifying the full test file execution order.
   activeInvocations.clear();
   inFlight.clear();
 });

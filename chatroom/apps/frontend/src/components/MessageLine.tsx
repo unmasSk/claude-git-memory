@@ -272,6 +272,7 @@ export const MessageLine = memo(function MessageLine({ message }: MessageLinePro
             ),
             th: ({ children }) => <th className="md-th">{children}</th>,
             td: ({ children }) => <td className="md-td">{children}</td>,
+            hr: () => null,
           }}
         >
           {message.content}

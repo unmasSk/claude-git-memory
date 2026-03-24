@@ -44,7 +44,10 @@
   line-height: 1.65;
   color: var(--text-1);
   width: 100%;
+  overflow-x: auto;
 }
+
+.msg-text hr { display: none; }
 
 .msg-text code {
   font-family: var(--font-mono);
@@ -767,6 +770,10 @@
   margin: 6px 30px;
   overflow-x: auto;
 }
+
+.msg-text .md-table-wrap::-webkit-scrollbar        { height: 3px; }
+.msg-text .md-table-wrap::-webkit-scrollbar-track  { background: transparent; }
+.msg-text .md-table-wrap::-webkit-scrollbar-thumb  { background: oklch(30% 0.01 250); border-radius: 2px; }
 
 .msg-text .md-table {
   border-collapse: collapse;

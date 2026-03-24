@@ -172,17 +172,20 @@ export async function handleFailedResult(
   const lo = (s: string) => s.toLowerCase();
   const isContextOverflow = lo(sr.resultText).includes(CONTEXT_OVERFLOW_SIGNAL) || lo(sr.stderrOutput).includes(CONTEXT_OVERFLOW_SIGNAL);
   const isStaleSession = isContextOverflow || sr.resultText.includes('No conversation found') || sr.resultText.includes('conversation not found');
+  if (isContextOverflow) {
+    clearAgentSession(agentName, roomId);
+    logger.warn({ agentName, roomId }, 'context overflow — no auto-respawn, emitting context_overflow badge');
+    const display = agentName.charAt(0).toUpperCase() + agentName.slice(1);
+    await postSystemMessage(roomId, `⚠️ ${display} ran out of context. Click the badge to reinvoke.`);
+    await updateStatusAndBroadcast(agentName, roomId, AgentState.Out);
+    await broadcast(roomId, { type: 'context_overflow', agentName });
+    return false;
+  }
+
   if (isStaleSession) {
     clearAgentSession(agentName, roomId);
-    const staleReason = isContextOverflow ? 'context too long' : 'stale session';
-    logger.warn({ agentName, roomId, staleReason }, 'stale session detected — scheduling retry');
-    if (isContextOverflow) {
-      const display = agentName.charAt(0).toUpperCase() + agentName.slice(1);
-      await postSystemMessage(roomId, `🔄 ${display} reinvocado (contexto agotado, nueva sesión)`);
-    } else {
-      await postSystemMessage(roomId, `Agent ${agentName}: ${staleReason} detected, retrying fresh...`);
-    }
-    context.isRespawn = isContextOverflow;
+    logger.warn({ agentName, roomId }, 'stale session detected — scheduling retry');
+    await postSystemMessage(roomId, `Agent ${agentName}: stale session detected, retrying fresh...`);
     const { scheduleInvocation } = await import('./agent-scheduler.js');
     scheduleInvocation(roomId, agentName, context, true, true);
     return true;

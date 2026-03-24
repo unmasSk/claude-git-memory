@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- **#47** Context overflow support: new `context_overflow` WS broadcast event and `reinvoke_from_context` client message type. Agent status set to `out_of_context` on overflow; auto-respawn disabled by decision. (`protocol.ts`, `schemas.ts`, `agent-result.ts`, `ws-control-handlers.ts`)
+- **#47** Badge UI in `MessageInput` for out-of-context agents: click to manually re-invoke with a fresh session. (`agent-store.ts` — `agentsOutOfContext` state + `addOutOfContext`/`clearOutOfContext` actions; `ws-store.ts` — `context_overflow` → `addOutOfContext`, `room_state` → `clearAllOutOfContext`; `MessageInput.tsx`, `ChatInput.css`)
+- Context overflow tests: `agent-result-context-overflow.test.ts` (20 tests — overflow detection, session cleared, status=out, system message, broadcast), `ws-control-handlers-reinvoke.test.ts` (16 tests — UNKNOWN_AGENT/ROOM_NOT_FOUND guards, success path, edge cases). Frontend store coverage extended in `agent-store.test.ts` and `ws-store.test.ts`.
 - V2 system prompts for all 9 agents (bilbo, cerberus, dante, house, ultron, yoda, moriarty, argus, alexandria): universal format with The Team table, EXHAUSTION PROTOCOL, plain agent names (no @mentions), and no chatroom references — prompts work in any Claude Code context, not just the chatroom.
 - Each agent self-reviewed their V2 draft and restored load-bearing V1 content that was lost in the initial rewrite: Bilbo restored depth protocol and 3-level analysis hierarchy; Cerberus added Goal-Backward Verification and end summary; Dante restored pattern discovery and no-conditional-logic rule; House restored Cascade Analysis, IMPACT field, Quality Gates checklist, and minimum 5 diagnostic points; Yoda restored Emotional Register, Dimensional Scoring /110, Overall Sentiment, Moriarty hard block, and anti-inflation rule.
 - 5-phase agent pipeline (`PIPELINE_GENERIC` + `AGENT_PIPELINE_POSITION`): each agent now has an explicit chain position entry covering role, when to act, and when to skip. 146 golden tests cover all 10 agents across both pipeline modes.
@@ -15,21 +18,28 @@
 - `formatBytes` helper extracted to `src/lib/format.ts` (frontend).
 - Golden snapshot tests for `buildAgentMessage`, `maybeTruncate`, `applyResultEvent`, `readStderr`, `makeTimeoutHandle`.
 
-### Removed
-- All chatroom V2 agent reference files (`chatroom/*-system-prompt-v2.md`) deleted — V2 agent prompts are now canonical only in the plugin source (`unmassk-toolkit/agents/`). This includes the earlier consolidation of `moriarty-system-prompt-v3.md` into v2.
-
 ### Changed
+- **#47** Context exhaustion handling: auto-respawn removed. Agent stops on overflow; user re-invokes manually via UI badge.
 - `agent-runner.ts` refactored for LOC compliance: `linkAndFetchAttachments` and `registerActiveProcess` extracted as private helpers; all exported functions are ≤50 LOC.
 - `agent-invoker.ts` is now a thin facade re-exporting from `agent-prompt.ts`, `agent-runner.ts`, and `agent-scheduler.ts`. Import paths for consumers are unchanged.
 
 ### Fixed
+- **#38** Horizontal phantom scrollbar in message text: `overflow-x: auto` on `.msg-text`, custom scrollbar styles on `.md-table-wrap`, `hr: () => null` in ReactMarkdown. (`MessageLine.tsx`, `globals.css`, `layout.css`)
 - Mention parser now strips fenced and inline code blocks before regex matching — prevents phantom @mentions inside code samples from triggering agent invocations.
 - `stoppedRooms` guard added in `agent-scheduler`, `agent-result`, and `ws-control-handlers` — prevents agent cascade after a stop command; kill guard covered by new golden test.
+- Kill-guard test mock pollution: removed `mock.module()` on `agent-runner.js` and `message-bus.js` that leaked into bun's global module registry, breaking 32 tests across 4 files. Replaced with DB-state assertions and parameterized SQL via `ensureAgentSession()`. Cerberus + Argus reviewed — 0 findings.
 - `AttachmentSchema` added to Zod `MessageMetadataSchema` — `safeParse` was silently stripping `metadata.attachments` from every WS message.
 - `attachments` table added to E2E and golden test databases — `sendInitialState` was crashing on `enrichWithAttachments` when the table was absent.
 - Attachment DB link wrapped in try/catch — a DB failure no longer crashes the WS; the message is broadcast without attachments instead.
 - Frontend agent card: `overflow: hidden` on the shrink-reveal area prevents metrics text from bleeding over action buttons.
 - Frontend submit race condition: `isSubmittingRef` is now set synchronously before the first `await`, preventing double-submit on rapid key presses.
+
+## [1.1.1] - 2026-03-24
+
+### Removed
+- All chatroom V2 agent reference files (`chatroom/*-system-prompt-v2.md`) deleted — V2 agent prompts are now canonical only in the plugin source (`unmassk-toolkit/agents/`). This includes the earlier consolidation of `moriarty-system-prompt-v3.md` into v2.
+
+---
 
 ## [0.4.0] — Room Management
 

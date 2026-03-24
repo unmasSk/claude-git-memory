@@ -573,6 +573,19 @@ Added to: `validateSessionId`, `sanitizePromptContent`, `buildPrompt`, `getGitDi
 ### Change 7: maybeTruncate — Buffer-safe truncation
 `text.slice(0, MAX_AGENT_RESPONSE_BYTES)` → `Buffer.from(text).subarray(0, MAX_AGENT_RESPONSE_BYTES).toString('utf-8')`. Handles multi-byte UTF-8 chars safely — decoder skips incomplete trailing sequences.
 
+## Infinite scroll — IntersectionObserver + scroll position preservation (2026-03-24)
+
+In `MessageList.tsx`, the pattern for loading older messages on scroll-to-top:
+
+1. **Sentinel div** at the very top of the scroll container (zero-height, zero-margin `<div ref={sentinelRef} />`).
+2. **IntersectionObserver** with `root: containerRef.current` observes the sentinel. When it enters view, call `loadHistory()`.
+3. **loadHistory** — guarded by `hasMoreHistory && !isLoadingHistory`. Captures `scrollHeight` into a ref (`prevScrollHeightRef`) BEFORE sending the WS message. Calls `setLoadingHistory(true)` then `send({ type: 'load_history', before: firstMessage.id, limit: 50 })`.
+4. **Scroll restoration** — in the `useEffect` that fires on `messages.length` change: if `prevScrollHeightRef.current !== null` (meaning a prepend just happened), compute `delta = el.scrollHeight - prevScrollHeight` and set `el.scrollTop += delta`. Clear the ref after adjusting.
+5. **Loading spinner** — `{isLoadingHistory && <div className="history-loader"><Loader2 className="history-loader-icon" /></div>}` between sentinel and messages. CSS: `@keyframes spin { from rotate(0) to rotate(360deg) }`, applied via `.history-loader-icon { animation: spin 1s linear infinite }`.
+6. **Observer recreation guard** — `loadHistory` wrapped in `useCallback` with deps `[hasMoreHistory, isLoadingHistory, messages, send, setLoadingHistory]`. The `useEffect` for the observer depends on `[loadHistory]` so the observer is re-registered when deps change. This is intentional — avoids stale closure capturing old `hasMoreHistory`.
+
+The `prependHistory` store action already sets `isLoadingHistory: false` — no manual reset needed after WS response. The `history_page` WS case in `ws-store.ts` calls `chatStore.prependHistory()` which handles both prepend and flag reset in one atomic store update.
+
 ## truncatePath helper in agent-prompt.ts (2026-03-21)
 
 `truncatePath(path, maxLen=60)` lives just above `formatToolDescription` in `agent-prompt.ts`.

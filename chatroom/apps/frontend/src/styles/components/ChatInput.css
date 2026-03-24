@@ -205,6 +205,35 @@
   cursor: not-allowed;
 }
 
+/* Context-overflow agent badges — appear next to Stop when an agent hit context limit */
+.ctx-overflow-badge {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  padding: 2px 7px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 150ms, background 150ms;
+  position: relative;
+  top: 1px;
+  opacity: 0.85;
+}
+
+.ctx-overflow-badge:hover:not(:disabled) {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ctx-overflow-badge:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 /* ── Drag-over highlight ── */
 .input-box-dragover {
   border-color: rgba(63, 199, 235, 0.6);

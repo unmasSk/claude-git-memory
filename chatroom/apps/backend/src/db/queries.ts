@@ -183,13 +183,21 @@ export function updateLastSeenMessage(agentName: string, roomId: string, message
 }
 
 /**
- * Look up the created_at timestamp for a message by ID.
+ * Look up the created_at timestamp for a message by ID, scoped to a specific room.
+ *
+ * Scoping by room_id prevents cross-room cursor leakage: a cursor from room A
+ * cannot be used to probe the history of room B.
  *
  * @param id - Message ID
- * @returns ISO timestamp string, or null if the message does not exist
+ * @param roomId - Room the message must belong to
+ * @returns ISO timestamp string, or null if the message does not exist in that room
  */
-export function getMessageCreatedAt(id: string): string | null {
-  const row = getDb().query<{ created_at: string }, [string]>('SELECT created_at FROM messages WHERE id = ?').get(id);
+export function getMessageCreatedAt(id: string, roomId: string): string | null {
+  const row = getDb()
+    .query<{ created_at: string }, [string, string]>(
+      'SELECT created_at FROM messages WHERE id = ? AND room_id = ?',
+    )
+    .get(id, roomId);
   return row?.created_at ?? null;
 }
 

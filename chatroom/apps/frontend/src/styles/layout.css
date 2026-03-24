@@ -77,3 +77,24 @@
 .messages::-webkit-scrollbar        { width: 3px; }
 .messages::-webkit-scrollbar-track  { background: transparent; }
 .messages::-webkit-scrollbar-thumb  { background: oklch(30% 0.01 250); border-radius: 2px; }
+
+/* ── History loading spinner (top of message list) ── */
+.history-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 0;
+  color: var(--text-3);
+  /* z-index: 3 keeps the spinner above the scroll-fade mask (z-index: 2) */
+  position: relative;
+  z-index: 3;
+}
+
+.history-loader-icon {
+  animation: history-spin 1s linear infinite;
+}
+
+@keyframes history-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}

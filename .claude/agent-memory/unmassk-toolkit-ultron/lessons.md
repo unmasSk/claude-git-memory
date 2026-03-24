@@ -114,6 +114,10 @@ The orphaned subprocesses complete in the background without affecting test corr
 
 **Diagnostic pattern:** When removing a mock.module() to fix a leak, check if the mock was accidentally masking a different isolation bug (e.g., the mock made `doInvoke` undefined → TypeError → quick failure → pending invocations cleaned up). Always run targeted two-file test pairs to find the source of unexpected failures.
 
+## generateId() produces 16-char base64url strings, NOT UUIDs
+
+`generateId()` in `utils.ts` uses `randomBytes(12).toString('base64url')` — 16 characters matching `/^[A-Za-z0-9_-]{16}$/`. These are NOT RFC4122 UUIDs. Zod's `.uuid()` rejects them. When validating cursor/ID fields in schemas, use `.regex(/^[A-Za-z0-9_-]{16}$/)` instead of `.uuid()`. Test IDs must also match this format (16 base64url chars) or Zod schema validation will reject them before the handler runs.
+
 ## React StrictMode: second connect() call kills a CONNECTING socket
 
 StrictMode lifecycle: mount → connect(WS1) → unmount → cleanup(schedules disconnect 100ms) →

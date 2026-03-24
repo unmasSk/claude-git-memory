@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import type { Message } from '@agent-chatroom/shared';
 
+// Maximum number of messages kept in memory. When prependHistory causes the array to
+// exceed this limit, the newest excess messages are trimmed from the tail and their IDs
+// removed from seenIds so they can be re-fetched from the server if needed.
+const MAX_STORED_MESSAGES = 2000;
+
 interface ChatState {
   messages: Message[];
   isLoadingHistory: boolean;
@@ -44,11 +49,25 @@ export const useChatStore = create<ChatState>((set) => ({
       seenIds.add(m.id);
       return true;
     });
-    set((state) => ({
-      messages: [...fresh, ...state.messages],
-      hasMoreHistory: hasMore,
-      isLoadingHistory: false,
-    }));
+    set((state) => {
+      let combined = [...fresh, ...state.messages];
+      if (combined.length > MAX_STORED_MESSAGES) {
+        // combined is [old (prepended)…, newer…]. Trim from the tail (newest excess)
+        // so the bounded window slides toward older history as the user scrolls up.
+        // Remove evicted IDs from seenIds so they can be re-fetched if needed.
+        const trimmed = combined.slice(0, MAX_STORED_MESSAGES);
+        const kept = new Set(trimmed.map((m) => m.id));
+        for (const id of seenIds) {
+          if (!kept.has(id)) seenIds.delete(id);
+        }
+        combined = trimmed;
+      }
+      return {
+        messages: combined,
+        hasMoreHistory: hasMore,
+        isLoadingHistory: false,
+      };
+    });
   },
 
   clearMessages: () => {

@@ -97,7 +97,9 @@ export const ClientInvokeAgentSchema = z.object({
 
 export const ClientLoadHistorySchema = z.object({
   type: z.literal('load_history'),
-  before: z.string(),
+  // Restrict to the exact format produced by generateId() (16 base64url chars).
+  // Prevents arbitrary strings from reaching the DB cursor lookup.
+  before: z.string().regex(/^[A-Za-z0-9_-]{16}$/),
   limit: z.number().int().min(1).max(100),
 });
 
@@ -129,6 +131,11 @@ export const ClientStopAllSchema = z.object({
   type: z.literal('stop_all'),
 });
 
+export const ClientReinvokeFromContextSchema = z.object({
+  type: z.literal('reinvoke_from_context'),
+  agentName: z.string().min(1).max(64),
+});
+
 export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientSendMessageSchema,
   ClientInvokeAgentSchema,
@@ -139,6 +146,7 @@ export const ClientMessageSchema = z.discriminatedUnion('type', [
   ClientReadChatSchema,
   ClientClearQueueSchema,
   ClientStopAllSchema,
+  ClientReinvokeFromContextSchema,
 ]);
 
 // ---------------------------------------------------------------------------
@@ -218,6 +226,11 @@ export const ServerRoomCwdChangedSchema = z.object({
   cwd: z.string().nullable(),
 });
 
+export const ServerContextOverflowSchema = z.object({
+  type: z.literal('context_overflow'),
+  agentName: z.string().min(1).max(64).refine((v) => AGENT_BY_NAME.has(v), { message: 'Unknown agent name' }),
+});
+
 export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerRoomStateSchema,
   ServerNewMessageSchema,
@@ -228,6 +241,7 @@ export const ServerMessageSchema = z.discriminatedUnion('type', [
   ServerUserListUpdateSchema,
   ServerGitStatusSchema,
   ServerRoomCwdChangedSchema,
+  ServerContextOverflowSchema,
 ]);
 
 // Inferred types (for convenience — prefer the types from protocol.ts)

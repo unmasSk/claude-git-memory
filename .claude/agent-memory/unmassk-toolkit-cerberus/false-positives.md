@@ -77,3 +77,15 @@ After the 2026-03-23 rewrite, the `getDb()` singleton-identity tests in `connect
 ## IGNORECASE=1 replaced by tolower() in dockerfile-validate.sh awk
 
 In `dockerfile-validate.sh` around line 415, the comment explains that BSD awk (macOS) does not honour `IGNORECASE=1` for the `~` dynamic regex operator, only for literal `/patterns/`. Using `tolower()` before the `~` comparison is the correct workaround. Do not flag as inconsistent style.
+
+## agent-result-kill-guard.test.ts: broadcast contract is intentionally untested (bun mock constraint)
+
+The test `'persists message to DB when agent is killed (broadcast path reached via insertion ordering)'` does NOT directly verify that `message-bus.broadcast()` was called. The original assertion (`broadcastCalls.length > 0`) was removed because `mock.module('../../src/services/message-bus.js', ...)` leaks into bun 1.3.11's global module registry and breaks 32 other tests.
+
+The replacement assertion (`countAgentMessages(ROOM, AGENT) > 0`) only verifies message persistence, not broadcast. This is a documented, acknowledged coverage gap — not a mistake. The comment in the test explains the constraint and the proxy reasoning.
+
+Do NOT flag this as a missing assertion bug. The correct long-term fix is DI for the broadcast function so mock.module is not needed — but that is a future Dante task, not a present bug.
+
+## afterAll scheduler cleanup in kill-guard test is order-dependent by design
+
+`afterAll(() => { activeInvocations.clear(); inFlight.clear(); })` at the bottom of `agent-result-kill-guard.test.ts` deliberately clears global state left by `agent-invoker-schedule.test.ts`. This looks like a test that is cleaning up after a different test file, which would normally be a flaky pattern. It IS that — but it is intentional, documented, and the alternative (running each file in isolation) is not supported by the current bun test runner. Do not flag as a shared-state anti-pattern without reading the comment block first.

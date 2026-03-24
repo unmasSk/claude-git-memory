@@ -127,6 +127,8 @@ function handleServerMessage(event: MessageEvent) {
       chatStore.appendMessages(parsed.messages);
       agentStore.setAgents(parsed.agents);
       agentStore.setConnectedUsers(parsed.connectedUsers ?? []);
+      // Clear stale context-overflow badges on reconnect — server does not re-emit them
+      agentStore.clearAllOutOfContext();
       // Circuit breaker reset: room_state is proof the backend is alive.
       // Only reset here, NOT in onopen (phantom Vite proxy opens don't count).
       reconnectAttempts = 0;
@@ -186,6 +188,10 @@ function handleServerMessage(event: MessageEvent) {
 
     case 'room_cwd_changed':
       useAgentStore.getState().updateRoomCwd(parsed.roomId, parsed.cwd);
+      break;
+
+    case 'context_overflow':
+      agentStore.addOutOfContext(parsed.agentName);
       break;
 
     case 'error':

@@ -141,6 +141,11 @@ export interface ClientStopAll {
   type: 'stop_all';
 }
 
+export interface ClientReinvokeFromContext {
+  type: 'reinvoke_from_context';
+  agentName: string;
+}
+
 export type ClientMessage =
   | ClientSendMessage
   | ClientInvokeAgent
@@ -150,7 +155,8 @@ export type ClientMessage =
   | ClientResumeAgent
   | ClientReadChat
   | ClientClearQueue
-  | ClientStopAll;
+  | ClientStopAll
+  | ClientReinvokeFromContext;
 
 // ---------------------------------------------------------------------------
 // Server → Client messages
@@ -223,6 +229,11 @@ export interface ServerRoomCwdChanged {
   cwd: string | null;
 }
 
+export interface ServerContextOverflow {
+  type: 'context_overflow';
+  agentName: string;
+}
+
 export type ServerMessage =
   | ServerRoomState
   | ServerNewMessage
@@ -232,4 +243,5 @@ export type ServerMessage =
   | ServerError
   | ServerUserListUpdate
   | ServerGitStatus
-  | ServerRoomCwdChanged;
+  | ServerRoomCwdChanged
+  | ServerContextOverflow;

@@ -39,6 +39,7 @@ import {
   handleResumeAgent,
   handleReadChat,
   handleStopAll,
+  handleReinvokeFromContext,
 } from './ws-control-handlers.js';
 import { clearQueue } from '../services/agent-invoker.js';
 import { postSystemMessage } from '../services/agent-runner.js';
@@ -251,6 +252,9 @@ export function message(ws: any, rawMessage: unknown): void {
     }
     case 'stop_all':
       handleStopAll(ws, roomId);
+      break;
+    case 'reinvoke_from_context':
+      handleReinvokeFromContext(ws, roomId, msg.agentName);
       break;
   }
 }

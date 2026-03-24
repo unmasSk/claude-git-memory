@@ -444,7 +444,7 @@ describe('GOLDEN — message() parse and validation guards (ws-handlers.ts)', ()
   it('valid load_history message is dispatched without VALIDATION_ERROR', () => {
     const ws = setupConnectedWs('wsh-msg-loadhist-user');
     const initialCount = ws._sent.length;
-    message(ws, JSON.stringify({ type: 'load_history', before: 'some-id', limit: 50 }));
+    message(ws, JSON.stringify({ type: 'load_history', before: 'AAAAAAAAAAAAAAAA', limit: 50 }));
     const validationError = ws._sent.slice(initialCount).find((s) => {
       try { return JSON.parse(s).code === 'VALIDATION_ERROR'; } catch { return false; }
     });
@@ -579,7 +579,7 @@ describe('GOLDEN — message() routing contract (ws-handlers.ts)', () => {
     const ws = makeFakeWs(ROOM_ROUTE, token, ORIGIN);
     open(ws);
     const initialCount = ws._sent.length;
-    message(ws, JSON.stringify({ type: 'load_history', before: 'fake-msg-id-xyz', limit: 10 }));
+    message(ws, JSON.stringify({ type: 'load_history', before: 'BBBBBBBBBBBBBBBB', limit: 10 }));
     const histPage = ws._sent.slice(initialCount).find((s) => {
       try { return JSON.parse(s).type === 'history_page'; } catch { return false; }
     });
@@ -591,7 +591,7 @@ describe('GOLDEN — message() routing contract (ws-handlers.ts)', () => {
     const ws = makeFakeWs(ROOM_ROUTE, token, ORIGIN);
     open(ws);
     const initialCount = ws._sent.length;
-    message(ws, JSON.stringify({ type: 'load_history', before: 'fake-msg-id-abc', limit: 5 }));
+    message(ws, JSON.stringify({ type: 'load_history', before: 'CCCCCCCCCCCCCCCC', limit: 5 }));
     const raw = ws._sent.slice(initialCount).find((s) => {
       try { return JSON.parse(s).type === 'history_page'; } catch { return false; }
     });
@@ -599,5 +599,84 @@ describe('GOLDEN — message() routing contract (ws-handlers.ts)', () => {
     const page = JSON.parse(raw!);
     expect(Array.isArray(page.messages)).toBe(true);
     expect(typeof page.hasMore).toBe('boolean');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GOLDEN: message() routing — reinvoke_from_context (#47)
+// ---------------------------------------------------------------------------
+
+describe('GOLDEN — message() routing: reinvoke_from_context (ws-handlers.ts)', () => {
+  const ROOM_REINVOKE = 'wsh-golden-room';
+  const ORIGIN = getAllowedOrigin();
+
+  function setupConnectedWs(name: string): FakeWs {
+    const token = createToken(name);
+    const ws = makeFakeWs(ROOM_REINVOKE, token, ORIGIN);
+    open(ws);
+    return ws;
+  }
+
+  afterEach(() => {
+    for (const [connId, state] of connStates) {
+      if (state.roomId === ROOM_REINVOKE) {
+        connStates.delete(connId);
+        const set = roomConns.get(ROOM_REINVOKE);
+        if (set) { set.delete(connId); if (set.size === 0) roomConns.delete(ROOM_REINVOKE); }
+      }
+    }
+    for (const [key] of wsConnIds) {
+      wsConnIds.delete(key);
+    }
+  });
+
+  it('valid agent: no VALIDATION_ERROR sent', () => {
+    const ws = setupConnectedWs('wsh-reinvoke-user-a');
+    const initialCount = ws._sent.length;
+    message(ws, JSON.stringify({ type: 'reinvoke_from_context', agentName: 'ultron' }));
+    const validationError = ws._sent.slice(initialCount).find((s) => {
+      try { return JSON.parse(s).code === 'VALIDATION_ERROR'; } catch { return false; }
+    });
+    expect(validationError).toBeUndefined();
+  });
+
+  it('valid agent: no UNKNOWN_AGENT error sent', () => {
+    const ws = setupConnectedWs('wsh-reinvoke-user-b');
+    const initialCount = ws._sent.length;
+    message(ws, JSON.stringify({ type: 'reinvoke_from_context', agentName: 'ultron' }));
+    const unknownAgent = ws._sent.slice(initialCount).find((s) => {
+      try { return JSON.parse(s).code === 'UNKNOWN_AGENT'; } catch { return false; }
+    });
+    expect(unknownAgent).toBeUndefined();
+  });
+
+  it('unknown agentName: sends UNKNOWN_AGENT error', () => {
+    const ws = setupConnectedWs('wsh-reinvoke-user-c');
+    const initialCount = ws._sent.length;
+    message(ws, JSON.stringify({ type: 'reinvoke_from_context', agentName: 'nonexistent-xyz-agent' }));
+    const unknownAgent = ws._sent.slice(initialCount).find((s) => {
+      try { return JSON.parse(s).code === 'UNKNOWN_AGENT'; } catch { return false; }
+    });
+    expect(unknownAgent).toBeDefined();
+  });
+
+  it('missing agentName field: sends VALIDATION_ERROR', () => {
+    const ws = setupConnectedWs('wsh-reinvoke-user-d');
+    const initialCount = ws._sent.length;
+    message(ws, JSON.stringify({ type: 'reinvoke_from_context' }));
+    const validationError = ws._sent.slice(initialCount).find((s) => {
+      try { return JSON.parse(s).code === 'VALIDATION_ERROR'; } catch { return false; }
+    });
+    expect(validationError).toBeDefined();
+  });
+
+  it('empty string agentName: sends VALIDATION_ERROR (min(1) constraint)', () => {
+    const ws = setupConnectedWs('wsh-reinvoke-user-e');
+    const initialCount = ws._sent.length;
+    message(ws, JSON.stringify({ type: 'reinvoke_from_context', agentName: '' }));
+    const validationError = ws._sent.slice(initialCount).find((s) => {
+      try { return JSON.parse(s).code === 'VALIDATION_ERROR'; } catch { return false; }
+    });
+    expect(validationError).toBeDefined();
   });
 });

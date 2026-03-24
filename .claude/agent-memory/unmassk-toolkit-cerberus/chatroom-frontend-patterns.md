@@ -61,6 +61,36 @@ Score: 70/110 (+2 from 68)
 **Why:** Structure dimension now full marks. Testing remains the biggest drag.
 **How to apply:** On re-audit after test suite is added, re-score Testing from 0. After AGENT_COLOR DRY fix, +1 Maintainability.
 
+## Re-Audit 2026-03-24 — MessageList infinite scroll + chat-store ceiling fixes
+
+### All 10 original findings verified RESOLVED
+- F-001 (T2): 10s timeout on loadHistory — RESOLVED. historyTimeoutRef setTimeout(10000) present.
+- F-002 (T2): useCallback on handleScroll — RESOLVED. useCallback with empty deps [] correct.
+- F-003 (T2): useCallback on handleScrollToBottom — RESOLVED. useCallback with empty deps [] correct.
+- F-004 (T2): isPrependingRef replacing null-check race — RESOLVED. useRef(false) used throughout; no null race.
+- SEC-MED-001 (backend): before validated with regex + getMessageCreatedAt scoped by roomId — RESOLVED. schemas.ts line 102: /^[A-Za-z0-9_-]{16}$/ present; queries.ts line 196–201: two-param scoped query present.
+- SEC-LOW-001: 1000ms client-side throttle on load_history — RESOLVED. lastHistoryRequestRef + 1000ms guard at lines 134–136.
+- SEC-LOW-002: MAX_STORED_MESSAGES = 2000 ceiling with tail trim — RESOLVED. chat-store.ts line 7 + slice(0,2000) + seenIds eviction.
+- F-006 (T3): rootMargin '100px 0px 0px 0px' — RESOLVED. layout.css line 173.
+- F-008 (T3): aria-hidden="true" on sentinel — RESOLVED. MessageList.tsx line 205.
+- F-009 (T3): z-index: 3 on .history-loader — RESOLVED. layout.css line 90.
+- F-010 (T3): @keyframes spin → history-spin — RESOLVED. layout.css line 94/97.
+
+### New finding (T3 — non-blocking)
+- MessageList.tsx:155: `loadHistory` useCallback includes `messages` (full array) in deps. `messages` is a new reference on every WS message received. This causes `loadHistory` to be recreated on every message, which causes the IntersectionObserver useEffect (dep: loadHistory) to disconnect and reconnect its observer on every message. Use `messages[0]?.id` (primitive) as the dep instead of `messages`.
+
+### Score after fixes: 76/110 (+6 from 68, +4 from 70 post-CSS baseline)
+- Security: 9/9 (full marks — SEC-MED-001 + SEC-LOW-001 + SEC-LOW-002 all confirmed)
+- Error Handling: 8/9 (+2: timeout guard + isPrependingRef race)
+- Structure: 8/8 (unchanged full marks)
+- Testing: 2/8 (+2: chat-store.test.ts covers prependHistory, dedupe, setLoadingHistory)
+- Maintainability: 3/5 (unchanged)
+
+### Intentional patterns (do NOT flag)
+- `messages` in loadHistory useCallback dep array: technically causes observer churn but is functionally correct. Observer re-registers before next scroll event. T3 only — do not treat as T2.
+- MAX_STORED_MESSAGES trim slices oldest-first (keeps [0..2000]): correct — fresh prepended messages are at index 0; evicting the tail removes the newest-in-store, not the messages the user just loaded.
+- `seenIds` eviction loop: O(n) on every prepend over 2000 messages — acceptable for this workload.
+
 ## WS Reconnect Fix — Round 1 Issues (RESOLVED in Round 2)
 
 - T2: `offline` status has no escape path — RESOLVED: retryOffline() + visibilitychange + sb-retry-btn added

@@ -251,9 +251,17 @@ export function handleLoadHistory(ws: any, roomId: string, before: string, limit
   if (!room) { sendError(ws, 'Room not found', 'ROOM_NOT_FOUND'); return; }
 
   const clampedLimit = Math.min(limit, 100);
+
+  // SEC-MED-001: scope cursor lookup to the current room — a message ID from another room
+  // returns null here, so we respond with an empty page instead of leaking cross-room history.
+  const pivotCreatedAt = getMessageCreatedAt(before, roomId);
+  if (!pivotCreatedAt) {
+    ws.send(JSON.stringify({ type: 'history_page', messages: [], hasMore: false } satisfies ServerMessage));
+    return;
+  }
+
   const rows = getMessagesBefore(roomId, before, clampedLimit);
-  const pivotCreatedAt = getMessageCreatedAt(before);
-  const hasMore = pivotCreatedAt ? hasMoreMessagesBefore(roomId, pivotCreatedAt) : false;
+  const hasMore = hasMoreMessagesBefore(roomId, pivotCreatedAt);
 
   // getMessagesBefore returns DESC — reverse to chronological order
   const safeMessages = enrichWithAttachments(rows.reverse().map(mapMessageRow)).map(safeMessage);

@@ -66,6 +66,8 @@ export function MessageInput() {
   const send = useWsStore((s) => s.send);
   const status = useWsStore((s) => s.status);
   const room = useAgentStore((s) => s.room);
+  const agentsOutOfContext = useAgentStore((s) => s.agentsOutOfContext);
+  const clearOutOfContext = useAgentStore((s) => s.clearOutOfContext);
 
   const {
     showDropdown,
@@ -291,6 +293,11 @@ export function MessageInput() {
     send({ type: 'stop_all' });
   }, [send]);
 
+  const reinvokeFromContext = useCallback((agentName: string) => {
+    send({ type: 'reinvoke_from_context', agentName });
+    clearOutOfContext(agentName);
+  }, [send, clearOutOfContext]);
+
   // --- Paste handler ---
   const handlePaste = useCallback((e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const files = e.clipboardData.files;
@@ -448,6 +455,20 @@ export function MessageInput() {
             >
               <Square size={13} />
             </button>
+            {Array.from(agentsOutOfContext).map((agentName) => (
+              <button
+                key={agentName}
+                className="ctx-overflow-badge"
+                type="button"
+                disabled={status !== 'connected'}
+                style={{ color: `var(--color-agent-${agentName}, #f4a261)` }}
+                onClick={() => reinvokeFromContext(agentName)}
+                title={`${agentName} ran out of context — click to reinvoke`}
+                aria-label={`Reinvoke ${agentName} after context overflow`}
+              >
+                ⚠ {agentName}
+              </button>
+            ))}
           </div>
 
           <div className="input-icons">

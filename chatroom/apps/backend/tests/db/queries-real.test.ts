@@ -251,12 +251,12 @@ describe('queries.ts — real module — messages', () => {
     `,
       )
       .run();
-    const ts = getMessageCreatedAt('qr-ts');
+    const ts = getMessageCreatedAt('qr-ts', 'default');
     expect(ts).toBe('2026-03-17T10:01:00.000Z');
   });
 
   it('getMessageCreatedAt returns null for unknown ID', () => {
-    expect(getMessageCreatedAt('no-such-id')).toBeNull();
+    expect(getMessageCreatedAt('no-such-id', 'default')).toBeNull();
   });
 
   it('hasMoreMessagesBefore returns true when older messages exist', () => {
@@ -270,7 +270,7 @@ describe('queries.ts — real module — messages', () => {
         )
         .run(`qr-hm-00${i}`, `m${i}`, `2026-03-17T10:0${i}:00.000Z`);
     }
-    const pivotTs = getMessageCreatedAt('qr-hm-003');
+    const pivotTs = getMessageCreatedAt('qr-hm-003', 'default');
     expect(hasMoreMessagesBefore('default', pivotTs!)).toBe(true);
   });
 
@@ -283,7 +283,7 @@ describe('queries.ts — real module — messages', () => {
     `,
       )
       .run();
-    const ts = getMessageCreatedAt('qr-solo');
+    const ts = getMessageCreatedAt('qr-solo', 'default');
     expect(hasMoreMessagesBefore('default', ts!)).toBe(false);
   });
 });

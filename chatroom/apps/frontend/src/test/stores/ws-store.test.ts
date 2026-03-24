@@ -12,6 +12,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useWsStore } from '../../stores/ws-store';
+import { useAgentStore } from '../../stores/agent-store';
 
 // -------------------------------------------------------------------------
 // Fake WebSocket — must be a class so `new WebSocket(url)` works
@@ -80,25 +81,34 @@ async function flushPromises(): Promise<void> {
 // Tests
 // -------------------------------------------------------------------------
 describe('ws-store — state machine transitions', () => {
+  let _origWebSocket: typeof globalThis.WebSocket;
+  let _origFetch: typeof globalThis.fetch;
+  let mockFetch: ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
     // Reset store to clean state first
     useWsStore.getState().disconnect();
 
     vi.useFakeTimers();
 
+    _origWebSocket = globalThis.WebSocket;
+    _origFetch = globalThis.fetch;
+
     // Stub global WebSocket with a constructable class
-    vi.stubGlobal('WebSocket', FakeWebSocket);
+    (globalThis as any).WebSocket = FakeWebSocket;
 
     // Default: fetch resolves with a token
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ token: 'test-token' }),
-    }));
+    });
+    (globalThis as any).fetch = mockFetch;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    globalThis.WebSocket = _origWebSocket;
+    globalThis.fetch = _origFetch;
     vi.useRealTimers();
     useWsStore.getState().disconnect();
   });
@@ -143,7 +153,8 @@ describe('ws-store — state machine transitions', () => {
     expect(useWsStore.getState().status).toBe('disconnected');
 
     // After the reconnect delay fires, connect() is called again → status: connecting
-    await vi.runAllTimersAsync();
+    vi.runAllTimers();
+    await flushPromises();
     // The reconnect triggers another fetch cycle → still connecting or beyond
     expect(['connecting', 'connected']).toContain(useWsStore.getState().status);
   });
@@ -157,7 +168,8 @@ describe('ws-store — state machine transitions', () => {
     // Intentionally disconnect — clears roomId so the reconnect guard aborts
     useWsStore.getState().disconnect();
 
-    await vi.runAllTimersAsync();
+    vi.runAllTimers();
+    await flushPromises();
     // roomId is null → reconnect guard skips, remains disconnected
     expect(useWsStore.getState().status).toBe('disconnected');
     expect(useWsStore.getState().roomId).toBeNull();
@@ -168,24 +180,24 @@ describe('ws-store — state machine transitions', () => {
     // connectingRoomId is set — second call is silently ignored
     useWsStore.getState().connect('default');
     // Only one fetch should have been issued
-    expect(vi.mocked(fetch)).toHaveBeenCalledTimes(1);
+    expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
   it('auth fetch failure sets status back to disconnected', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 401,
-    }));
+    });
     useWsStore.getState().connect('default');
     await flushPromises();
     expect(useWsStore.getState().status).toBe('disconnected');
   });
 
   it('circuit breaker: 3 consecutive auth failures enter offline mode', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 503,
-    }));
+    });
 
     // Failure 1
     useWsStore.getState().connect('default');
@@ -193,11 +205,11 @@ describe('ws-store — state machine transitions', () => {
     expect(useWsStore.getState().status).toBe('disconnected');
 
     // Advance past the reconnect delay to trigger failure 2
-    await vi.advanceTimersByTimeAsync(2000);
+    vi.advanceTimersByTime(2000);
     await flushPromises();
 
     // Advance past the reconnect delay to trigger failure 3 → offline
-    await vi.advanceTimersByTimeAsync(4000);
+    vi.advanceTimersByTime(4000);
     await flushPromises();
 
     expect(useWsStore.getState().status).toBe('offline');
@@ -205,7 +217,7 @@ describe('ws-store — state machine transitions', () => {
 
   it('disconnect() resets counters so a fresh connect() starts clean', async () => {
     // Cause 1 auth failure (not enough to trip the circuit breaker at 3)
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
     useWsStore.getState().connect('default');
     await flushPromises();
     // Status is disconnected after 1 failure; a reconnect timer is pending
@@ -215,10 +227,10 @@ describe('ws-store — state machine transitions', () => {
     useWsStore.getState().disconnect();
 
     // Reconnect with a working server — should succeed, proving counters were reset
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ token: 'test-token' }),
-    }));
+    });
     useWsStore.getState().connect('default');
     await flushPromises();
     lastWs.triggerOpen();
@@ -241,5 +253,170 @@ describe('ws-store — state machine transitions', () => {
 
     // After room_state, the store should still be connected (counters reset internally)
     expect(useWsStore.getState().status).toBe('connected');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ws-store — context_overflow message routing → agentsOutOfContext
+// ---------------------------------------------------------------------------
+
+describe('ws-store — context_overflow message: agentsOutOfContext integration', () => {
+  let _origWebSocket2: typeof globalThis.WebSocket;
+  let _origFetch2: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    useWsStore.getState().disconnect();
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(),
+    });
+
+    vi.useFakeTimers();
+    _origWebSocket2 = globalThis.WebSocket;
+    _origFetch2 = globalThis.fetch;
+    (globalThis as any).WebSocket = FakeWebSocket;
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ token: 'test-token' }),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    globalThis.WebSocket = _origWebSocket2;
+    globalThis.fetch = _origFetch2;
+    vi.useRealTimers();
+    useWsStore.getState().disconnect();
+  });
+
+  it('context_overflow message adds the agentName to agentsOutOfContext', async () => {
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    lastWs.triggerMessage({
+      type: 'context_overflow',
+      agentName: 'ultron',
+    });
+
+    expect(useAgentStore.getState().agentsOutOfContext.has('ultron')).toBe(true);
+  });
+
+  it('context_overflow with multiple agents accumulates them all', async () => {
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    lastWs.triggerMessage({ type: 'context_overflow', agentName: 'ultron' });
+    lastWs.triggerMessage({ type: 'context_overflow', agentName: 'cerberus' });
+
+    const set = useAgentStore.getState().agentsOutOfContext;
+    expect(set.has('ultron')).toBe(true);
+    expect(set.has('cerberus')).toBe(true);
+    expect(set.size).toBe(2);
+  });
+
+  it('context_overflow does not affect ws status (stays connected)', async () => {
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    lastWs.triggerMessage({ type: 'context_overflow', agentName: 'argus' });
+
+    expect(useWsStore.getState().status).toBe('connected');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ws-store — room_state message routing → clearAllOutOfContext
+// ---------------------------------------------------------------------------
+
+describe('ws-store — room_state message: clears agentsOutOfContext', () => {
+  let _origWebSocket3: typeof globalThis.WebSocket;
+  let _origFetch3: typeof globalThis.fetch;
+
+  beforeEach(() => {
+    useWsStore.getState().disconnect();
+    useAgentStore.setState({
+      agents: new Map(),
+      room: null,
+      connectedUsers: [],
+      agentsOutOfContext: new Set<string>(['ultron', 'cerberus', 'argus']),
+    });
+
+    vi.useFakeTimers();
+    _origWebSocket3 = globalThis.WebSocket;
+    _origFetch3 = globalThis.fetch;
+    (globalThis as any).WebSocket = FakeWebSocket;
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ token: 'test-token' }),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    globalThis.WebSocket = _origWebSocket3;
+    globalThis.fetch = _origFetch3;
+    vi.useRealTimers();
+    useWsStore.getState().disconnect();
+  });
+
+  it('room_state message clears all entries from agentsOutOfContext', async () => {
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    // Pre-condition: set has 3 agents
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(3);
+
+    lastWs.triggerMessage({
+      type: 'room_state',
+      room: { id: 'default', name: 'Default', topic: '', createdAt: new Date().toISOString() },
+      messages: [],
+      agents: [],
+      connectedUsers: [],
+    });
+
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(0);
+  });
+
+  it('room_state clears agentsOutOfContext even when it was empty', async () => {
+    useAgentStore.setState({ agentsOutOfContext: new Set<string>() });
+
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    lastWs.triggerMessage({
+      type: 'room_state',
+      room: { id: 'default', name: 'Default', topic: '', createdAt: new Date().toISOString() },
+      messages: [],
+      agents: [],
+      connectedUsers: [],
+    });
+
+    expect(useAgentStore.getState().agentsOutOfContext.size).toBe(0);
+  });
+
+  it('context_overflow added before room_state is cleared on reconnect', async () => {
+    // Simulate: agent runs, overflows, then user reconnects (room_state fires)
+    useAgentStore.setState({ agentsOutOfContext: new Set<string>(['bilbo']) });
+
+    useWsStore.getState().connect('default');
+    await flushPromises();
+    lastWs.triggerOpen();
+
+    lastWs.triggerMessage({
+      type: 'room_state',
+      room: { id: 'default', name: 'Default', topic: '', createdAt: new Date().toISOString() },
+      messages: [],
+      agents: [],
+      connectedUsers: [],
+    });
+
+    expect(useAgentStore.getState().agentsOutOfContext.has('bilbo')).toBe(false);
   });
 });

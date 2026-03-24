@@ -135,7 +135,15 @@ const wsConnIds = new Map<string, string>();
 beforeAll(async () => {
   testDb = makeDb();
 
-  // Insert some messages for history tests
+  // Insert some messages for history tests.
+  // IDs must match generateId() format: 16 base64url chars [A-Za-z0-9_-].
+  const histMsgIds = [
+    'histMsgId0000001',
+    'histMsgId0000002',
+    'histMsgId0000003',
+    'histMsgId0000004',
+    'histMsgId0000005',
+  ];
   for (let i = 1; i <= 5; i++) {
     testDb
       .query(
@@ -144,7 +152,7 @@ beforeAll(async () => {
       VALUES (?, 'default', 'user', 'human', ?, 'message', NULL, '{}', ?)
     `,
       )
-      .run(`hist-msg-00${i}`, `history message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
+      .run(histMsgIds[i - 1]!, `history message ${i}`, `2026-03-17T10:0${i}:00.000Z`);
   }
 
   const testApp = new Elysia()
@@ -603,7 +611,7 @@ describe('WS load_history', () => {
   it('returns history_page with messages and hasMore', async () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const histPagePromise = waitForMessageType(ws, 'history_page');
-    ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 10 }));
+    ws.send(JSON.stringify({ type: 'load_history', before: 'histMsgId0000005', limit: 10 }));
     const histPage = (await histPagePromise) as { messages: unknown[]; hasMore: boolean };
     ws.close();
 
@@ -614,18 +622,18 @@ describe('WS load_history', () => {
   it('returns messages before the pivot in ascending order', async () => {
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     const histPagePromise = waitForMessageType(ws, 'history_page');
-    ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 10 }));
+    ws.send(JSON.stringify({ type: 'load_history', before: 'histMsgId0000005', limit: 10 }));
     const histPage = (await histPagePromise) as {
       messages: Array<{ id: string; createdAt: string }>;
       hasMore: boolean;
     };
     ws.close();
 
-    // Should contain hist-msg-001 through hist-msg-004 (before msg-005)
+    // Should contain msgs 1-4 (before msg-005)
     const ids = histPage.messages.map((m) => m.id);
-    expect(ids).toContain('hist-msg-001');
-    expect(ids).toContain('hist-msg-004');
-    expect(ids).not.toContain('hist-msg-005');
+    expect(ids).toContain('histMsgId0000001');
+    expect(ids).toContain('histMsgId0000004');
+    expect(ids).not.toContain('histMsgId0000005');
 
     // Verify ascending order
     for (let i = 1; i < histPage.messages.length; i++) {
@@ -634,13 +642,13 @@ describe('WS load_history', () => {
   });
 
   it('hasMore is true when there are messages older than the pivot', async () => {
-    // hist-msg-005 has msgs 1-4 before it and we request limit=2 → hasMore=true
+    // msg-005 has msgs 1-4 before it and we request limit=2 → hasMore=true
     const ws = await openWsReady(`${wsUrl}/ws/default`);
     // Set up the history_page listener BEFORE sending to avoid race
     const histPagePromise = waitForMessageType(ws, 'history_page', 5000);
     // Small yield to ensure listener is registered
     await new Promise<void>((r) => setTimeout(r, 10));
-    ws.send(JSON.stringify({ type: 'load_history', before: 'hist-msg-005', limit: 2 }));
+    ws.send(JSON.stringify({ type: 'load_history', before: 'histMsgId0000005', limit: 2 }));
     const histPage = (await histPagePromise) as { messages: unknown[]; hasMore: boolean };
     ws.close();
 

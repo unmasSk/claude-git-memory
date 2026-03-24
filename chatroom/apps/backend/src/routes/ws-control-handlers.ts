@@ -229,6 +229,36 @@ export function handleStopAll(ws: any, roomId: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// reinvoke_from_context
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle a reinvoke_from_context client message.
+ * Invokes the named agent with a fresh session (session was already cleared when
+ * context overflow was detected). No --resume flag will be added because there is
+ * no session ID in the DB.
+ *
+ * @param ws - The Elysia WebSocket instance.
+ * @param roomId - The room scope.
+ * @param agentName - The agent to reinvoke.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function handleReinvokeFromContext(ws: any, roomId: string, agentName: string): void {
+  const agentConf = getAgentConfig(agentName);
+  if (!agentConf || !agentConf.invokable) {
+    sendError(ws, `Unknown or non-invokable agent: ${agentName}`, 'UNKNOWN_AGENT');
+    return;
+  }
+
+  const room = getRoomById(roomId);
+  if (!room) { sendError(ws, 'Room not found', 'ROOM_NOT_FOUND'); return; }
+
+  logger.info({ agentName, roomId }, 'WS reinvoke_from_context: reinvoking agent after context overflow');
+  void postSystemMessage(roomId, `Reinvoking ${agentName} (fresh session after context overflow)...`);
+  invokeAgent(roomId, agentName, 'Context overflow recovery — please resume the pipeline from where you left off.');
+}
+
+// ---------------------------------------------------------------------------
 // read_chat
 // ---------------------------------------------------------------------------
 

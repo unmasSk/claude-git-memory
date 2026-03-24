@@ -153,10 +153,15 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
       const limit = Math.max(1, Math.min(Number(query.limit ?? ROOM_STATE_MESSAGE_LIMIT), 100));
 
       if (query.before) {
+        // SEC-MED-001 (mirror WS handler): validate cursor ownership first.
+        // If the message ID does not exist in this room, return an empty page
+        // instead of leaking cross-room data or calling getMessagesBefore with a stale cursor.
+        const pivotCreatedAt = getMessageCreatedAt(query.before, params.id);
+        if (!pivotCreatedAt) {
+          return { messages: [], hasMore: false };
+        }
         const rows = getMessagesBefore(params.id, query.before, limit);
-        // hasMoreMessagesBefore needs a created_at timestamp, not a message ID
-        const pivotCreatedAt = getMessageCreatedAt(query.before);
-        const hasMore = pivotCreatedAt ? hasMoreMessagesBefore(params.id, pivotCreatedAt) : false;
+        const hasMore = hasMoreMessagesBefore(params.id, pivotCreatedAt);
         // getMessagesBefore returns DESC — reverse to chronological order
         return {
           messages: enrichWithAttachments(rows.reverse().map(mapMessageRow)).map(safeMessage),
@@ -174,7 +179,9 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
       params: t.Object({ id: t.String() }),
       query: t.Object({
         limit: t.Optional(t.Numeric()),
-        before: t.Optional(t.String()),
+        // SEC-INFO-NEW-001: constrain cursor format to the 16-char nanoid alphabet used by the DB.
+        // Mirrors the WS-side Zod regex /^[A-Za-z0-9_-]{16}$/ (ClientMessageSchema).
+        before: t.Optional(t.String({ minLength: 16, maxLength: 16, pattern: '^[A-Za-z0-9_-]{16}$' })),
       }),
     },
   )

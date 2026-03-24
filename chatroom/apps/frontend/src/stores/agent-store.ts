@@ -17,6 +17,7 @@ interface AgentStoreState {
   agents: Map<string, AgentStatusUI>;
   room: Room | null;
   connectedUsers: ConnectedUser[];
+  agentsOutOfContext: Set<string>;
 
   setRoom: (room: Room) => void;
   setAgents: (agents: AgentStatus[]) => void;
@@ -35,6 +36,9 @@ interface AgentStoreState {
     },
   ) => void;
   getOnlineAgents: () => AgentStatusUI[];
+  addOutOfContext: (agentName: string) => void;
+  clearOutOfContext: (agentName: string) => void;
+  clearAllOutOfContext: () => void;
 }
 
 const ACTIVE_STATES = new Set<AgentState>([AgentState.Thinking, AgentState.ToolUse]);
@@ -43,6 +47,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
   agents: new Map(),
   room: null,
   connectedUsers: [],
+  agentsOutOfContext: new Set<string>(),
 
   setRoom: (room) => set({ room }),
 
@@ -134,4 +139,22 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
     const { agents } = get();
     return Array.from(agents.values()).filter((a) => a.status !== AgentState.Out);
   },
+
+  addOutOfContext: (agentName) =>
+    set((state) => ({
+      agentsOutOfContext: new Set([...state.agentsOutOfContext, agentName]),
+    })),
+
+  clearOutOfContext: (agentName) =>
+    set((state) => {
+      const next = new Set(state.agentsOutOfContext);
+      next.delete(agentName);
+      return { agentsOutOfContext: next };
+    }),
+
+  clearAllOutOfContext: () => set({ agentsOutOfContext: new Set<string>() }),
 }));
+
+if (import.meta.env.DEV) {
+  (window as any).__agentStore = useAgentStore;
+}
