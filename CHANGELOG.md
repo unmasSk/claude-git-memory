@@ -1,11 +1,18 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.1] - 2026-03-24
+
+### Fixed
+- All 10 agent prompts: replaced routing language (`flag to X`, `route to X`, `@mention`) with scope declarations (`X's scope`). Agents outside chatroom cannot invoke each other — they only report back to the orchestrator.
+- Ultron: added missing "The Team" table, removed leftover v1-to-v2 meta sections ("Things Cut From v1", "Summary of Changes").
+- Cerberus: completed "The Team" table (was missing House, Bilbo, Alexandria, Gitto).
+- Removed chatroom V2 reference files (`chatroom/*-system-prompt-v2.md`) — V2 is now canonical only in plugin source (`unmassk-toolkit/agents/`).
+
+## [1.1.0] - 2026-03-24
 
 ### Added
 - `compliance-legal-docs` skill: SKILL.md created with 42-reference routing table organized by category (contract review, GDPR/privacy, risk assessment, litigation, French employment law, vendor due diligence, document processing, legal ops)
 - V2 system prompts for all 10 agents (alexandria, argus, bilbo, cerberus, dante, gitto, house, moriarty, ultron, yoda): universal format with The Team table, EXHAUSTION PROTOCOL, plain agent names (no @mentions), and no chatroom references — prompts work in any Claude Code context. Each agent self-reviewed their V2 draft and restored load-bearing V1 content that the initial rewrite lost.
-- V2 prompts applied to both project source (`unmassk-toolkit/agents/`) and chatroom root (`chatroom/*-system-prompt-v2.md`) — V2 is now canonical in both locations.
 - 5-phase agent pipeline: `PIPELINE_GENERIC` and `AGENT_PIPELINE_POSITION` rewritten. Each agent has an explicit chain position entry covering role, when to act, and when to skip.
 
 ### Fixed
