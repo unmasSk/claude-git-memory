@@ -180,3 +180,15 @@ export function getAllAgents(): AgentConfig[] {
   const reg = _registry ?? buildRegistry();
   return Array.from(reg.values());
 }
+
+/**
+ * Override the in-memory registry for testing purposes.
+ *
+ * Pass a Map to inject a controlled registry, or null to clear it so the
+ * next call to getAgentConfig / getAllAgents rebuilds from disk.
+ *
+ * ONLY call this from test files. Never use in production code.
+ */
+export function _setRegistryForTesting(registry: Map<string, AgentConfig> | null): void {
+  _registry = registry;
+}

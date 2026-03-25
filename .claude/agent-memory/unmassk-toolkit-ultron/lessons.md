@@ -114,6 +114,18 @@ The orphaned subprocesses complete in the background without affecting test corr
 
 **Diagnostic pattern:** When removing a mock.module() to fix a leak, check if the mock was accidentally masking a different isolation bug (e.g., the mock made `doInvoke` undefined → TypeError → quick failure → pending invocations cleaned up). Always run targeted two-file test pairs to find the source of unexpected failures.
 
+## mock.module() alternative: export a _setXForTesting() setter instead
+
+When a test needs to control module-internal state (e.g. a cached registry loaded from disk) but mock.module() would leak and break other test files:
+
+1. Export a `_setXForTesting(value | null)` function from the source module that mutates the private cache variable directly.
+2. In the test: call it in `beforeAll` to inject fake data, call it with `null` in `afterAll` to reset.
+3. No module replacement → no Bun mock.module() leak.
+
+Example: `agent-registry.ts` exports `_setRegistryForTesting(map | null)`. The reinvoke test uses it to inject a fake registry with all known agents as `invokable: true`, bypassing the disk-reading `buildRegistry()` entirely. Upstream tests that need real `agent-registry.js` behavior are unaffected.
+
+Rule: if the module under test has a module-level cache that varies by environment (disk files, env vars, etc.), prefer a setter over mock.module(). Reserve mock.module() for modules where you want to replace ALL behavior (db connections, server stubs).
+
 ## generateId() produces 16-char base64url strings, NOT UUIDs
 
 `generateId()` in `utils.ts` uses `randomBytes(12).toString('base64url')` — 16 characters matching `/^[A-Za-z0-9_-]{16}$/`. These are NOT RFC4122 UUIDs. Zod's `.uuid()` rejects them. When validating cursor/ID fields in schemas, use `.regex(/^[A-Za-z0-9_-]{16}$/)` instead of `.uuid()`. Test IDs must also match this format (16 base64url chars) or Zod schema validation will reject them before the handler runs.

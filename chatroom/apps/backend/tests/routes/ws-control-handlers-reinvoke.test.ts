@@ -12,6 +12,9 @@
  *   - agent-invoker.js → partial stub: invokeAgent/invokeAgents are captured stubs;
  *     all state functions (pause/resume/sanitize/etc.) use real implementations to
  *     avoid cross-file contamination (mock-patterns.md rule).
+ *   - agent-registry.js → NOT mocked via mock.module() (would leak). Instead,
+ *     _setRegistryForTesting() injects a controlled Map in beforeAll and clears
+ *     it in afterAll. No module replacement — no cross-file contamination.
  *
  * mock.module() MUST be declared before any import of ws-control-handlers.js.
  */
@@ -106,8 +109,43 @@ mock.module('../../src/services/agent-invoker.js', () => {
 // Imports AFTER all mock.module() declarations
 // ---------------------------------------------------------------------------
 
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, beforeAll, afterAll } from 'bun:test';
 import { handleReinvokeFromContext } from '../../src/routes/ws-control-handlers.js';
+import { _setRegistryForTesting, type AgentConfig } from '../../src/services/agent-registry.js';
+
+// ---------------------------------------------------------------------------
+// Registry isolation — inject a controlled Map so tests pass regardless of
+// whether real agent .md files exist on disk (CI vs local).
+// Using _setRegistryForTesting avoids mock.module() which leaks globally.
+// ---------------------------------------------------------------------------
+
+const KNOWN_AGENTS = ['ultron', 'cerberus', 'bilbo', 'dante', 'argus', 'moriarty', 'yoda', 'house', 'alexandria', 'gitto', 'claude'];
+
+function makeAgentConfig(name: string): AgentConfig {
+  return {
+    name: name.toLowerCase(),
+    displayName: name.charAt(0).toUpperCase() + name.slice(1),
+    role: 'test',
+    model: 'claude-sonnet-4-6' as AgentConfig['model'],
+    color: 'oklch(65% 0.14 195)',
+    icon: 'wrench',
+    allowedTools: ['Read', 'Edit'],
+    invokable: true,
+  };
+}
+
+const _fakeRegistry = new Map<string, AgentConfig>(
+  KNOWN_AGENTS.map((name) => [name, makeAgentConfig(name)]),
+);
+
+beforeAll(() => {
+  _setRegistryForTesting(_fakeRegistry);
+});
+
+afterAll(() => {
+  // Reset to null so downstream test files rebuild from real disk state.
+  _setRegistryForTesting(null);
+});
 
 // ---------------------------------------------------------------------------
 // Fake WS builder (minimal — only send() needed for error assertions)
