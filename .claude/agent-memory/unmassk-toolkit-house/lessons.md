@@ -45,3 +45,7 @@ A debounce guard like `if (reconnectAttempts === 0 && ...) return` protects agai
 ## Lesson: Overlapping async operations through a proxy amplify resource consumption
 
 When backoff delay < proxy TCP timeout, multiple reconnect attempts overlap. Each holds resources (sockets, memory) for the full proxy timeout duration. The visible symptom (RAM/CPU spike) is proportional to `min(max_attempts, proxy_timeout / backoff_delay)` simultaneous connections. The fix requires either (a) fast-fail timeouts on the client side or (b) serialization so attempt N+1 waits for N to complete.
+
+## Lesson: "Not X" user reports require tracing the actual displayed text, not the code string
+
+When a user reports seeing "NOT RESPONSE", do not grep for that exact string. Trace what text actually renders in each UI component at each step of the flow. The system message "Agent X returned no response." renders through SystemMessage.tsx with formatting applied — the user may paraphrase or truncate what they see. Start from the symptom (what renders visible text) and work backward through the data flow.

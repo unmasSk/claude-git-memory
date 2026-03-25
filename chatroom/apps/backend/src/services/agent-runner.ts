@@ -22,6 +22,9 @@ import { generateId, nowIso } from '../utils.js';
 import { AGENT_TIMEOUT_MS } from '../config.js';
 import { AgentState } from '@agent-chatroom/shared';
 import type { Message } from '@agent-chatroom/shared';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { unlink } from 'node:fs/promises';
 import {
   buildPrompt,
   buildSystemPrompt,
@@ -47,17 +50,21 @@ const DEFAULT_CONTEXT_WINDOW = 1_000_000;
 // ---------------------------------------------------------------------------
 
 /**
- * Spawn options bag for Bun.spawn with piped stdout/stderr and Uint8Array stdin.
- * stdin is a Uint8Array containing the prompt, avoiding Windows CreateProcess
- * command-line length limits (~32 767 chars) that caused ENAMETOOLONG when
- * chat history grew large (FIX: stdin-prompt).
+ * Spawn options bag for Bun.spawn with piped stdout/stderr and typed stdin.
+ * On Unix: stdin is a Uint8Array (in-memory prompt bytes), avoiding Windows
+ * CreateProcess command-line length limits (~32 767 chars) that caused
+ * ENAMETOOLONG when chat history grew large (FIX: stdin-prompt).
+ * On Windows: stdin is a BunFile backed by a temp file — Uint8Array EOF
+ * signaling is unreliable on Windows pipes; file-backed stdin lets the OS
+ * manage the pipe lifecycle from the file descriptor so the final result
+ * event is not lost (FIX: win32-stdin-tempfile).
  *
  * Typed as a plain object rather than the generic SpawnOptions alias so that
- * Uint8Array (a valid Writable value at runtime) does not conflict with the
- * literal-union constraint in bun-types' generic parameter.
+ * Uint8Array and BunFile (both valid Writable values at runtime) do not
+ * conflict with the literal-union constraint in bun-types' generic parameter.
  */
 interface BunSpawnOptionsWithDetached {
-  stdin: Uint8Array;
+  stdin: Uint8Array | ReturnType<typeof Bun.file>;
   stdout: 'pipe';
   stderr: 'pipe';
   detached?: boolean;
@@ -186,41 +193,68 @@ export async function spawnAndParse(opts: SpawnAndParseOptions): Promise<boolean
   // FIX stdin-prompt: prompt is passed via stdin instead of -p to avoid Windows
   // CreateProcess command-line limit (~32 767 chars). The claude CLI reads from
   // stdin when -p is not present.
+  // FIX win32-stdin-tempfile: On Windows, Uint8Array EOF signaling via Bun.spawn
+  // stdin is unreliable — Windows pipe semantics do not flush the stdout buffer
+  // properly on forced termination, causing the final result event to be lost and
+  // triggering handleEmptyResult ("returned no response"). Fix: write the prompt
+  // to a temp file and use Bun.file(tempPath) as stdin. File-backed stdin lets
+  // the OS manage the pipe lifecycle from the file descriptor, ensuring the
+  // subprocess sees a clean EOF and flushes its output buffer before exiting.
+  // Unix keeps the existing Uint8Array path — it works correctly there.
   const isUnix = process.platform !== 'win32';
-  const spawnOpts: BunSpawnOptionsWithDetached = {
-    stdin: new TextEncoder().encode(prompt),
-    stdout: 'pipe',
-    stderr: 'pipe',
-    ...(isUnix ? { detached: true } : {}),
-    ...(cwd ? { cwd } : {}),
-  };
-  const proc = Bun.spawn(args, spawnOpts);
-  logger.debug({ agentName, roomId, pid: proc.pid }, 'subprocess spawned');
+  let tempFilePath: string | undefined;
 
-  // registerActiveProcess creates the timeout handle and registers it atomically so
-  // pauseAgent always finds a valid timeoutHandle at registration time.
-  const { entry: activeEntry, flightKey } = registerActiveProcess(proc, agentName, roomId);
+  try {
+    let stdinValue: Uint8Array | ReturnType<typeof Bun.file>;
+    if (isUnix) {
+      stdinValue = new TextEncoder().encode(prompt);
+    } else {
+      tempFilePath = join(tmpdir(), `agent-prompt-${crypto.randomUUID()}.txt`);
+      logger.debug({ agentName, roomId, tempFilePath }, 'win32: writing prompt to temp file for stdin');
+      await Bun.write(tempFilePath, prompt);
+      stdinValue = Bun.file(tempFilePath);
+    }
 
-  const sr = await readAgentStream(proc, agentName, roomId, activeEntry.timeoutHandle!);
-  // Cancel whichever timeout is currently in activeEntry — resumeAgent may have replaced
-  // the original handle with a shorter one after a pause/resume cycle.
-  if (activeEntry.timeoutHandle !== undefined) {
-    clearTimeout(activeEntry.timeoutHandle);
-    activeEntry.timeoutHandle = undefined;
+    const spawnOpts: BunSpawnOptionsWithDetached = {
+      stdin: stdinValue,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      ...(isUnix ? { detached: true } : {}),
+      ...(cwd ? { cwd } : {}),
+    };
+    const proc = Bun.spawn(args, spawnOpts);
+    logger.debug({ agentName, roomId, pid: proc.pid }, 'subprocess spawned');
+
+    // registerActiveProcess creates the timeout handle and registers it atomically so
+    // pauseAgent always finds a valid timeoutHandle at registration time.
+    const { entry: activeEntry, flightKey } = registerActiveProcess(proc, agentName, roomId);
+
+    const sr = await readAgentStream(proc, agentName, roomId, activeEntry.timeoutHandle!);
+    // Cancel whichever timeout is currently in activeEntry — resumeAgent may have replaced
+    // the original handle with a shorter one after a pause/resume cycle.
+    if (activeEntry.timeoutHandle !== undefined) {
+      clearTimeout(activeEntry.timeoutHandle);
+      activeEntry.timeoutHandle = undefined;
+    }
+    activeProcesses.delete(flightKey);
+    // Fallback: if CLI didn't emit model_usage.contextWindow, use explicit model map
+    if (sr.resultContextWindow === 0) {
+      const fallback = CONTEXT_WINDOW_MAP[model] ?? DEFAULT_CONTEXT_WINDOW;
+      logger.warn({ agentName, roomId, model, fallback }, 'CLI did not emit contextWindow — using model fallback');
+      sr.resultContextWindow = fallback;
+    }
+    // Diagnostic: if the agent is still flagged as paused when its process completes,
+    // SIGSTOP failed to reach the subprocess. The result will overwrite Paused status.
+    if (isAgentPaused(agentName, roomId)) {
+      logger.warn({ agentName, roomId }, 'agent completed while flagged as paused — SIGSTOP likely failed');
+    }
+    return handleAgentResult(sr, roomId, agentName, model, context);
+  } finally {
+    if (tempFilePath !== undefined) {
+      logger.debug({ agentName, roomId, tempFilePath }, 'win32: cleaning up prompt temp file');
+      await unlink(tempFilePath).catch(() => { /* best-effort cleanup — ignore ENOENT */ });
+    }
   }
-  activeProcesses.delete(flightKey);
-  // Fallback: if CLI didn't emit model_usage.contextWindow, use explicit model map
-  if (sr.resultContextWindow === 0) {
-    const fallback = CONTEXT_WINDOW_MAP[model] ?? DEFAULT_CONTEXT_WINDOW;
-    logger.warn({ agentName, roomId, model, fallback }, 'CLI did not emit contextWindow — using model fallback');
-    sr.resultContextWindow = fallback;
-  }
-  // Diagnostic: if the agent is still flagged as paused when its process completes,
-  // SIGSTOP failed to reach the subprocess. The result will overwrite Paused status.
-  if (isAgentPaused(agentName, roomId)) {
-    logger.warn({ agentName, roomId }, 'agent completed while flagged as paused — SIGSTOP likely failed');
-  }
-  return handleAgentResult(sr, roomId, agentName, model, context);
 }
 
 // ---------------------------------------------------------------------------

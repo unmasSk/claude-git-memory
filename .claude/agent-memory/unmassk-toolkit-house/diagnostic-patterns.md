@@ -155,3 +155,33 @@ SIGSTOP DOES freeze the `claude` process (confirmed: `ps` shows state `T` on PID
 1. Mock at a higher level (mock the functions, not the module)
 2. Use dependency injection so the test can pass stubs without `mock.module`
 3. Restructure so the poisoning test uses `jest.fn()`/`mock()` on individual functions rather than replacing entire modules
+
+## Pattern: Bun.spawn stdin:Uint8Array EOF Not Signaled on Windows (Lost Result Event)
+
+**Project:** agent-chatroom
+**First seen:** 2026-03-25
+
+When `Bun.spawn` is called with `stdin: Uint8Array` on Windows, the write end of the stdin pipe may not be properly closed after all bytes are written. The subprocess (`claude`) receives the prompt data but never gets an EOF signal on stdin. Combined with the lack of `detached: true` on Windows (disabled due to Bun 1.3.11 bugs), this creates a cascading failure:
+
+1. `claude` CLI reads the prompt from stdin (agent starts working, tool_use events flow)
+2. Agent completes tool use and prepares its response
+3. The result event is the LAST stdout write before process exit
+4. On Windows, forced process termination (timeout kill via `proc.kill()`) or abnormal exit may discard unflushed stdout pipe data
+5. The stdout reader sees `done: true` without the result event
+6. `handleEmptyResult` fires, posting "Agent X returned no response."
+
+**Key distinction from Unix:** On Unix, pipe semantics guarantee all written data is readable by the parent even after process exit. On Windows, this guarantee does not hold for forced termination. Additionally, on Unix `detached: true` + process group kill (`process.kill(-pid, 'SIGTERM')`) allows graceful shutdown; on Windows, only `proc.kill()` is available.
+
+**Detection:**
+1. Agent tool_use events arrive (visible in chat as ToolLine items) but no agent message follows
+2. System message "Agent X returned no response." appears
+3. Only reproducible on Windows, not Mac/Linux
+4. Check pino logs for the `handleEmptyResult` path being hit with `hasResult: false`
+5. Check whether the subprocess was killed by timeout vs exited normally
+
+**Compounding factors:**
+- `windowsHide: true` bug (already documented above) — shows Bun 1.3.x has systemic Windows CreateProcessW issues
+- `process.kill(-pid)` ESRCH on Windows — shows process group management is broken
+- These are all in the same Bun libuv/Windows-API integration layer
+
+**Fix approach:** Use `-p` flag with a stdin-fallback pattern: pass a short marker via `-p` and the full prompt via stdin, OR pipe through a shell wrapper that explicitly closes stdin after writing, OR detect the empty-result-after-tool-use condition and retry with `-p` arg directly (truncated to Windows limits).
