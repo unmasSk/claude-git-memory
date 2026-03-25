@@ -89,7 +89,7 @@ describe('seedAgentSessions', () => {
   ];
 
   it('seeds all non-user agents as idle', () => {
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const sessions = getAllSessions(currentDb);
     // 'user' must be excluded; 3 agent sessions expected
@@ -99,7 +99,7 @@ describe('seedAgentSessions', () => {
   });
 
   it('sets status to idle for every seeded agent', () => {
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const sessions = getAllSessions(currentDb);
     for (const session of sessions) {
@@ -108,7 +108,7 @@ describe('seedAgentSessions', () => {
   });
 
   it('sets session_id to null for every seeded agent', () => {
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const sessions = getAllSessions(currentDb);
     for (const session of sessions) {
@@ -117,7 +117,7 @@ describe('seedAgentSessions', () => {
   });
 
   it('persists the correct model from the agent definition', () => {
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const claude = getSession(currentDb, 'claude', 'default');
     expect(claude?.model).toBe('claude-opus-4-6');
@@ -127,8 +127,8 @@ describe('seedAgentSessions', () => {
   });
 
   it('is idempotent — calling twice does not duplicate rows', () => {
-    seedAgentSessions(SAMPLE_AGENTS);
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const sessions = getAllSessions(currentDb);
     expect(sessions.length).toBe(3);
@@ -144,7 +144,7 @@ describe('seedAgentSessions', () => {
       .run();
 
     // Boot-time seed must not reset existing rows — ON CONFLICT DO NOTHING
-    seedAgentSessions(SAMPLE_AGENTS);
+    seedAgentSessions(SAMPLE_AGENTS, 'default');
 
     const claude = getSession(currentDb, 'claude', 'default');
     // Status must remain 'done' so @everyone can still invoke the agent
@@ -168,13 +168,13 @@ describe('seedAgentSessions', () => {
   });
 
   it('handles an empty agent list without error', () => {
-    seedAgentSessions([]);
+    seedAgentSessions([], 'default');
     const sessions = getAllSessions(currentDb);
     expect(sessions.length).toBe(0);
   });
 
   it('handles a list containing only the user entry', () => {
-    seedAgentSessions([{ name: 'user', model: 'claude-sonnet-4-6' }]);
+    seedAgentSessions([{ name: 'user', model: 'claude-sonnet-4-6' }], 'default');
     const sessions = getAllSessions(currentDb);
     expect(sessions.length).toBe(0);
   });

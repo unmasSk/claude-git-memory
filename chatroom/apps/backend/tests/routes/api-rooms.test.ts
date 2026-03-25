@@ -1,7 +1,7 @@
 /**
  * Integration tests for room management endpoints:
  *   POST   /api/rooms          — create room + seed agents (requires auth)
- *   DELETE /api/rooms/:id      — delete room (forbidden for 'default', requires auth)
+ *   DELETE /api/rooms/:id      — delete room (requires auth)
  *
  * Uses an isolated in-memory SQLite DB. Mock is registered BEFORE imports
  * that transitively load db/connection.js.
@@ -37,6 +37,16 @@ _db.exec(`
     session_id TEXT, model TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'idle',
     last_active TEXT, total_cost REAL DEFAULT 0.0, turn_count INTEGER DEFAULT 0,
     PRIMARY KEY (agent_name, room_id)
+  );
+  CREATE TABLE IF NOT EXISTS attachments (
+    id TEXT PRIMARY KEY,
+    room_id TEXT NOT NULL REFERENCES rooms(id),
+    message_id TEXT REFERENCES messages(id),
+    filename TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    size_bytes INTEGER NOT NULL,
+    storage_path TEXT NOT NULL,
+    created_at TEXT NOT NULL
   );
   INSERT OR IGNORE INTO rooms (id, name, topic)
   VALUES ('default', 'general', 'Agent chatroom');
@@ -189,14 +199,14 @@ describe('DELETE /api/rooms/:id', () => {
     expect(body.code).toBe('NOT_FOUND');
   });
 
-  it('returns 403 when trying to delete the default room', async () => {
+  it('deletes the default room successfully', async () => {
     const res = await fetch(`${base()}/api/rooms/default`, {
       method: 'DELETE',
       headers: authHeader(),
     });
-    expect(res.status).toBe(403);
-    const body = (await res.json()) as { code: string };
-    expect(body.code).toBe('FORBIDDEN');
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { deleted: string };
+    expect(body.deleted).toBe('default');
   });
 
   it('also removes agent sessions when room is deleted', async () => {
@@ -254,18 +264,7 @@ describe('POST /api/rooms/:id/reset (removed)', () => {
 // ---------------------------------------------------------------------------
 
 describe('DELETE /api/rooms/:id — moriarty findings', () => {
-  it('default room ID is the literal string "default", not a UUID — 403 check is correct', async () => {
-    // Moriarty finding #1: the concern was "UUID of default room bypasses 403"
-    // In this implementation, default room is created with id='default' (not a UUID)
-    // So params.id === 'default' is the correct check — verify it holds
-    const res = await fetch(`${base()}/api/rooms/default`, {
-      method: 'DELETE',
-      headers: authHeader(),
-    });
-    expect(res.status).toBe(403);
-  });
-
-  it('case-sensitivity bypass: DELETE /api/rooms/DEFAULT does NOT get 403 — documents gap', async () => {
+  it('case-sensitivity bypass: DELETE /api/rooms/DEFAULT — documents gap', async () => {
     // Moriarty finding: case-insensitive IDs could bypass protection
     // Elysia passes the raw param — 'DEFAULT' !== 'default', so 401 (no auth) or 404 (no such room)
     // Auth check fires first now, so an unauthenticated request gets 401

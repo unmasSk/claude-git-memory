@@ -1,5 +1,11 @@
+import { join } from 'node:path';
+import { readdir, unlink, rmdir } from 'node:fs/promises';
 import { getDb } from './connection.js';
+import { UPLOADS_DIR } from '../config.js';
 import type { MessageRow, AgentSessionRow, RoomRow, AttachmentRow } from '../types.js';
+import { createLogger } from '../logger.js';
+
+const logger = createLogger('queries');
 
 // ---------------------------------------------------------------------------
 // Rooms
@@ -417,15 +423,35 @@ export function createRoom(id: string, name: string, topic: string): RoomRow {
  * @returns True if the room existed and was deleted, false if not found
  */
 export function deleteRoom(id: string): boolean {
-  if (id === 'default') return false;
   const db = getDb();
   let deleted = false;
   db.transaction(() => {
     db.query<void, [string]>('DELETE FROM agent_sessions WHERE room_id = ?').run(id);
+    // Attachments must be deleted before messages (messages may reference attachments via message_id FK)
+    db.query<void, [string]>('DELETE FROM attachments WHERE room_id = ?').run(id);
     db.query<void, [string]>('DELETE FROM messages WHERE room_id = ?').run(id);
     const result = db.query<void, [string]>('DELETE FROM rooms WHERE id = ?').run(id);
     deleted = (result as unknown as { changes: number }).changes > 0;
   })();
+
+  if (deleted) {
+    // Async disk cleanup — do not fail the response on disk errors
+    const roomDir = join(UPLOADS_DIR, id);
+    void (async () => {
+      try {
+        const files = await readdir(roomDir);
+        await Promise.all(files.map((f) => unlink(join(roomDir, f))));
+        await rmdir(roomDir);
+      } catch (err: unknown) {
+        // ENOENT is expected if no uploads existed for this room — log everything else
+        const code = (err as NodeJS.ErrnoException).code;
+        if (code !== 'ENOENT') {
+          logger.warn({ err, roomId: id }, 'disk cleanup failed for deleted room');
+        }
+      }
+    })();
+  }
+
   return deleted;
 }
 

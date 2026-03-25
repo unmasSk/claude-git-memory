@@ -4,6 +4,7 @@ import { swagger } from '@elysiajs/swagger';
 import { PORT, HOST, NODE_ENV } from './config.js';
 import { initializeSchema, seedAgentSessions } from './db/schema.js';
 import { loadAgentRegistry, getAllAgents } from './services/agent-registry.js';
+import { listRooms, createRoom } from './db/queries.js';
 import { apiRoutes } from './routes/api.js';
 import { wsRoutes } from './routes/ws.js';
 import { createLogger } from './logger.js';
@@ -12,15 +13,27 @@ import { drainActiveInvocations } from './services/agent-invoker.js';
 
 const logger = createLogger('index');
 
-// Initialize database schema on startup
+// Initialize database schema on startup (no longer seeds default room)
 initializeSchema();
 
 // Load agent registry from disk
 loadAgentRegistry();
 
-// Seed all registered agents as idle in the default room so the sidebar
+// First-ever boot: if no rooms exist, create the default room.
+// Subsequent boots after the room was deleted: room stays deleted.
+const existingRooms = listRooms();
+if (existingRooms.length === 0) {
+  createRoom('default', 'general', 'Agent chatroom');
+  logger.info('first boot — default room created');
+}
+
+// Seed all registered agents as idle in every existing room so the sidebar
 // shows every agent immediately — not just those that have been invoked.
-seedAgentSessions(getAllAgents());
+const allRooms = listRooms();
+const agents = getAllAgents();
+for (const room of allRooms) {
+  seedAgentSessions(agents, room.id);
+}
 
 /**
  * Elysia application singleton.

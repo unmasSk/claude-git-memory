@@ -28,6 +28,8 @@ export function getDb(): Database {
   _db.exec('PRAGMA busy_timeout = 5000;');
   // Speed up writes (safe with WAL)
   _db.exec('PRAGMA synchronous = NORMAL;');
+  // Defense-in-depth: enforce FK constraints so child rows cannot outlive parents
+  _db.exec('PRAGMA foreign_keys = ON;');
 
   return _db;
 }

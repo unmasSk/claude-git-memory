@@ -73,7 +73,7 @@ Global key (not per-IP): X-Forwarded-For is trivially spoofed.
 | GET | /api/rooms/:id | `{ room, participants }` | sessionId stripped from participants (SEC-MED-002) |
 | GET | /api/rooms/:id/messages | `{ messages, hasMore }` | `?limit=50&before=<id>` for pagination. Messages include linked attachments. |
 | POST | /api/rooms | `{ room }` 201 | Creates room + seeds all agents. Requires Bearer. |
-| DELETE | /api/rooms/:id | `{ deleted }` 200 | Cascade delete in transaction. 403 on `default`. Requires Bearer. |
+| DELETE | /api/rooms/:id | `{ deleted }` 200 | Cascade delete in transaction. Requires Bearer. |
 | POST | /api/rooms/:id/invite | `{ added, skipped }` 201 | Dedup agents array before upsert. Requires Bearer. |
 | POST | /api/rooms/:id/upload | `{ attachment }` 201 | Multipart file upload. Max 10 MB. Requires Bearer. |
 | GET | /api/uploads/:roomId/:fileId | file bytes | Serve uploaded file. No auth — UUIDs are unguessable. Immutable cache headers. |
@@ -96,7 +96,7 @@ Agent prompts receive attachment references as file-system paths so agents can `
 2. DELETE messages WHERE room_id = id
 3. DELETE rooms WHERE id = id
 
-The query also guards `if (id === 'default') return false` — defense in depth beyond the route 403.
+The query cascades in a transaction: agent_sessions → messages → rooms.
 
 ### seedAgentSessions — idempotent, preserves state
 

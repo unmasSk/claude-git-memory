@@ -43,7 +43,9 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       const res = await fetch('/api/rooms');
       if (!res.ok) return;
       const data = (await res.json()) as Room[];
-      set({ rooms: data });
+      const { activeRoomId } = get();
+      const activeExists = data.some((r) => r.id === activeRoomId);
+      set({ rooms: data, ...(activeExists ? {} : { activeRoomId: data[0]?.id ?? '' }) });
     } catch {
       // backend not reachable — leave rooms empty
     }
@@ -76,8 +78,6 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   },
 
   markForDelete: (id) => {
-    // Cannot mark the default room for deletion
-    if (id === 'default') return;
     set({ pendingDeleteId: id });
   },
 
@@ -86,7 +86,6 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
   },
 
   confirmDelete: async (id) => {
-    if (id === 'default') return;
     try {
       const token = await getAuthToken();
       if (!token) return;
@@ -97,8 +96,18 @@ export const useRoomStore = create<RoomStore>((set, get) => ({
       if (!res.ok) { set({ pendingDeleteId: null }); return; }
       const { rooms, activeRoomId } = get();
       const remaining = rooms.filter((r) => r.id !== id);
-      // If the deleted room was active, fall back to 'default'
-      const nextActiveId = activeRoomId === id ? 'default' : activeRoomId;
+      if (remaining.length === 0) {
+        // Last tab closed — auto-create a fresh room, retry once on failure
+        set({ rooms: [], activeRoomId: '', pendingDeleteId: null });
+        const created = await get().createRoom();
+        if (!created) {
+          // Retry once after a short delay
+          await new Promise((r) => setTimeout(r, 500));
+          await get().createRoom();
+        }
+        return;
+      }
+      const nextActiveId = activeRoomId === id ? remaining[0].id : activeRoomId;
       set({ rooms: remaining, activeRoomId: nextActiveId, pendingDeleteId: null });
     } catch {
       set({ pendingDeleteId: null });

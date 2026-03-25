@@ -160,7 +160,7 @@ function handleServerMessage(event: MessageEvent) {
       // They arrive as separate WS events — buffer them for batching
       const toolMsg: Message = {
         id: `tool-${parsed.id}`,
-        roomId: agentStore.room?.id ?? 'default',
+        roomId: agentStore.room?.id ?? '',
         author: parsed.agent,
         authorType: 'agent',
         content: parsed.description,
@@ -206,6 +206,8 @@ export const useWsStore = create<WsState>((set, get) => ({
   gitStatus: null,
 
   connect: (roomId) => {
+    if (!roomId) return;
+
     // Circuit breaker: if too many consecutive auth failures, the server is down.
     // Enter 'offline' mode — stop reconnecting until a page visibility change or
     // explicit user action resets the state.

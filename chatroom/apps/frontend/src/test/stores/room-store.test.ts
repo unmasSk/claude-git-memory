@@ -148,9 +148,9 @@ describe('markForDelete', () => {
     expect(useRoomStore.getState().pendingDeleteId).toBe('swift-falcon');
   });
 
-  it('does nothing for the default room', () => {
+  it('marks the default room for deletion like any other room', () => {
     useRoomStore.getState().markForDelete('default');
-    expect(useRoomStore.getState().pendingDeleteId).toBeNull();
+    expect(useRoomStore.getState().pendingDeleteId).toBe('default');
   });
 });
 
@@ -178,14 +178,14 @@ describe('confirmDelete', () => {
     expect(useRoomStore.getState().pendingDeleteId).toBeNull();
   });
 
-  it('falls back to default when active room is deleted', async () => {
-    const room = makeRoom('silent-hawk');
-    useRoomStore.setState({ rooms: [makeRoom('default'), room], activeRoomId: 'silent-hawk' });
-    mockTokenThen(new Response(JSON.stringify({ deleted: 'silent-hawk' }), { status: 200 }));
+  it('falls back to first remaining room when active room is deleted', async () => {
+    const remaining = [makeRoom('brave-wolf'), makeRoom('silent-hawk')];
+    useRoomStore.setState({ rooms: [makeRoom('other-room'), ...remaining], activeRoomId: 'other-room' });
+    mockTokenThen(new Response(JSON.stringify({ deleted: 'other-room' }), { status: 200 }));
 
-    await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
+    await act(() => useRoomStore.getState().confirmDelete('other-room'));
 
-    expect(useRoomStore.getState().activeRoomId).toBe('default');
+    expect(useRoomStore.getState().activeRoomId).toBe(remaining[0]!.id);
   });
 
   it('keeps active room if a different room is deleted', async () => {
@@ -199,10 +199,17 @@ describe('confirmDelete', () => {
     expect(useRoomStore.getState().activeRoomId).toBe('room-a');
   });
 
-  it('does nothing for the default room — no fetch called', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+  it('deletes the default room like any other room', async () => {
+    const defaultRoom = makeRoom('default');
+    const otherRoom = makeRoom('other-room');
+    useRoomStore.setState({ rooms: [defaultRoom, otherRoom], activeRoomId: 'default', pendingDeleteId: 'default' });
+    mockTokenThen(new Response(JSON.stringify({ deleted: 'default' }), { status: 200 }));
+
     await act(() => useRoomStore.getState().confirmDelete('default'));
-    expect(fetchSpy).not.toHaveBeenCalled();
+
+    expect(useRoomStore.getState().rooms.find((r) => r.id === 'default')).toBeUndefined();
+    expect(useRoomStore.getState().activeRoomId).toBe('other-room');
+    expect(useRoomStore.getState().pendingDeleteId).toBeNull();
   });
 
   it('clears pendingDeleteId when DELETE fetch throws', async () => {
@@ -238,6 +245,39 @@ describe('confirmDelete', () => {
 
     await act(() => useRoomStore.getState().confirmDelete('silent-hawk'));
 
+    expect(useRoomStore.getState().pendingDeleteId).toBeNull();
+  });
+
+  it('sets activeRoomId to empty string when last room is deleted and both createRoom retries fail', async () => {
+    // Setup: only one room exists
+    const room = makeRoom('only-room');
+    useRoomStore.setState({ rooms: [room], activeRoomId: 'only-room', pendingDeleteId: 'only-room' });
+
+    // First token call succeeds (for confirmDelete's own getAuthToken), then all further
+    // token fetches fail so both createRoom retries return null.
+    let tokenCallCount = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url: string | URL | Request, init?: RequestInit) => {
+      const u = typeof url === 'string' ? url : (url as URL | Request).toString();
+      if (init?.method === 'DELETE') {
+        return new Response(JSON.stringify({ deleted: 'only-room' }), { status: 200 });
+      }
+      if (init?.method === 'POST' && u.includes('/api/auth/token')) {
+        tokenCallCount++;
+        if (tokenCallCount === 1) {
+          // First token: for the confirmDelete's own getAuthToken call
+          return new Response(JSON.stringify({ token: 'test-token' }), { status: 200 });
+        }
+        // Subsequent tokens: for createRoom retries — fail to trigger the all-retries-failed path
+        return new Response('', { status: 500 });
+      }
+      return new Response('', { status: 500 });
+    });
+
+    await act(() => useRoomStore.getState().confirmDelete('only-room'));
+
+    // After both retries fail, store should be in clean empty state
+    expect(useRoomStore.getState().rooms).toEqual([]);
+    expect(useRoomStore.getState().activeRoomId).toBe('');
     expect(useRoomStore.getState().pendingDeleteId).toBeNull();
   });
 });

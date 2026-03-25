@@ -315,7 +315,7 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
     },
   )
 
-  // DELETE /api/rooms/:id — delete room and all its data (forbidden for 'default')
+  // DELETE /api/rooms/:id — delete room and all its data
   // Requires a valid auth token in the Authorization header.
   .delete(
     '/rooms/:id',
@@ -333,10 +333,6 @@ export const apiRoutes = new Elysia({ prefix: '/api' })
         return { error: 'Unauthorized. Provide a valid token via Authorization: Bearer <token>', code: 'UNAUTHORIZED' };
       }
 
-      if (params.id === 'default') {
-        set.status = 403;
-        return { error: 'Cannot delete the default room', code: 'FORBIDDEN' };
-      }
       const deleted = deleteRoom(params.id);
       if (!deleted) {
         set.status = 404;

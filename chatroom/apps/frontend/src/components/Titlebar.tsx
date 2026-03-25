@@ -48,7 +48,6 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
 
   function handleCloseClick(e: React.MouseEvent, roomId: string) {
     e.stopPropagation();
-    if (roomId === 'default') return;
     if (pendingDeleteId === roomId) {
       // Second click — confirm delete
       void confirmDelete(roomId);
@@ -89,7 +88,6 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
           {rooms.map((room) => {
             const isActive = room.id === activeRoomId;
             const isPendingDelete = room.id === pendingDeleteId;
-            const isDeletable = room.id !== 'default';
 
             const displayName = getRepoName(room.cwd) ?? room.name;
 
@@ -115,15 +113,13 @@ export function Titlebar({ onSettingsClick, onRepoClick }: TitlebarProps) {
                   </span>
                 )}
                 {room.cwd ? displayName : <span className="tb-no-repo">no repo</span>}
-                {isDeletable && (
-                  <span
-                    className={`tb-tab-close${isPendingDelete ? ' close-confirm' : ''}`}
-                    onClick={(e) => handleCloseClick(e, room.id)}
-                    title={isPendingDelete ? 'Confirm delete' : 'Delete room'}
-                  >
-                    &times;
-                  </span>
-                )}
+                <span
+                  className={`tb-tab-close${isPendingDelete ? ' close-confirm' : ''}`}
+                  onClick={(e) => handleCloseClick(e, room.id)}
+                  title={isPendingDelete ? 'Confirm delete' : 'Delete room'}
+                >
+                  &times;
+                </span>
               </div>
             );
           })}

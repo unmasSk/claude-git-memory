@@ -63,9 +63,6 @@ export function initializeSchema(): void {
     CREATE INDEX IF NOT EXISTS idx_messages_room ON messages(room_id, created_at);
     CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id);
     CREATE INDEX IF NOT EXISTS idx_attachments_message ON attachments(message_id);
-
-    INSERT OR IGNORE INTO rooms (id, name, topic)
-    VALUES ('default', 'general', 'Agent chatroom');
   `);
 
   // Idempotent migrations — add columns to existing DBs.
@@ -108,11 +105,11 @@ export function initializeSchema(): void {
  * Called once after `initializeSchema()` so the sidebar shows all agents on first load.
  *
  * @param agents - Agent definitions to seed (name + model)
- * @param roomId - Room to seed into (defaults to 'default')
+ * @param roomId - Room to seed into
  */
 export function seedAgentSessions(
   agents: ReadonlyArray<{ name: string; model: string }>,
-  roomId = 'default',
+  roomId: string,
 ): void {
   let count = 0;
   for (const agent of agents) {

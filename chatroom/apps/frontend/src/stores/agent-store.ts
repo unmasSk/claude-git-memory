@@ -105,7 +105,7 @@ export const useAgentStore = create<AgentStoreState>((set, get) => ({
 
       const base: AgentStatusUI = existing ?? {
         agentName,
-        roomId: state.room?.id ?? 'default',
+        roomId: state.room?.id ?? '',
         sessionId: null, // SEC-FIX 5: sessionId is server-internal, always null on client
         model: 'claude-sonnet-4-6',
         status,

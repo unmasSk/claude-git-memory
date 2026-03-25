@@ -91,9 +91,9 @@ describe('agent-store — agent status updates', () => {
     expect(entry?.roomId).toBe('room-1');
   });
 
-  it('updateStatus placeholder falls back to "default" roomId when no room set', () => {
+  it('updateStatus placeholder falls back to empty string roomId when no room set', () => {
     useAgentStore.getState().updateStatus('orphan', AgentState.Done);
-    expect(useAgentStore.getState().agents.get('orphan')?.roomId).toBe('default');
+    expect(useAgentStore.getState().agents.get('orphan')?.roomId).toBe('');
   });
 
   it('getOnlineAgents excludes agents with Out status', () => {
